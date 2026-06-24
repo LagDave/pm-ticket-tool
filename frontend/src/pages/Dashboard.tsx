@@ -1,8 +1,8 @@
 /**
- * Dashboard — the app's landing screen (spec 4 T4). Lists the owner's sessions
+ * Dashboard - the app's landing screen (spec 4 T4). Lists the owner's sessions
  * paginated (useSessions, §15.1) with a status filter and page controls, a "new
  * session" entry, and per-row actions wired to the page's handlers. Owns only UI
- * state — the page number, the status filter, and which session is being opened
+ * state - the page number, the status filter, and which session is being opened
  * for its ticket (§15.2); all server data is React Query (§15.1). No fetch or
  * business logic here (§14.1); errors surface via the hooks' toast (§16.3) and an
  * inline error state. Other pages are not imported (§12.4). Typed, no any (§17.2).
@@ -76,7 +76,7 @@ export function Dashboard({ onOpenSession, onViewTicket }: DashboardProps) {
 
   const handleReRun = (session: InterviewSession): void => {
     // A re-run is a fresh session from the same request, so it is triaged like
-    // any new request (spec 7) — not routed straight into the interview.
+    // any new request (spec 7) - not routed straight into the interview.
     clone.mutate(session.id, {
       onSuccess: (created) => onOpenSession(created.id, WIZARD_STEP.triage),
     });

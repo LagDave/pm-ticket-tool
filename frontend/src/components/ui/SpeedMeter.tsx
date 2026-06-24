@@ -1,5 +1,5 @@
 /**
- * SpeedMeter — renders an OptionSpeed as an ordered 5-segment meter slowest→
+ * SpeedMeter - renders an OptionSpeed as an ordered 5-segment meter slowest→
  * fastest (spec 6, §12.3). Elegant, glanceable build-speed indicator for the
  * deck cards. The fill is deliberately NEUTRAL (off-white on the dark surface),
  * not the accent: the meter is purely informational, so it must not compete with
@@ -26,7 +26,7 @@ interface SpeedMeterProps {
 export function SpeedMeter({ speed, muted = false }: SpeedMeterProps) {
   const filled = speedFilledSegments(speed);
   const segments = Array.from({ length: SPEED_SEGMENTS }, (_, i) => i < filled);
-  // Neutral fill — NOT the accent (§ restraint): bright off-white when active,
+  // Neutral fill - NOT the accent (§ restraint): bright off-white when active,
   // dimmer when this card is recessed behind a selection.
   const fillClass = muted ? "bg-muted/40" : "bg-muted";
 

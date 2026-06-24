@@ -1,5 +1,5 @@
 /**
- * SessionList — the dashboard's table of the owner's sessions with per-row
+ * SessionList - the dashboard's table of the owner's sessions with per-row
  * actions (spec 4 T4, §12.3). A component renders + delegates: the page passes
  * the current page of sessions (from useSessions, §15.1) and the action handlers;
  * this file owns no fetching and no business logic (§14.1). Each row shows status,

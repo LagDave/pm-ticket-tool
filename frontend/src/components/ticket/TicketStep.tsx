@@ -1,5 +1,5 @@
 /**
- * TicketStep — the wizard's terminal step (spec T4): after the interview
+ * TicketStep - the wizard's terminal step (spec T4): after the interview
  * completes, generate the durable ticket from the session, then hand off to
  * TicketView for review/edit/comment/finalize/copy. Generation runs through the
  * useGenerateTicket hook (§14.3); the generated ticket id is the only local UI
@@ -30,7 +30,7 @@ export function TicketStep({ sessionId }: TicketStepProps) {
     <section className="step-panel">
       <h2 className="step-heading">Draft the ticket</h2>
       <p className="field-hint">
-        We have enough decisions to draft a ticket — a user story, Given/When/Then
+        We have enough decisions to draft a ticket: a user story, Given/When/Then
         acceptance criteria, an effort tier, and a short context summary.
       </p>
       <div className="step-actions">

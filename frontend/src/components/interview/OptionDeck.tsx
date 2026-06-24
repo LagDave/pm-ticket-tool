@@ -1,9 +1,9 @@
 /**
- * OptionDeck — one question rendered as an animated deck of option cards (spec 6
+ * OptionDeck - one question rendered as an animated deck of option cards (spec 6
  * centerpiece, §12.3). Replaces the old radio list: cards stagger-reveal on entry
  * with spring motion (the container variant), lift on hover, and on select the
  * chosen card expands forward while the others recede/dim (OptionCard). The deck
- * is ordered by build speed — fastest (least effort) first — but the single
+ * is ordered by build speed - fastest (least effort) first - but the single
  * recommended pick is always pulled to the front so it leads regardless of speed.
  * A distinct dashed "Other (describe)" card keeps the free-text affordance (spec
  * allowOther). Presentational: it reports selection up to QuestionBatch, which
@@ -30,7 +30,7 @@ interface OptionDeckProps {
   onChangeOther: (otherText: string) => void;
 }
 
-/** A stable id for an option — falls back to its index when the model omitted one. */
+/** A stable id for an option - falls back to its index when the model omitted one. */
 function optionKey(option: QuestionOption, index: number): string {
   return option.id ?? String(index);
 }
@@ -108,7 +108,7 @@ export function OptionDeck({
 /**
  * The distinct free-text affordance: a dashed card with an inline input. When the
  * PM types into it, it carries the SAME full selected treatment as an option card
- * (accent border, tint, shadow, a filled check) and the other cards recede — so
+ * (accent border, tint, shadow, a filled check) and the other cards recede - so
  * the custom answer clearly becomes the selection (Item 8); when an option card
  * is selected instead, this card recedes/dims like the others. Selection is
  * mutually exclusive in the parent's draft state.

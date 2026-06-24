@@ -1,9 +1,9 @@
 /**
- * QuestionBatch — wizard step that renders the current open batch and collects
+ * QuestionBatch - wizard step that renders the current open batch and collects
  * answers (§12.3). A component renders + delegates: server state comes from the
  * useInterview hooks (§14.3, §15.1); only the in-progress answer selections are
  * local UI state. The batch is shown ONE QUESTION PER SCREEN via QuestionCarousel
- * (swipe / arrows / clickable dots) rather than a vertical stack — each screen is
+ * (swipe / arrows / clickable dots) rather than a vertical stack - each screen is
  * a question and its full animated OptionDeck (recommended highlighted, neutral
  * build-speed meter). Per-question free-text and the global "stop and generate
  * now" are supported; the primary "submit the batch" action appears once every
@@ -12,7 +12,7 @@
  *
  * Batch progress (spec 2 UX): a "Interview · Batch N" header, a stepper of
  * answered batches, and an answered-count make generating batch 2/3 visibly
- * different from batch 1 — it no longer looks like the first Generate screen.
+ * different from batch 1 - it no longer looks like the first Generate screen.
  * The generate button advertises the real next batch number ("Ready for batch
  * N"), generation shows a labeled BatchThinking indicator, and the deck animates
  * out/in between batches via AnimatePresence keyed on the batch number.
@@ -56,7 +56,7 @@ interface Draft {
 /**
  * True when a draft is a usable answer: a picked option, or "Other" with non-empty
  * text. Single source of truth for both the per-question dot state (carousel) and
- * the batch-level "all answered" gate (§4.3 — don't duplicate the rule).
+ * the batch-level "all answered" gate (§4.3 - don't duplicate the rule).
  */
 function draftIsAnswered(draft: Draft | undefined): boolean {
   if (!draft) return false;
@@ -74,7 +74,7 @@ function openQuestions(state: InterviewState | undefined): InterviewQuestion[] {
 /**
  * True when any option in the open batch is grounded in scout findings (spec 6):
  * it carries a groundingRef back to a finding. Drives the "verify with engineering"
- * note — shown only when there is grounding to verify.
+ * note - shown only when there is grounding to verify.
  */
 function hasGroundedOptions(questions: InterviewQuestion[]): boolean {
   return questions.some((question) =>
@@ -165,7 +165,7 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
 
   if (isLoading) return <LoadingLine label="Loading feature scope…" />;
 
-  // Generating a batch — show the labeled, animated thinking indicator. Rendered
+  // Generating a batch - show the labeled, animated thinking indicator. Rendered
   // directly (no wrapping AnimatePresence): BatchThinking owns its own internal
   // AnimatePresence for the rotating phases, and wrapping it in a second
   // mode="wait" presence here deadlocks its exit when the batch lands, leaving
@@ -174,7 +174,7 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
     return <BatchThinking batchNumber={answered + 1} />;
   }
 
-  // No open batch yet — offer to generate the first/next one. The header and
+  // No open batch yet - offer to generate the first/next one. The header and
   // the button label both reflect the real next batch number so this screen
   // reads differently before batch 1 vs. between batches.
   if (!isOpen || questions.length === 0) {
@@ -214,7 +214,7 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
  * The open-batch view: the progress header, the prompt, the grounding note, the
  * one-question-per-screen carousel, and the submit / stop actions. Extracted so
  * the parent is a lean orchestrator (§13.2); it animates in/out (keyed on the
- * batch number by the parent) so a new batch visibly arrives. Presentational —
+ * batch number by the parent) so a new batch visibly arrives. Presentational -
  * the parent owns the draft state and the mutations.
  */
 function OpenBatchView({
@@ -256,14 +256,14 @@ function OpenBatchView({
       <BatchProgress answered={answered} current={batchNumber} />
       <h2 className="step-heading">A few questions</h2>
       <p className="field-hint">
-        One at a time — swipe or use the arrows and dots to move between them.
+        One at a time. Swipe or use the arrows and dots to move between them.
         Answer what you can; when you have enough, stop and we&apos;ll draft the
         ticket.
       </p>
       {isGrounded && (
         <p className="field-hint grounding-note">
           Some options are grounded in a scan of your codebase and tagged with a
-          rough build-speed tier. These are orientation only — verify with
+          rough build-speed tier. These are orientation only. Verify with
           engineering before committing.
         </p>
       )}

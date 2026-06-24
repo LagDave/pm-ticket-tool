@@ -1,8 +1,8 @@
 /**
- * Button — the one styled button primitive for the dark UI (§12.3, §13.3).
+ * Button - the one styled button primitive for the dark UI (§12.3, §13.3).
  * Three intents (primary = orange accent, secondary = neutral outline, ghost =
  * quiet link) with a subtle Framer Motion press/hover. Reused app-wide so actions
- * look consistent. Only `primary` carries the orange — secondary/ghost stay
+ * look consistent. Only `primary` carries the orange - secondary/ghost stay
  * neutral white on the dark canvas so the accent reads as a rare highlight.
  * Presentational only, no fetch or business logic.
  */

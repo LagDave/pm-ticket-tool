@@ -1,6 +1,6 @@
 /**
  * api client contract tests (§16.1, §20.2). Proves the envelope is unwrapped to
- * data on success and thrown as ApiError carrying the code on failure — the one
+ * data on success and thrown as ApiError carrying the code on failure - the one
  * error contract the whole frontend depends on.
  */
 import { describe, expect, it } from "vitest";

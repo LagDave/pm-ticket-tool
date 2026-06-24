@@ -1,8 +1,8 @@
 /**
- * QuestionCarousel — shows one question of the open batch at a time as a swipeable
+ * QuestionCarousel - shows one question of the open batch at a time as a swipeable
  * pager (Change 1 / spec UX). Replaces the old vertical stack of every question's
  * deck: the PM answers each question on its own screen and moves freely between
- * them. Navigation is three ways — drag/swipe left-right (Framer Motion `drag`),
+ * them. Navigation is three ways - drag/swipe left-right (Framer Motion `drag`),
  * neutral prev/next arrows (disabled at the ends), and a clickable dot rail (one
  * dot per question; the active dot carries the orange accent, answered questions
  * read as a brighter-neutral dot). Each screen is the question text + its full
@@ -48,7 +48,7 @@ export function QuestionCarousel({
   onSelectOption,
   onChangeOther,
 }: QuestionCarouselProps) {
-  // [index, direction] — direction (+1/-1) tells the slide which way to animate.
+  // [index, direction] - direction (+1/-1) tells the slide which way to animate.
   const [position, setPosition] = useState<{ index: number; direction: number }>({
     index: 0,
     direction: 0,

@@ -1,5 +1,5 @@
 /**
- * CopyTicketButton — copies the ticket's canonical Markdown to the clipboard
+ * CopyTicketButton - copies the ticket's canonical Markdown to the clipboard
  * (spec T4/T5, §12.3). The string it copies is exactly tickets.rendered_markdown
  * from the API, so the copy matches what the backend rendered. A component
  * renders + delegates; errors surface via the shared toast (§16.3), never a

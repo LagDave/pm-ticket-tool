@@ -1,5 +1,5 @@
 /**
- * BatchThinking — the labeled, animated "figuring out the questions" indicator
+ * BatchThinking - the labeled, animated "figuring out the questions" indicator
  * shown while a batch generates (spec 2 UX). It replaces a bare "Generating…":
  * an animated dual-ring orb plus a primary label that rotates through a mix of
  * functional phases ("Reading your answers…", "Grounding in your request…") and

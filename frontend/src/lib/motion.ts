@@ -1,11 +1,11 @@
 /**
- * Shared Framer Motion variants + spring presets (§4.2 — named, not magic; reused
+ * Shared Framer Motion variants + spring presets (§4.2 - named, not magic; reused
  * across the wizard so motion reads consistently). Physics-based springs, not
  * duration tweens, so reveals feel weighty rather than jittery. Pure data, no JSX.
  */
 import type { Transition, Variants } from "framer-motion";
 
-/** The house spring — a touch of bounce, settles fast. Used for entrances/lifts. */
+/** The house spring - a touch of bounce, settles fast. Used for entrances/lifts. */
 export const SPRING: Transition = { type: "spring", stiffness: 380, damping: 32, mass: 0.9 };
 
 /** A softer spring for larger layout shifts (a card expanding forward). */

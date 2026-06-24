@@ -1,5 +1,5 @@
 /**
- * Ticket domain API — thin typed functions over the one client (§12.1, §14.2).
+ * Ticket domain API - thin typed functions over the one client (§12.1, §14.2).
  * One file per backend domain; never calls axios/fetch directly. Generation
  * hangs off the session resource; reads/edits address the ticket resource (spec 3).
  */
@@ -13,17 +13,17 @@ import type {
   UpdateTicketInput,
 } from "../types/ticket";
 
-/** POST /sessions/:id/ticket — generate a draft ticket from the session → the new ticket. */
+/** POST /sessions/:id/ticket - generate a draft ticket from the session → the new ticket. */
 export async function generateTicket(sessionId: number): Promise<Ticket> {
   return apiPost<Ticket>(`/sessions/${sessionId}/ticket`);
 }
 
-/** GET /tickets/:id — the ticket plus its comments. */
+/** GET /tickets/:id - the ticket plus its comments. */
 export async function getTicket(ticketId: number): Promise<TicketWithComments> {
   return apiGet<TicketWithComments>(`/tickets/${ticketId}`);
 }
 
-/** PATCH /tickets/:id — inline edit, version-guarded → the updated ticket + comments. */
+/** PATCH /tickets/:id - inline edit, version-guarded → the updated ticket + comments. */
 export async function updateTicket(
   ticketId: number,
   input: UpdateTicketInput,
@@ -31,7 +31,7 @@ export async function updateTicket(
   return apiPatch<TicketWithComments>(`/tickets/${ticketId}`, input);
 }
 
-/** POST /tickets/:id/comments — add a comment → the new comment. */
+/** POST /tickets/:id/comments - add a comment → the new comment. */
 export async function addTicketComment(
   ticketId: number,
   input: AddCommentInput,
@@ -39,7 +39,7 @@ export async function addTicketComment(
   return apiPost<TicketComment>(`/tickets/${ticketId}/comments`, input);
 }
 
-/** POST /tickets/:id/finalize — flip draft→final, bump version → the finalized ticket + comments. */
+/** POST /tickets/:id/finalize - flip draft→final, bump version → the finalized ticket + comments. */
 export async function finalizeTicket(
   ticketId: number,
   input: FinalizeTicketInput,

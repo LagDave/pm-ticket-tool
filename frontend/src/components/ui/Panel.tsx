@@ -1,5 +1,5 @@
 /**
- * Panel — the surface card primitive for the dark UI (§12.3, §13.3). A bordered,
+ * Panel - the surface card primitive for the dark UI (§12.3, §13.3). A bordered,
  * faintly-lit surface that animates in as a wizard step or section. Wraps content
  * with consistent padding/edge treatment so every screen matches; presentational.
  */

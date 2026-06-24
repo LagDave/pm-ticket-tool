@@ -25,7 +25,7 @@ import type {
   TriageOutcome,
 } from "../../types/interview";
 
-/** The bare prefix all paginated session-list keys share — for broad invalidation. */
+/** The bare prefix all paginated session-list keys share - for broad invalidation. */
 const SESSIONS_KEY_PREFIX = ["sessions"] as const;
 
 /** Fetch a single session by id; disabled until an id is present. */
@@ -81,7 +81,7 @@ export function useCreateSession() {
 /**
  * Triage a session after request entry (spec 7 T3): classify the request and get
  * the route to take. Server state via React Query (§15.1), not a ref-guarded
- * effect+mutation — so the outcome reliably lands on the mounted instance even
+ * effect+mutation - so the outcome reliably lands on the mounted instance even
  * under React StrictMode's dev double-mount (the old mutation skipped its
  * surviving instance and hung the UI). The query is enabled once a session id is
  * present and calls the IDEMPOTENT triage endpoint, which classifies once then

@@ -1,5 +1,5 @@
 /**
- * TicketComments — lists a ticket's comments and adds new ones (spec T4, §12.3).
+ * TicketComments - lists a ticket's comments and adds new ones (spec T4, §12.3).
  * Server state (the comments) comes from the ticket query via props; only the
  * in-progress draft is local UI state (§15.1). The add mutation lives in the
  * useTicketQueries hook and surfaces errors via toast (§16.3); no fetch here.

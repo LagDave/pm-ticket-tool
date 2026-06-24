@@ -33,7 +33,7 @@ interface ApiEnvelope<T = unknown> {
  */
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
-/** The ONE place the JWT is read (§17.5). No auth layer yet — header is empty. */
+/** The ONE place the JWT is read (§17.5). No auth layer yet - header is empty. */
 export function getCommonHeaders(): Record<string, string> {
   // The auth spec will read a verified token here; foundation sends none.
   return {};
@@ -52,7 +52,7 @@ function unwrap<T>(payload: unknown): T {
   return (env.data ?? payload) as T;
 }
 
-/** Normalize transport/HTTP errors into ApiError (§16.1) — never leak raw axios. */
+/** Normalize transport/HTTP errors into ApiError (§16.1) - never leak raw axios. */
 function toApiError(error: unknown): ApiError {
   if (axios.isAxiosError(error)) {
     const env = error.response?.data as ApiEnvelope | undefined;

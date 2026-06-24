@@ -1,5 +1,5 @@
 /**
- * LoadingLine — a small inline loading indicator: a spinning ring plus a label
+ * LoadingLine - a small inline loading indicator: a spinning ring plus a label
  * (§12.3, §13.3). Replaces bare "Loading…" text that had no animated indicator,
  * so a load/resume reads as actively in progress. Presentational + motion only;
  * no fetch, no business logic (§14.1). Typed, no `any` (§17.2).

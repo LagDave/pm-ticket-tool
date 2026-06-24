@@ -1,5 +1,5 @@
 /**
- * RequestEntry — wizard step 1 (§12.3). Captures the PM's initial request,
+ * RequestEntry - wizard step 1 (§12.3). Captures the PM's initial request,
  * creates a session via the hook (§14.3), and calls onCreated to advance. A
  * component renders + delegates; no fetch, no business logic here (§14.1).
  */

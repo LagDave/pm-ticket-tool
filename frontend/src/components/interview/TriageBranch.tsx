@@ -1,9 +1,9 @@
 /**
- * TriageBranch — the two-speed router after request entry (spec 7 T3, §12.3). It
+ * TriageBranch - the two-speed router after request entry (spec 7 T3, §12.3). It
  * triages the session through the useTriageSession query (§14.3, §15.1): the
  * backend classifies the request `simple` or `scoped` and returns the route. A
  * `simple` result offers to jump straight to drafting; a `scoped` result offers
- * to start the interview. The override control is always present — the PM can
+ * to start the interview. The override control is always present - the PM can
  * force the full interview from a simple result, or skip a scoped result straight
  * to drafting (spec What: the classification is never a hard gate).
  *
@@ -12,8 +12,8 @@
  * reliably lands on the mounted instance even under React StrictMode's dev
  * double-mount (the prior ref-guarded mutation skipped its surviving instance and
  * hung the UI on "Sizing up your request"). The backend triage endpoint is
- * idempotent — it classifies once, then returns the persisted label on any
- * re-fetch/re-mount — so the auto-fetch is cheap and stable. A component renders +
+ * idempotent - it classifies once, then returns the persisted label on any
+ * re-fetch/re-mount - so the auto-fetch is cheap and stable. A component renders +
  * delegates: routing is handed to the parent via onRouted; no fetch or business
  * logic here (§14.1). Failures render the retry panel off the query's error state
  * (§16.1). Mirrors the QuestionBatch / TicketStep generate-then-render shape.
@@ -47,7 +47,7 @@ export function TriageBranch({ sessionId, onRouted }: TriageBranchProps) {
     return () => window.clearTimeout(timer);
   }, [outcome]);
 
-  // Classifying, or the auto-run hasn't produced a result yet — show the animated
+  // Classifying, or the auto-run hasn't produced a result yet - show the animated
   // loader; when the outcome arrives, it flips to a green check (Item 3).
   if (triage.isPending || (!outcome && !triage.isError) || (outcome && !settled)) {
     return (
@@ -58,7 +58,7 @@ export function TriageBranch({ sessionId, onRouted }: TriageBranchProps) {
     );
   }
 
-  // The classification failed outright (rare — the backend defaults to scoped).
+  // The classification failed outright (rare - the backend defaults to scoped).
   // Offer a retry and a manual route so the PM is never stuck.
   if (!outcome) {
     return (

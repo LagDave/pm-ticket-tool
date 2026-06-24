@@ -1,5 +1,5 @@
 /**
- * TicketView — the ticket feature's main view (spec T4, §12.3). Renders the
+ * TicketView - the ticket feature's main view (spec T4, §12.3). Renders the
  * story, the Given/When/Then acceptance criteria, the effort tier (with the
  * fixed "verify with engineering" note, spec Risk), and the context. Toggles
  * inline edit, hosts the comments panel and the copy-to-clipboard button, and

@@ -16,7 +16,7 @@ export const SPEED_ORDER: readonly OptionSpeed[] = [
   "fastest",
 ];
 
-/** Total segments in the meter — the length of the scale. Named, not magic. */
+/** Total segments in the meter - the length of the scale. Named, not magic. */
 export const SPEED_SEGMENTS = SPEED_ORDER.length;
 
 /** Short human labels for each step (the meter caption). */

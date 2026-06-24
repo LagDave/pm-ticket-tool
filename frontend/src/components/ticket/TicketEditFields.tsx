@@ -1,5 +1,5 @@
 /**
- * TicketEditFields — the inline-edit form for a draft ticket (spec T4, §12.3).
+ * TicketEditFields - the inline-edit form for a draft ticket (spec T4, §12.3).
  * Seeds local form state from the current ticket, then saves through a
  * version-guarded PATCH mutation (the hook carries the optimistic-concurrency
  * version; a stale save surfaces a toast, §16.3). A component renders +
@@ -113,7 +113,7 @@ export function TicketEditFields({ ticket, onDone }: TicketEditFieldsProps) {
   );
 }
 
-/** The editable Given/When/Then list — its own component to keep the parent lean (§13.2). */
+/** The editable Given/When/Then list - its own component to keep the parent lean (§13.2). */
 function CriteriaEditor({
   criteria,
   disabled,

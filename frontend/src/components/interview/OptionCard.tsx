@@ -1,7 +1,7 @@
 /**
- * OptionCard — one card in a question's animated deck (spec 6 centerpiece, §12.3,
- * §13.3). Shows the option label, the ordered build-speed meter, and — on the
- * single recommended pick — a ribbon badge + accent glow. Selecting it answers
+ * OptionCard - one card in a question's animated deck (spec 6 centerpiece, §12.3,
+ * §13.3). Shows the option label, the ordered build-speed meter, and - on the
+ * single recommended pick - a ribbon badge + accent glow. Selecting it answers
  * the question: the chosen card lifts/expands forward while the rest recede/dim
  * (driven by the `isSelected`/`isDimmed` props the deck computes). Hover tilts
  * the card. Presentational + physics motion only; no fetch, no business logic.
@@ -15,7 +15,7 @@ import { SpeedMeter } from "../ui/SpeedMeter";
 interface OptionCardProps {
   option: QuestionOption;
   isSelected: boolean;
-  /** True when another card in the deck is selected — this one recedes/dims. */
+  /** True when another card in the deck is selected - this one recedes/dims. */
   isDimmed: boolean;
   disabled: boolean;
   onSelect: () => void;
@@ -56,7 +56,7 @@ export function OptionCard({
             : "border-line bg-surface/70 hover:border-line-2")
       }
     >
-      {/* Recommended ribbon — top-right, accent. Only ever on one card per deck. */}
+      {/* Recommended ribbon - top-right, accent. Only ever on one card per deck. */}
       {isRecommended && (
         <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[0.66rem] font-bold uppercase tracking-wide text-canvas">
           <Sparkles size={12} strokeWidth={2.5} aria-hidden />
@@ -65,7 +65,7 @@ export function OptionCard({
       )}
 
       <div className="flex items-start gap-3 pr-2">
-        {/* Selection dot — fills with the accent + a check when chosen. */}
+        {/* Selection dot - fills with the accent + a check when chosen. */}
         <span
           className={
             "mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border transition-colors " +

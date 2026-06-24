@@ -1,8 +1,8 @@
 /**
- * InterviewWizard — the step-wizard shell page (§12.2). Owns only UI step state
+ * InterviewWizard - the step-wizard shell page (§12.2). Owns only UI step state
  * (§15.2); session and engine data come from the hooks/cache (§15.1). Step 1 is
  * request entry; after entry the request is triaged (spec 7) into the two-speed
- * path — a `simple` request jumps straight to the ticket step (spec 3), a
+ * path - a `simple` request jumps straight to the ticket step (spec 3), a
  * `scoped` one enters the interview engine (spec 2). The PM can override either
  * way from the triage branch. Step "Interview" is the question-batch step; step
  * "Ticket" generates and owns the durable ticket. Other pages are not imported
@@ -24,7 +24,7 @@ import { SPRING_SOFT } from "../lib/motion";
 import { useSession } from "../hooks/queries/useInterviewSessionQueries";
 import type { InterviewSession, TriageRoute } from "../types/interview";
 
-/** The rail labels — the durable destinations a session lands on. Triage is a
+/** The rail labels - the durable destinations a session lands on. Triage is a
  *  transient routing interstitial between Request and these, not a rail dot. */
 const STEPS = ["Request", "Feature Scope", "Ticket"] as const;
 
@@ -70,7 +70,7 @@ export function InterviewWizard({
 
   const handleCreated = (created: InterviewSession): void => {
     setSessionId(created.id);
-    // After entry, triage decides the path (spec 7) — no longer straight to interview.
+    // After entry, triage decides the path (spec 7) - no longer straight to interview.
     setStepIndex(WIZARD_STEP.triage);
   };
 
@@ -124,11 +124,11 @@ export function InterviewWizard({
         </ol>
       </header>
 
-      {/* Step transition — entrance-only, keyed on the step so each step mounts
+      {/* Step transition - entrance-only, keyed on the step so each step mounts
           fresh and animates in. Deliberately NOT wrapped in AnimatePresence with
           an exit: the interview step renders its own nested AnimatePresence
           (QuestionBatch's per-batch deck), and a parent presence/exit deadlocks
-          on that nested exit — leaving the old step on screen while the new one
+          on that nested exit - leaving the old step on screen while the new one
           mounts. A keyed motion.div re-mounts cleanly; the batch-level transition
           inside QuestionBatch still animates the deck swap. */}
       <motion.div

@@ -3,7 +3,7 @@
  * container (§16.3), then switches between the dashboard (the landing screen),
  * the interview wizard (new session or resume), and a read-only ticket view.
  *
- * View routing is plain UI state (§15.2) — no router library is added (§15.4);
+ * View routing is plain UI state (§15.2) - no router library is added (§15.4);
  * this mirrors how the wizard already switches steps with local state. The
  * dashboard hands a session + step to the wizard for resume (spec 4 T5) and a
  * ticket id to the ticket view (spec 4 T6).

@@ -30,7 +30,7 @@ export interface InterviewSession {
    * Concise generated display title for the dashboard (User QA: auto-generated
    * session title). Generated from original_request at create and replaced from
    * the finalized ticket after finalize. Null until generated, or if generation
-   * failed — the UI then falls back to the request snippet.
+   * failed - the UI then falls back to the request snippet.
    */
   title?: string | null;
   /** The two-speed triage label, or null until the classifier has run (spec 7). */
