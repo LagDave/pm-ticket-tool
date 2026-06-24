@@ -7,6 +7,7 @@
  * (§16.3). Mirrors the QuestionBatch generate-then-render shape (§12.3).
  */
 import { useState } from "react";
+import { ThinkingLoader } from "../ui/ThinkingLoader";
 import { useGenerateTicket } from "../../hooks/queries/useTicketQueries";
 import { TicketView } from "./TicketView";
 
@@ -26,6 +27,17 @@ export function TicketStep({ sessionId }: TicketStepProps) {
     return <TicketView ticketId={ticketId} />;
   }
 
+  // While the ticket generates, show the shared rotating loader instead of a
+  // "Generating…" button label (Rev 2), matching every other wait in the app.
+  if (generate.isPending) {
+    return (
+      <section className="step-panel">
+        <h2 className="step-heading">Draft the ticket</h2>
+        <ThinkingLoader subtitle="Drafting your ticket" />
+      </section>
+    );
+  }
+
   return (
     <section className="step-panel">
       <h2 className="step-heading">Draft the ticket</h2>
@@ -38,9 +50,8 @@ export function TicketStep({ sessionId }: TicketStepProps) {
           type="button"
           className="primary-button"
           onClick={handleGenerate}
-          disabled={generate.isPending}
         >
-          {generate.isPending ? "Generating…" : "Generate ticket"}
+          Generate ticket
         </button>
       </div>
     </section>

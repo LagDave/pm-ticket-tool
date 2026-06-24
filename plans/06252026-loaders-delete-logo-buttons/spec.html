@@ -197,8 +197,34 @@
         <li><input type="checkbox" disabled> logo.webp in header + favicon (live)</li>
         <li><input type="checkbox" disabled> Delete a session removes it (and its ticket) from the list</li>
         <li><input type="checkbox" disabled> New session = orange, Resume = white/black (live)</li>
+        <li><input type="checkbox" disabled> (Rev 1) Dashboard row actions are lucide icon buttons; rows compacted; New session has a + icon</li>
+        <li><input type="checkbox" disabled> (Rev 1) Carousel: focusing the custom card selects it and de-highlights the prior option; the selected card no longer overlaps the card below it</li>
+        <li><input type="checkbox" disabled> (Rev 2) Header: logo 40px, title smaller, logo renders without width collapse</li>
+        <li><input type="checkbox" disabled> (Rev 2) Resume icon stays visible on hover; ticket generation shows the rotating loader</li>
+        <li><input type="checkbox" disabled> (Rev 2) Last-question pager control is a Submit check; Submit/Stop group right-aligned</li>
+        <li><input type="checkbox" disabled> (Rev 2) No "Ready for batch N" button: after submit it auto-advances to the next batch's questions or the ticket view</li>
         <li><input type="checkbox" disabled> Deployed; live bundle verified</li>
       </ul>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <article class="revision-entry">
+        <h3>Rev 1 - 2026-06-25</h3>
+        <p><strong>Change (T6, dashboard):</strong> Replaced the dashboard row's text buttons (Resume/Finish, View ticket, Re-run, Delete + confirm/cancel) with compact lucide icon buttons (a new <code>.icon-button</code> system: white <code>is-resume</code>, quiet-to-red <code>is-delete</code>, filled-red <code>is-danger</code>), each with an aria-label + title tooltip. Compacted the row metrics (padding, gaps, title/snippet sizes). Added a <code>Plus</code> icon to the New session button. Removed the now-dead <code>.light-button</code>/<code>.danger-button</code>/<code>.session-delete</code> classes (§4.1).</p>
+        <p><strong>Change (T7, carousel option deck):</strong> (1) Focusing the custom "Something else" field now makes it the active selection immediately, so the custom card highlights and the previously picked option de-highlights, before any text is typed (new <code>onSelectOther</code> threaded QuestionBatch → OpenBatchView → QuestionCarousel → OptionDeck → OtherCard input <code>onFocus</code>; it stays selected while engaged). (2) Fixed the selected card overlapping the card directly below it (the custom card): dropped the grow-on-select (<code>scale</code> stays 1, neighbors still recede to 0.97), added <code>z-10</code> layering, tamed the glow, and widened the grid row gap.</p>
+        <p><strong>Reason:</strong> User QA on the live build (two screenshots): the custom card did not highlight on engage and the previously selected option stayed lit; and the selected option card bled over the custom card below it. Plus a request to icon-ify and compact the dashboard list and mark New session with a +.</p>
+        <p><strong>Updated Done criteria:</strong> added the two (Rev 1) checklist items above.</p>
+      </article>
+      <article class="revision-entry">
+        <h3>Rev 2 - 2026-06-25</h3>
+        <p><strong>Flow change (batches):</strong> Removed the manual "Ready for batch N" between-batches button. After a batch is submitted - or a resumed session sits answered with no open batch - the next batch is generated automatically (extracted <code>useAutoAdvanceBatches</code>, a ref-guarded effect keyed on the answered count). The engine returns either the next batch's questions or a completed interview, so the view flips straight to the questions or the ticket view; it never advertises a batch 2 that may not exist. Batch 1 stays user-initiated (the Start panel).</p>
+        <p><strong>Carousel:</strong> On the last question the right pager control becomes a Submit (check) button that submits the batch (accent when all answered, disabled otherwise); threaded <code>canSubmit</code>/<code>onSubmit</code> through the carousel. The Submit answers / Stop and draft group is right-aligned (<code>.step-actions.is-end</code>).</p>
+        <p><strong>Header:</strong> Logo enlarged 32 to 40px and the title reduced (<code>clamp(1.5rem, 3.1vw, 2.05rem)</code>). Fixed the logo <code>&lt;img&gt;</code> <code>width</code>/<code>height</code> attributes (32 to 40) that conflicted with the CSS size and collapsed the rendered logo width to 0 (caught via the local preview computed-style check).</p>
+        <p><strong>Buttons / loader:</strong> The white resume icon button keeps its dark glyph on hover (it was washing out to invisible). The ticket step shows the shared rotating ThinkingLoader while generating instead of a "Generating…" button label.</p>
+        <p><strong>Reason:</strong> User QA on the live build (five screenshots): play icon invisible on hover; header balance; last-question submit affordance; right-aligned actions; the misleading "Ready for batch 2" that sometimes led to 0 questions then the ticket; and the ticket "Generating…" label not matching the app's loader.</p>
+        <p><strong>Updated Done criteria:</strong> see the (Rev 2) checklist items below.</p>
+      </article>
     </section>
   </main>
 </body>

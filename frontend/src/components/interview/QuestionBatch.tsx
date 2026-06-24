@@ -20,7 +20,7 @@
  * different from batch 1 - it no longer looks like the first Generate screen.
  */
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SPRING_SOFT } from "../../lib/motion";
 import {
   useAdvanceNextBatch,
@@ -95,6 +95,30 @@ function hasGroundedOptions(questions: InterviewQuestion[]): boolean {
   );
 }
 
+/**
+ * Auto-advance between batches (Rev 2). Once a batch is answered - or a resumed
+ * session sits answered with no open batch - generate the next batch with no
+ * manual "Ready for batch N" button. Fires `onAdvance` once per answered count
+ * (ref guard); batch 1 stays user-initiated (answered === 0 is skipped). The
+ * engine returns the next batch's questions or a completed interview, so the view
+ * flips straight to questions or the ticket.
+ */
+function useAutoAdvanceBatches(
+  answered: number,
+  isOpen: boolean,
+  isComplete: boolean,
+  isBusy: boolean,
+  onAdvance: () => void,
+): void {
+  const autoAdvancedFor = useRef<number | null>(null);
+  useEffect(() => {
+    if (isComplete || isOpen || answered === 0 || isBusy) return;
+    if (autoAdvancedFor.current === answered) return;
+    autoAdvancedFor.current = answered;
+    onAdvance();
+  }, [answered, isOpen, isComplete, isBusy, onAdvance]);
+}
+
 export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
   const { data: state, isLoading } = useInterview(sessionId);
   const advance = useAdvanceNextBatch(sessionId);
@@ -110,24 +134,32 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
   const answered = answeredBatchCount(state);
   const batchNumber = currentBatchNumber(state);
   const isOpen = hasOpenBatch(state);
+  const isComplete = state?.isComplete ?? false;
 
   // Selection is mutually exclusive (Item 8): picking a real option clears any
-  // custom free-text, and typing custom text selects the custom card (clearing
-  // any picked option). Clearing the custom input back to empty reverts to no
-  // selection, rather than leaving the empty custom card falsely selected.
+  // custom free-text, and engaging the custom card selects it (clearing any
+  // picked option). Picking an option clears the custom text; engaging the custom
+  // field makes it the active selection and keeps it selected while in use.
   const setOption = (questionId: string, optionId: string): void => {
     setDrafts((prev) => ({
       ...prev,
       [questionId]: { optionId, otherText: "" },
     }));
   };
+  // Focusing the custom field makes it the active selection right away (Item 1):
+  // the custom card highlights and the previously picked option de-highlights,
+  // before any text is typed. It stays selected while engaged; an empty custom
+  // card reads selected but is "not answered" (draftIsAnswered gates submit).
+  const selectOther = (questionId: string): void => {
+    setDrafts((prev) => ({
+      ...prev,
+      [questionId]: { optionId: OTHER_OPTION, otherText: prev[questionId]?.otherText ?? "" },
+    }));
+  };
   const setOther = (questionId: string, otherText: string): void => {
     setDrafts((prev) => ({
       ...prev,
-      [questionId]: {
-        optionId: otherText.trim().length > 0 ? OTHER_OPTION : null,
-        otherText,
-      },
+      [questionId]: { optionId: OTHER_OPTION, otherText },
     }));
   };
 
@@ -182,29 +214,43 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
     override.mutate({ decisionKey, answer });
   };
 
+  // Auto-advance between batches (Rev 2): no manual "Ready for batch N" button - a
+  // submitted batch (or a resumed answered session) generates the next batch, which
+  // the engine returns as more questions or a completed interview. handleGenerate
+  // already advances + completes, so it is the trigger.
+  useAutoAdvanceBatches(answered, isOpen, isComplete, isBusy, handleGenerate);
+
   if (isLoading) return <ThinkingLoader subtitle="Loading your feature scope" />;
 
   // Generating a batch - show the shared ThinkingLoader. Rendered directly (no
   // wrapping AnimatePresence): the loader owns its own internal AnimatePresence
   // for the rotating messages, and wrapping it in a second mode="wait" presence
   // here deadlocks its exit when the batch lands, leaving the loader stuck on
-  // screen. React swaps the trees cleanly without it.
+  // screen. React swaps the trees cleanly without it. Batch 1 names itself; later
+  // batches auto-advance (we don't yet know if more are coming), so stay neutral.
   if (advance.isPending) {
-    return <ThinkingLoader subtitle={`Preparing batch ${answered + 1}`} />;
-  }
-
-  // No open batch yet - offer to generate the first/next one. The header and
-  // the button label both reflect the real next batch number so this screen
-  // reads differently before batch 1 vs. between batches.
-  if (!isOpen || questions.length === 0) {
     return (
-      <GenerateBatchPanel
-        answered={answered}
-        label={generateButtonLabel(state)}
-        disabled={isBusy}
-        onGenerate={handleGenerate}
+      <ThinkingLoader
+        subtitle={answered === 0 ? "Preparing the first batch" : "Reviewing your answers"}
       />
     );
+  }
+
+  // No open batch. Batch 1 is user-initiated (the Start panel). Between batches we
+  // auto-advance (the effect above), so show the loader instead of a "Ready for
+  // batch N" button - the next render is the new batch's questions or the ticket.
+  if (!isOpen || questions.length === 0) {
+    if (answered === 0) {
+      return (
+        <GenerateBatchPanel
+          answered={answered}
+          label={generateButtonLabel(state)}
+          disabled={isBusy}
+          onGenerate={handleGenerate}
+        />
+      );
+    }
+    return <ThinkingLoader subtitle="Reviewing your answers" />;
   }
 
   return (
@@ -224,6 +270,7 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
         isOverriding={override.isPending}
         allAnswered={allAnswered}
         onSelectOption={setOption}
+        onSelectOther={selectOther}
         onChangeOther={setOther}
         onSubmit={handleSubmit}
         onOverride={handleOverride}
@@ -252,6 +299,7 @@ function OpenBatchView({
   isOverriding,
   allAnswered,
   onSelectOption,
+  onSelectOther,
   onChangeOther,
   onSubmit,
   onOverride,
@@ -269,6 +317,7 @@ function OpenBatchView({
   isOverriding: boolean;
   allAnswered: boolean;
   onSelectOption: (questionId: string, optionId: string) => void;
+  onSelectOther: (questionId: string) => void;
   onChangeOther: (questionId: string, otherText: string) => void;
   onSubmit: (stopAndGenerate: boolean) => void;
   onOverride: (decisionKey: string, answer: string) => void;
@@ -301,13 +350,16 @@ function OpenBatchView({
         otherByQuestion={otherByQuestion}
         isAnswered={isAnswered}
         disabled={isBusy}
+        canSubmit={allAnswered && !isBusy}
         onSelectOption={onSelectOption}
+        onSelectOther={onSelectOther}
         onChangeOther={onChangeOther}
+        onSubmit={() => onSubmit(false)}
       />
 
       <SkippedNotice skipped={skipped} disabled={isBusy || isOverriding} onOverride={onOverride} />
 
-      <div className="step-actions">
+      <div className="step-actions is-end">
         <button
           type="button"
           className="primary-button"

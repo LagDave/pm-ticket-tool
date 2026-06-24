@@ -1,11 +1,14 @@
 /**
  * Ticket agent — the seam to the Anthropic SDK for ticket generation (§6.2).
- * Makes one bounded, structured-output call: given the original request plus the
- * session's recorded decisions (and, when the session is attached to a project,
- * its bits as orientation), it returns a ticket as validated JSON — a user story
- * (As a / I want / So that), an array of Given/When/Then acceptance criteria, an
- * effort TIER (never hours), and a short context summary (spec T1). Server-side
- * only — the API key is read through config and never exposed to the frontend
+ * Makes one bounded, structured-output call: given the original request, the
+ * session's recorded decisions, and (when the session is attached to a project)
+ * its bits as orientation, it returns a ticket as validated JSON — the core fields
+ * (user story, Given/When/Then criteria, effort TIER, context) plus the enrichment
+ * that keeps the PM's answers visible (priority tier, problem/background, key
+ * decisions, open questions, success metrics, dependencies, codebase grounding —
+ * spec What). The project bits ground the ticket (and are the only source for its
+ * codebase_grounding section); the decisions remain the source of truth. Server-
+ * side only: the API key is read through config and never exposed to the frontend
  * (§5.1, §17.3). Mirrors agents/interviewAgent.ts.
  *
  * Cost/latency controls (spec Constraints): adaptive thinking at MEDIUM effort, a
@@ -38,9 +41,10 @@ export interface GenerateTicketParams {
   /**
    * The session's project-bits grounding (project context), when the session is
    * attached to a project with active bits. ORIENTATION ONLY — it makes the ticket
-   * concrete against the real app, but the decisions remain the source of truth and
-   * the model must not invent requirements they did not settle. Absent (undefined)
-   * leaves ticket generation unchanged. A single call, so no prompt caching here.
+   * concrete against the real app and is the only source for the codebase_grounding
+   * section, but the decisions remain the source of truth and the model must not
+   * invent requirements they did not settle. Absent (undefined) leaves generation
+   * ungrounded (an empty codebase_grounding). A single call, so no prompt caching.
    */
   grounding?: ProjectGrounding;
 }
@@ -53,6 +57,14 @@ const EFFORT_TIER_GUIDANCE = [
   "- L: a large feature spanning several areas or with notable unknowns.",
   "- XL: a major effort with significant unknowns or cross-cutting impact.",
   "Never emit a time estimate; engineering verifies the tier.",
+].join("\n");
+
+const PRIORITY_TIER_GUIDANCE = [
+  "Priority is an IMPACT TIER, never a number. Choose exactly one:",
+  "- high: urgent or blocking, with clear near-term business impact.",
+  "- medium: valuable but not blocking. The default when unsure.",
+  "- low: nice-to-have or deferrable.",
+  "The team confirms priority; do not overstate it.",
 ].join("\n");
 
 const SYSTEM_PROMPT = [
@@ -73,10 +85,26 @@ const SYSTEM_PROMPT = [
   "- If a 'Project context' block is present, use it as ORIENTATION about the existing",
   "  app (what already exists, the stack, integrations, constraints) to make the ticket",
   "  concrete — but never add requirements it implies that the decisions did not settle.",
+  "- problem_background is a short paragraph: the business reason behind the request",
+  "  (who is hurting and why), distinct from the developer-facing context_summary.",
+  "- key_decisions surfaces the settled decisions in the PM's terms: each has a short",
+  "  label and an optional one-line detail. Derive them from the recorded decisions;",
+  "  use an empty string for detail when there is nothing to add.",
+  "- open_questions lists assumptions made or questions still unresolved. Empty array",
+  "  when there are none — do not manufacture questions.",
+  "- success_metrics lists observable signals the feature worked. Empty array when",
+  "  the decisions imply none.",
+  "- dependencies lists prerequisites or blockers this work relies on. Empty when none.",
+  "- codebase_grounding maps the work to the app areas the Project context describes:",
+  "  each item has an area (a feature/module/topic from the bits) and a note (why it",
+  "  matters). Use ONLY the provided Project context. If no Project context is",
+  "  provided, return an empty array and never invent areas or file paths.",
   "- Never use em-dashes (—) or en-dashes (–) in any output. Use commas, periods,",
   "  parentheses, or hyphens instead.",
   "",
   EFFORT_TIER_GUIDANCE,
+  "",
+  PRIORITY_TIER_GUIDANCE,
 ].join("\n");
 
 /** Render project bits as orientation context for the ticket (never new requirements). */

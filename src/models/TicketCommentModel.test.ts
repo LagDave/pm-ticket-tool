@@ -7,6 +7,7 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { db } from "../database/connection";
 import { makeOwner, makeRequestText } from "../test/factories";
+import { generateShareToken } from "../utils/shareToken";
 import { InterviewSessionModel } from "./InterviewSessionModel";
 import { TicketCommentModel } from "./TicketCommentModel";
 import { TicketModel } from "./TicketModel";
@@ -27,6 +28,16 @@ async function seedTicketId(owner: OwnerContext): Promise<number> {
     effort: "S",
     contextSummary: "ctx",
     renderedMarkdown: "md",
+    priority: "low",
+    details: {
+      problemBackground: null,
+      keyDecisions: [],
+      openQuestions: [],
+      successMetrics: [],
+      dependencies: [],
+      codebaseGrounding: [],
+    },
+    shareToken: generateShareToken(),
   });
   return ticket.id;
 }

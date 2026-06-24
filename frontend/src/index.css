@@ -207,8 +207,8 @@ body::before {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: clamp(1.7rem, 3.6vw, 2.4rem);
-  line-height: 1.04;
+  font-size: clamp(1.5rem, 3.1vw, 2.05rem);
+  line-height: 1.06;
   letter-spacing: -0.015em;
   color: var(--ink);
 }
@@ -222,8 +222,8 @@ body::before {
 }
 
 .wizard-logo {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
   border-radius: 8px;
   object-fit: contain;
@@ -448,12 +448,13 @@ textarea.request-input {
   gap: 12px;
   margin-top: 24px;
 }
+/* Right-aligned variant: the batch submit/stop group sits at the trailing edge. */
+.step-actions.is-end {
+  justify-content: flex-end;
+}
 
 .primary-button,
-.secondary-button,
-.light-button,
-.danger-button,
-.session-delete {
+.secondary-button {
   appearance: none;
   display: inline-flex;
   align-items: center;
@@ -502,58 +503,10 @@ textarea.request-input {
 }
 
 .primary-button:disabled,
-.secondary-button:disabled,
-.light-button:disabled,
-.danger-button:disabled,
-.session-delete:disabled {
+.secondary-button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
   box-shadow: none;
-}
-
-/* White button with black text - the dashboard's resume affordance (PM request).
- * High-contrast on the dark canvas; distinct from the orange primary. */
-.light-button {
-  border: 1px solid #ffffff;
-  background: #ffffff;
-  color: #0a0b10;
-}
-.light-button:hover:not(:disabled) {
-  background: #e9ebf2;
-  border-color: #e9ebf2;
-  transform: translateY(-1px);
-}
-.light-button:active:not(:disabled) {
-  transform: translateY(0) scale(0.985);
-}
-
-/* Destructive confirm: a filled red that reads clearly as "this deletes". Shown
- * only in the second step of the inline delete confirm. */
-.danger-button {
-  border: 1px solid #e5484d;
-  background: #e5484d;
-  color: #ffffff;
-}
-.danger-button:hover:not(:disabled) {
-  background: #ec5d62;
-  border-color: #ec5d62;
-  transform: translateY(-1px);
-}
-.danger-button:active:not(:disabled) {
-  transform: translateY(0) scale(0.985);
-}
-
-/* Quiet delete trigger: muted by default so it never competes with resume, turns
- * red on hover to signal the destructive path before the confirm step. */
-.session-delete {
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--muted);
-}
-.session-delete:hover:not(:disabled) {
-  color: #ff7b72;
-  border-color: color-mix(in srgb, #ff7b72 40%, var(--line-2));
-  background: color-mix(in srgb, #ff7b72 10%, transparent);
 }
 
 /* ===========================================================================
@@ -674,6 +627,17 @@ textarea.request-input {
 .carousel-arrow:disabled {
   opacity: 0.32;
   cursor: not-allowed;
+}
+/* On the last question the right control becomes a Submit (check) button: accent
+ * when every question is answered, the standard disabled state otherwise. */
+.carousel-arrow.is-submit:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--canvas);
+}
+.carousel-arrow.is-submit:not(:disabled):hover {
+  border-color: var(--accent-soft);
+  background: var(--accent-soft);
 }
 
 /* The dot rail — one dot per question in the batch. */
@@ -832,19 +796,19 @@ textarea.request-input {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .session-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 14px;
   flex-wrap: wrap;
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--surface);
-  padding: 18px 20px;
+  padding: 13px 16px;
   transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
 }
 .session-row:hover {
@@ -858,7 +822,7 @@ textarea.request-input {
   flex: 1 1 320px;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 4px;
 }
 
 /* The primary row label: the generated title (or the request when none). */
@@ -866,17 +830,17 @@ textarea.request-input {
   margin: 0;
   color: var(--ink);
   font-family: var(--font-display);
-  font-size: 1.04rem;
+  font-size: 0.98rem;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 /* The muted subtitle beneath the title: the raw request text. */
 .session-snippet {
   margin: 0;
   color: var(--muted);
-  font-size: 0.9rem;
-  line-height: 1.45;
+  font-size: 0.84rem;
+  line-height: 1.4;
 }
 
 .session-meta {
@@ -886,8 +850,64 @@ textarea.request-input {
 
 .session-actions {
   display: flex;
-  gap: 9px;
+  gap: 7px;
   flex-shrink: 0;
+}
+
+/* Compact icon-only row actions (dashboard). Square, neutral; the lucide glyph is
+ * the affordance, with a title tooltip + aria-label for accessibility. */
+.icon-button {
+  appearance: none;
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease,
+    transform 0.12s ease;
+}
+.icon-button:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--faint);
+  background: var(--surface-2);
+  transform: translateY(-1px);
+}
+.icon-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+/* Resume = the white primary row action (white, not orange, so the dashboard
+ * stays restrained and the accent is spent only on New session). */
+.icon-button.is-resume {
+  border-color: #ffffff;
+  background: #ffffff;
+  color: #0a0b10;
+}
+.icon-button.is-resume:hover:not(:disabled) {
+  background: #e9ebf2;
+  border-color: #e9ebf2;
+  color: #0a0b10;
+}
+/* Delete trigger: quiet until hover, then red, signalling the destructive path. */
+.icon-button.is-delete:hover:not(:disabled) {
+  color: #ff7b72;
+  border-color: color-mix(in srgb, #ff7b72 45%, var(--line-2));
+  background: color-mix(in srgb, #ff7b72 12%, transparent);
+}
+/* Confirm-delete: filled red (the second step of the inline confirm). */
+.icon-button.is-danger {
+  border-color: #e5484d;
+  background: #e5484d;
+  color: #ffffff;
+}
+.icon-button.is-danger:hover:not(:disabled) {
+  background: #ec5d62;
+  border-color: #ec5d62;
 }
 
 /* Status badge — quiet by default, the active/awaiting states tinted. */
@@ -1023,6 +1043,35 @@ textarea.request-input {
   margin: 0;
   color: var(--muted);
   line-height: 1.6;
+}
+
+/* Enrichment sections (spec What): problem/background prose, bullet lists, grounding. */
+.ticket-prose {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.ticket-bullets {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+.ticket-bullets strong {
+  color: var(--accent-soft);
+  font-weight: 600;
+}
+.ticket-grounding code {
+  font-size: 0.86rem;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--canvas-2);
+  color: var(--ink);
 }
 
 /* Inline edit form */

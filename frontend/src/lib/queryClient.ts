@@ -43,4 +43,6 @@ export const QUERY_KEYS = {
   project: (id: number) => ["project", id] as const,
   /** The server-owned generate-bits prompt for a project (project context grounding). */
   bitPrompt: (id: number) => ["bit-prompt", id] as const,
+  /** The public read-only shared ticket (spec What), keyed by its share token. */
+  sharedTicket: (token: string) => ["shared-ticket", token] as const,
 };

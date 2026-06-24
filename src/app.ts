@@ -15,6 +15,7 @@ import healthRouter from "./routes/health";
 import interviewEngineRouter from "./routes/interviewEngine";
 import interviewSessionsRouter from "./routes/interviewSessions";
 import projectsRouter from "./routes/projects";
+import sharedTicketsRouter from "./routes/sharedTickets";
 import ticketsRouter from "./routes/tickets";
 
 export function createApp(): Application {
@@ -50,6 +51,11 @@ export function createApp(): Application {
   // (generation off the session resource) and the /tickets/:ticketId reads/edits.
   // These paths do not collide with the sessions/engine routers above.
   app.use("/", ticketsRouter);
+  // Public read-only shared ticket (spec What): the one unauthenticated route,
+  // mounted at "/" with an absolute /shared/tickets/:token path. No ownerContext;
+  // the capability token authorizes the read, and the router rate-limits +
+  // validates it (§11.1 public-route exception, §11.3). No path collision above.
+  app.use("/", sharedTicketsRouter);
 
   // Backstops — must be last.
   app.use(notFoundHandler);

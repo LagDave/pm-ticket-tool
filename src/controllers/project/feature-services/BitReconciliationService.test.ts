@@ -88,7 +88,17 @@ async function seedSessionWithFinalTicket(
     acceptanceCriteria: generated.acceptance_criteria,
     effort: generated.effort,
     contextSummary: generated.context_summary,
+    priority: "medium",
+    details: {
+      problemBackground: null,
+      keyDecisions: [],
+      openQuestions: [],
+      successMetrics: [],
+      dependencies: [],
+      codebaseGrounding: [],
+    },
     renderedMarkdown: "# Ticket",
+    shareToken: `tok_test_${session.id}`,
   });
   // Flip the draft to final so findLatestFinalBySessionForOwner sees it.
   await TicketModel.finalizeForOwner(ticket.id, ticket.version);

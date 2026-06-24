@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rich Ticket + Shareable Link Spec</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #ffffff;
+      --ink: #080808;
+      --muted: #5f5f5f;
+      --line: #d8d8d8;
+      --soft: #f5f5f5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    .spec-shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0; }
+    .spec-hero, .spec-card, .task-card { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+    .spec-hero { border-color: var(--ink); padding: 32px; margin-bottom: 20px; }
+    .hero-topline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .spec-card { padding: 28px; margin-top: 16px; }
+    .task-card { padding: 20px; background: var(--soft); margin-top: 14px; }
+    .eyebrow, dt { color: var(--muted); font-size: 0.78rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
+    .eyebrow { margin: 0; }
+    .status-pill { display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 0.78rem; font-weight: 800; letter-spacing: 0; text-transform: uppercase; }
+    .status-card { border-color: var(--ink); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 840px; margin-bottom: 24px; font-size: clamp(2.25rem, 6vw, 5rem); line-height: 0.95; letter-spacing: 0; }
+    h2 { font-size: 1.35rem; letter-spacing: 0; }
+    h3 { font-size: 1rem; letter-spacing: 0; }
+    code { padding: 0.1rem 0.3rem; border: 1px solid var(--line); border-radius: 4px; background: var(--soft); font-size: 0.92em; }
+    .meta-grid, .split-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .meta-grid { margin: 0; }
+    .meta-grid div, .split-grid > div { border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    dd { margin: 4px 0 0; font-weight: 700; }
+    .task-card dl { margin: 0; display: grid; gap: 8px; }
+    .task-card dd { font-weight: 500; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
+    .tag { display: inline-block; font-size: 0.66rem; font-weight: 800; text-transform: uppercase; border: 1px solid var(--ink); border-radius: 999px; padding: 1px 9px; margin-left: 6px; }
+    table.sec { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    table.sec th, table.sec td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; font-size: 0.92rem; vertical-align: top; }
+    table.sec th { background: var(--soft); font-size: 0.74rem; text-transform: uppercase; color: var(--muted); }
+    @media (max-width: 640px) {
+      .spec-shell { width: min(100% - 20px, 1120px); padding: 24px 0; }
+      .spec-hero, .spec-card { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">PM Ticket Tool Plan Spec</p>
+        <span class="status-pill status-pending">Pending Execution</span>
+      </div>
+      <h1>Rich Ticket + Shareable Link</h1>
+      <dl class="meta-grid">
+        <div class="status-card"><dt>Status</dt><dd>Pending Execution</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/06252026-rich-ticket-shareable-link</dd></div>
+        <div><dt>Size</dt><dd>Large (~16 files + migration)</dd></div>
+        <div><dt>Risk</dt><dd>Level 3 (public endpoint)</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>
+        The PM answers many interview questions, but the finished ticket only renders four fields
+        (user story, acceptance criteria, effort, context). Every recorded decision is fed to the
+        generator, then compressed into one sentence plus a couple of criteria. The detail the PM
+        worked to capture disappears. This is a schema-width problem, not a prompt problem: the
+        generator can only emit four narrow fields. Second, a finished ticket cannot be handed to
+        anyone outside the app, so the PM has no way to share it.
+      </p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>Two deliverables, shipped together:</p>
+      <ol>
+        <li>
+          <strong>An enriched, full ticket.</strong> The generator and the renderer gain seven new
+          sections so the PM's answers are visible in the artifact, not flattened away.
+        </li>
+        <li>
+          <strong>A short, copyable version with a back-link.</strong> The copy action produces a
+          compact Markdown block (core fields + a <code>View full ticket</code> link). The link
+          carries an unguessable share token and opens a public, read-only view of the full ticket
+          in the app, for anyone the PM pastes it to.
+        </li>
+      </ol>
+      <p><strong>Done when:</strong> a generated ticket shows all sections in-app; the copy button yields a short block ending in a working link; opening that link in a logged-out/other context renders the full ticket read-only; the public endpoint never exposes comments or owner data; the backend type-checks, lints, and tests pass.</p>
+
+      <h3>Full ticket sections (final structure)</h3>
+      <table class="sec">
+        <thead><tr><th>Section</th><th>Source</th><th>Shape</th><th>Editable v1</th></tr></thead>
+        <tbody>
+          <tr><td>User Story</td><td>existing</td><td>one As-a/I-want/So-that sentence</td><td>Yes</td></tr>
+          <tr><td>Problem / Background</td><td><strong>new</strong></td><td>short paragraph (the business "why")</td><td>No</td></tr>
+          <tr><td>Acceptance Criteria</td><td>existing</td><td>Given/When/Then blocks</td><td>Yes</td></tr>
+          <tr><td>Key Decisions</td><td><strong>new</strong></td><td>bullets, each {label, detail?} from the recorded decisions</td><td>No</td></tr>
+          <tr><td>Open Questions</td><td><strong>new</strong></td><td>string bullets (assumptions / unresolved)</td><td>No</td></tr>
+          <tr><td>Success Metrics</td><td><strong>new</strong></td><td>string bullets (observable signals)</td><td>No</td></tr>
+          <tr><td>Dependencies</td><td><strong>new</strong></td><td>string bullets (blockers / prerequisites)</td><td>No</td></tr>
+          <tr><td>Codebase Grounding</td><td><strong>new</strong></td><td>bullets {area, note} from scout findings; empty when no scout ran</td><td>No</td></tr>
+          <tr><td>Effort</td><td>existing</td><td>tier XS-XL + "verify with engineering" note</td><td>Yes</td></tr>
+          <tr><td>Priority / Impact</td><td><strong>new</strong></td><td>tier High/Medium/Low + "confirm with team" note</td><td>Yes</td></tr>
+          <tr><td>Context</td><td>existing</td><td>1-3 sentence dev-facing summary</td><td>Yes</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <h3>Relevant Files</h3>
+      <ul>
+        <li><code>src/types/interview.ts</code> - <code>ITicket</code>, <code>GeneratedTicket</code>; add <code>TicketDetails</code>, <code>TicketPriority</code>.</li>
+        <li><code>src/validation/ticket.ts</code> - widen <code>generatedTicketOutputSchema</code> + boundary schema; add the token-param schema; add <code>priority</code> to the edit schema.</li>
+        <li><code>src/agents/ticketAgent.ts</code> - extend the system prompt + user prompt to emit the new fields and accept scout findings.</li>
+        <li><code>src/controllers/ticket/feature-services/TicketGenerationService.ts</code> - read scout findings, mint the token, persist the new fields.</li>
+        <li><code>src/controllers/ticket/feature-services/TicketMarkdownService.ts</code> - render the full ticket (all sections, empty sections omitted).</li>
+        <li><code>src/controllers/ticket/feature-services/TicketService.ts</code> - re-render the full Markdown on edit/finalize; make priority editable.</li>
+        <li><code>src/models/TicketModel.ts</code> - persist token/priority/details; add <code>findByShareToken</code>; deserialize <code>details</code>.</li>
+        <li><code>src/app.ts</code> - mount the new public shared-ticket router.</li>
+        <li><code>frontend/src/types/ticket.ts</code>, <code>frontend/src/api/tickets.ts</code>, <code>frontend/src/hooks/queries/useTicketQueries.ts</code> - mirror the new shape; add the public fetch + hook.</li>
+        <li><code>frontend/src/components/ticket/TicketView.tsx</code>, <code>CopyTicketButton.tsx</code>, <code>frontend/src/App.tsx</code> - render new sections; short copy; deep-link view.</li>
+        <li><code>src/middleware/staticSpa.ts</code>, <code>src/server.ts</code> - <em>read-only reference.</em> Confirm the public route lands under <code>/api</code> and the <code>?ticket=</code> deep link is served the SPA shell. No change needed.</li>
+      </ul>
+      <h3>Patterns To Follow</h3>
+      <ul>
+        <li><strong>Backend reference analogs (§6.1):</strong> the existing ticket domain (<code>TicketService</code>/<code>TicketController</code>/<code>routes/tickets.ts</code>) and <code>gbp-automation/</code>. The public-by-token read mirrors <code>InterviewSessionModel.findByIdSystem</code> - a deliberate non-owner-scoped read on a trusted/capability path (§21 note), distinct from the owner-scoped reads.</li>
+        <li><strong>Frontend reference triad (§12.1):</strong> <code>api/tickets.ts</code> + <code>useTicketQueries.ts</code> + <code>components/ticket/</code>. The shared view mirrors <code>TicketView</code>; extract the read-only render into a shared <code>TicketReadView</code> so both views use one renderer (§4.3).</li>
+        <li><strong>Migration analog:</strong> <code>src/database/migrations/20260624000002_ticket_draft_schema.ts</code> - TS Knex, <code>alterTable</code> + raw CHECK constraints, Postgres-only by design.</li>
+        <li><strong>No router (§15.4):</strong> the deep link is read once from <code>window.location.search</code> on mount in <code>App.tsx</code> and seeds the view, mirroring the existing <code>useState</code> view switch. No router library.</li>
+      </ul>
+      <p><strong>Reference file:</strong> <code>src/controllers/ticket/feature-services/TicketService.ts</code> - closest analog for the new <code>SharedTicketService</code> (owner-verify shape inverted to token-lookup).</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>All DB access through <code>models/</code> (§7.4); layering Routes -> Controllers -> Services -> Models (§7.1).</li>
+            <li><code>{ success, data, error }</code> envelope (§8.1) via the existing response builders; typed <code>TicketError</code> + central status mapping (§8.3).</li>
+            <li>Validate the token param at the route boundary (§11.2); rate-limit the public router (§11.3).</li>
+            <li>Share token from <code>crypto.randomBytes(32)</code> base64url - 256-bit, unguessable (§5.1, §5.2). Byte length is a named constant (§4.2).</li>
+            <li>Public DTO exposes ticket content only - never comments, owner ids, or session internals (§5.4, §5.5).</li>
+            <li>Boundary schema requires only story + >=1 criterion; new fields are best-effort (empty arrays/strings allowed) so a thin model answer never fails generation (§11.2).</li>
+            <li>No <code>any</code> - type the <code>details</code> jsonb and the public DTO (§4.5, §17.2). Frontend fetch only through <code>api/index.ts</code> (§14.2); fetching in a hook (§14.3); server state in React Query (§15.1).</li>
+            <li>Tests mirror each new unit and cover the contract, the not-found path, and that the public read leaks nothing (§20.1, §20.2).</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No router library on the frontend (§15.4).</li>
+            <li>No env-specific URL baked into <code>rendered_markdown</code> or the DB - the short link is built client-side.</li>
+            <li>No second state system; no raw <code>fetch</code>/<code>axios</code> outside the client (§14.2).</li>
+            <li>Do not make the rich generated arrays editable in v1; do not touch unrelated domains.</li>
+            <li>Do not widen the public endpoint to list/enumerate tickets - single-token lookup only.</li>
+          </ul>
+        </div>
+      </div>
+      <h3>New Dependency</h3>
+      <ul>
+        <li><code>express-rate-limit</code> (pinned) - justified by §11.3 for the one unauthenticated public route; applied only to the shared router. <em>Flagged per §4.4; cut at review if the 256-bit token entropy is deemed sufficient and rate-limiting is deferred to the auth/hardening spec.</em></li>
+      </ul>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Real authentication (the known next priority; <code>ownerContext</code> stays the dev placeholder).</li>
+        <li>Editing the generated rich arrays (Key Decisions, Open Questions, etc.).</li>
+        <li>Token rotation/revocation, share analytics, expiry.</li>
+        <li>Sharing comments or any collaborative/public write.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level:</strong> 3 - a new unauthenticated public endpoint.</p>
+      <h3>Risks Identified</h3>
+      <ul>
+        <li><strong>Public endpoint exposure (L3).</strong> <code>GET /api/shared/tickets/:token</code> is unauthenticated. <strong>Mitigation:</strong> 256-bit crypto-random token (brute-force infeasible) + minimal content-only DTO + boundary token-format validation + rate-limit on the router. The row carries no owner id; comments are never fetched.</li>
+        <li><strong>New dependency (L2).</strong> <code>express-rate-limit</code>. <strong>Mitigation:</strong> pin it, scope it to the shared router; documented justification (§11.3).</li>
+        <li><strong>Data-model choice (L2).</strong> Six rich fields in one <code>details</code> jsonb vs six columns. <strong>Mitigation:</strong> jsonb (we never filter on them); <code>share_token</code>/<code>priority</code> stay first-class. Tradeoff: slight divergence from the per-column style of <code>acceptance_criteria</code>.</li>
+        <li><strong>Token staleness on regenerate (L2).</strong> A regenerated ticket is a new row with a new token. <strong>Mitigation:</strong> accepted - edits/finalize mutate the same row, so a shared link stays current; regeneration is not exposed in the UI.</li>
+        <li><strong>Larger model output (L2).</strong> More fields = more tokens, higher malformed-field odds. <strong>Mitigation:</strong> modest <code>MAX_TOKENS</code> bump; best-effort fields; boundary still only hard-requires story + one criterion.</li>
+        <li><strong>AI-guessed priority (L2).</strong> Unreliable like hours. <strong>Mitigation:</strong> coarse tier + editable + "confirm with team" note, mirroring effort.</li>
+        <li><strong>Two renderers (L2).</strong> Full (server) vs short (client). <strong>Mitigation:</strong> the short is a deliberately minimal artifact (4 fields + link), not a re-implementation of the 11-section full renderer (§4.3).</li>
+      </ul>
+      <p><strong>Blast radius:</strong> <code>GeneratedTicket</code>/<code>ITicket</code>/<code>Ticket</code>(FE) widen (additive). Consumers re-checked: <code>ticketAgent</code>, <code>TicketGenerationService</code>, <code>TicketMarkdownService</code> (all render paths), <code>TicketService</code> (edit/finalize), <code>TicketView</code>, <code>TicketEditFields</code>, <code>CopyTicketButton</code>, and their tests. <code>tickets</code> migration backfills tokens for existing rows. No existing route path collides (verified: API under <code>/api</code>, catch-all skips it).</p>
+      <h3>Pushback</h3>
+      <ul>
+        <li>Shipping a public unauthenticated endpoint <em>before</em> real auth is a deliberate tradeoff for shareability. It is defensible because the token is the capability and the DTO is content-only - but it widens the public surface of an app that already has no login. Recommended: proceed with the four mitigations; revisit token rotation/expiry when the auth spec lands.</li>
+        <li>The generic plan convention asks for <code>mssql.sql</code> too; this project is Postgres-only by design (see the analog migration). Recommended: ship <code>knexmigration.ts</code> + <code>pgsql.sql</code> only; MSSQL N/A.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+      <p class="eyebrow">Dependency order &amp; parallelization</p>
+      <p>T1 sets the contract; then the backend chain (T2-T7) and the frontend chain (T8-T11) run as two parallel groups. T12 (tests + acceptance) closes after both. Sub-agent split: <strong>Backend agent</strong> = T1-T7; <strong>Frontend agent</strong> = T8-T11 (starts once T1's types land); orchestrator merges + runs T12.</p>
+
+      <article class="task-card">
+        <h3>T1: Types, migration &amp; token util <span class="tag">foundation</span></h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>TicketPriority</code> (<code>high|medium|low</code>), <code>TicketDetails</code> (<code>problemBackground</code>, <code>keyDecisions[]</code>, <code>openQuestions[]</code>, <code>successMetrics[]</code>, <code>dependencies[]</code>, <code>codebaseGrounding[]</code>) and extend <code>ITicket</code> with <code>share_token</code>, <code>priority</code>, <code>details</code>. New migration on <code>tickets</code>: <code>share_token text</code> (backfill all rows via the token util, then NOT NULL + unique index), <code>priority text</code> (CHECK in tiers or NULL), <code>details jsonb</code>. Add pure <code>src/utils/shareToken.ts</code> (<code>randomBytes(32).toString("base64url")</code>, named byte constant).</dd></div>
+          <div><dt>Files</dt><dd><code>src/types/interview.ts</code>, <code>src/database/migrations/&lt;ts&gt;_ticket_share_and_enrichment.ts</code>, <code>src/utils/shareToken.ts</code>, <code>src/utils/shareToken.test.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>none</dd></div>
+          <div><dt>Verify</dt><dd><code>npx knex migrate:latest</code> (or project script) applies + backfills; <code>npx tsc --noEmit</code></dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T2: Generation schema &amp; agent prompt</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Widen <code>generatedTicketOutputSchema</code> (zv4, structured-output-safe subset) with <code>priority</code> enum + the six nested rich fields (snake_case, mirroring <code>user_story</code>). Boundary schema unchanged in its hard rules (story + >=1 criterion). Extend the agent system prompt to populate the new fields and a compact scout-findings block in the user prompt; bump <code>MAX_TOKENS</code> modestly. Add <code>shareTokenParamSchema</code>; add optional <code>priority</code> to <code>updateTicketSchema</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>src/validation/ticket.ts</code>, <code>src/agents/ticketAgent.ts</code>, <code>src/config/index.ts</code> (token byte const / max-tokens)</dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>schema unit tests accept full + thin outputs, reject malformed token param; <code>npx tsc --noEmit</code></dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T3: Model persistence &amp; token lookup</h3>
+        <dl>
+          <div><dt>Do</dt><dd><code>jsonFields += "details"</code>; <code>create()</code> writes <code>share_token</code>, <code>priority</code>, <code>details</code>; <code>toUpdatePatch</code> handles <code>priority</code>. Add <code>findByShareToken(token)</code> - selects <code>tickets.*</code> by token, NOT owner-joined (documented capability path, mirrors <code>findByIdSystem</code>).</dd></div>
+          <div><dt>Files</dt><dd><code>src/models/TicketModel.ts</code>, <code>src/models/TicketModel.test.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>model tests: create persists new fields; <code>findByShareToken</code> returns the row regardless of owner; owner-scoped reads unchanged</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T4: Generation service (scout grounding + token mint)</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Read scout findings via <code>ScoutCacheModel.findBySession</code>, pass a compact form to the agent. Mint the share token; persist <code>priority</code> + <code>details</code> + token on create. Render full Markdown (T5).</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/ticket/feature-services/TicketGenerationService.ts</code>, <code>.test.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2, T3, T5</dd></div>
+          <div><dt>Verify</dt><dd>service test: persists new fields + token; grounding empty when no scout; fallback path intact</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T5: Full Markdown renderer</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Extend <code>RenderableTicket</code> with <code>priority</code> + <code>details</code>; render every section in a stable order; omit empty sections (no heading when an array is empty / a string blank). Keep deterministic output. No link here (env-independent).</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/ticket/feature-services/TicketMarkdownService.ts</code>, <code>.test.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>render test: all sections present when populated; empties omitted; snapshot stable</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T6: Edit/finalize re-render</h3>
+        <dl>
+          <div><dt>Do</dt><dd>In <code>updateForOwner</code>/<code>finalizeForOwner</code>, merge <code>priority</code> (editable) + carry <code>details</code> from the current row into the render input so the rich sections survive a re-render. Persist priority on edit.</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/ticket/feature-services/TicketService.ts</code>, <code>.test.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T3, T5</dd></div>
+          <div><dt>Verify</dt><dd>service test: edit keeps rich sections; priority edit persists + re-renders; version guard intact</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T7: Public shared-ticket endpoint <span class="tag">L3</span></h3>
+        <dl>
+          <div><dt>Do</dt><dd>New <code>SharedTicketService.getByToken</code> (find by token -> minimal content-only DTO; throw <code>SHARED_TICKET_NOT_FOUND</code> on miss). New <code>SharedTicketController</code>. New <code>routes/sharedTickets.ts</code>: <code>GET /shared/tickets/:token</code>, NO <code>ownerContext</code>, token-param validation, <code>express-rate-limit</code>. Mount in <code>app.ts</code> (lands under <code>/api</code> in prod). Add the dependency.</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/ticket/SharedTicketController.ts</code>, <code>src/controllers/ticket/feature-services/SharedTicketService.ts</code> (+ <code>.test.ts</code>), <code>src/routes/sharedTickets.ts</code>, <code>src/app.ts</code>, <code>package.json</code></dd></div>
+          <div><dt>Depends on</dt><dd>T3</dd></div>
+          <div><dt>Verify</dt><dd>supertest: 200 + content-only DTO on valid token; 404 on unknown; 400 on malformed; 429 after the limit; assert no comments/owner fields in the payload</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T8: Frontend types, api &amp; hook</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Mirror the new shape in <code>types/ticket.ts</code> (<code>TicketDetails</code>, <code>TicketPriority</code>, <code>share_token</code>, <code>PublicTicket</code>, <code>PRIORITIES</code>). Add <code>getSharedTicket(token)</code> to <code>api/tickets.ts</code> and <code>useSharedTicket(token)</code> to <code>useTicketQueries.ts</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/types/ticket.ts</code>, <code>frontend/src/api/tickets.ts</code>, <code>frontend/src/hooks/queries/useTicketQueries.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1 (contract)</dd></div>
+          <div><dt>Verify</dt><dd><code>npx tsc --noEmit</code> in <code>frontend/</code></dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T9: Render new sections in the ticket view</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Extract the read-only render into <code>TicketReadView.tsx</code>; add the new sections (Problem, Key Decisions, Open Questions, Success Metrics, Dependencies, Codebase Grounding, Priority with its note); omit empty sections. <code>TicketView</code> consumes it.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ticket/TicketReadView.tsx</code> (new), <code>TicketView.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T8</dd></div>
+          <div><dt>Verify</dt><dd>manual: populated ticket shows all sections; empties hidden</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T10: Public shared view + deep link</h3>
+        <dl>
+          <div><dt>Do</dt><dd>New <code>SharedTicketView.tsx</code> (slim shell, reuses <code>TicketReadView</code>; read-only, no edit/finalize/comments). In <code>App.tsx</code>, read <code>?ticket=&lt;token&gt;</code> on mount and seed a <code>shared</code> view; render loading/not-found states via the hook.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ticket/SharedTicketView.tsx</code> (new), <code>frontend/src/App.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T8, T9</dd></div>
+          <div><dt>Verify</dt><dd>manual: visiting <code>/?ticket=TOKEN</code> renders the full ticket read-only; bad token shows a clean not-found</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T11: Short copy with back-link</h3>
+        <dl>
+          <div><dt>Do</dt><dd>New <code>lib/shortTicketMarkdown.ts</code>: <code>buildShortTicketMarkdown(ticket, shareUrl)</code> -> story + criteria + effort + priority + <code>View full ticket</code> link. <code>CopyTicketButton</code> takes the ticket, builds the link from <code>window.location.origin</code> + <code>share_token</code>, copies the short block; keep a secondary "Copy full Markdown" for <code>rendered_markdown</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/lib/shortTicketMarkdown.ts</code> (+ <code>.test.ts</code>), <code>frontend/src/components/ticket/CopyTicketButton.tsx</code>, <code>TicketView.tsx</code> (pass the ticket)</dd></div>
+          <div><dt>Depends on</dt><dd>T8</dd></div>
+          <div><dt>Verify</dt><dd>util test: short block shape + link; manual: copied text pastes with a working link</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T12: Tests, conventions &amp; acceptance artifact</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Backend unit/integration tests (T1-T7) green; <code>npm run check:conventions --strict</code> clean for new backend code; cite any violation in §N.M form. Generate <code>test.html</code> + <code>test-results.json</code> from the Done criteria.</dd></div>
+          <div><dt>Files</dt><dd>test files above, <code>plans/06252026-rich-ticket-shareable-link/test.html</code>, <code>test-results.json</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1-T11</dd></div>
+          <div><dt>Verify</dt><dd><code>npm test</code>, <code>npx tsc --noEmit</code> (both trees), <code>npm run check:conventions --strict</code></dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled> <code>npx tsc --noEmit</code> - zero errors (backend + <code>frontend/</code>)</li>
+        <li><input type="checkbox" disabled> <code>npm test</code> - backend suite passes incl. new model/service/route tests</li>
+        <li><input type="checkbox" disabled> <code>npm run check:conventions --strict</code> - no new backend violations</li>
+        <li><input type="checkbox" disabled> Migration applies and backfills a unique token for every existing ticket</li>
+        <li><input type="checkbox" disabled> Manual: a generated ticket renders all sections in-app; empty sections are hidden</li>
+        <li><input type="checkbox" disabled> Manual: copy yields a short block ending in a <code>View full ticket</code> link</li>
+        <li><input type="checkbox" disabled> Manual: opening that link renders the full ticket read-only (no edit/finalize/comments)</li>
+        <li><input type="checkbox" disabled> Security: public payload contains no comments, owner ids, or session internals; unknown token -> 404; malformed -> 400; rate-limit -> 429</li>
+        <li><input type="checkbox" disabled> No regressions in existing ticket generate/edit/finalize/comment flows</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

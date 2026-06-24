@@ -1,19 +1,22 @@
 /**
  * TicketGenerationService — turns a session's decision_record + original_request
- * into a persisted ticket via one structured-output call (spec T1, §6.3, §7.1).
- * The only layer between the controller and the models/agent for generation;
- * raises typed TicketError; enforces owner scope by owner-verifying the session
- * before reading its decisions and by writing the ticket against that session
- * (§11.7). Never touches req/res. Mirrors InterviewEngineService (§6.1).
+ * (and, when the session is attached to a project, its bits as orientation) into a
+ * persisted ticket via one structured-output call (spec T1/What, §6.3, §7.1). The
+ * only layer between the controller and the models/agent for generation; raises
+ * typed TicketError; enforces owner scope by owner-verifying the session before
+ * reading its decisions and by writing the ticket against that session (§11.7).
+ * Never touches req/res. Mirrors InterviewEngineService (§6.1).
  *
- * Grounding (project bits): when the session is attached to a project with active
- * bits, they are loaded and passed to the agent as ORIENTATION (the decisions stay
- * the source of truth) so the ticket reflects the real app. Mirrors the engine's
- * loadProjectGrounding.
+ * Grounding (project bits): when the session has a project with active bits, they
+ * are loaded and passed to the agent as ORIENTATION (the decisions stay the source
+ * of truth) so the ticket — and its codebase_grounding section — reflect the real
+ * app. Mirrors the engine's loadProjectGrounding. (Project bits replaced the removed
+ * code scout as the grounding source.)
  *
- * Boundary discipline (§11.2): the model output is re-validated against the
- * boundary schema and rejected (never persisted) when off-shape — so malformed
- * Gherkin or a bad effort value can never reach the DB (spec Risk).
+ * Boundary discipline (§11.2): the model output is re-validated against the boundary
+ * schema and rejected (never persisted) when off-shape — so malformed Gherkin or a
+ * bad effort/priority value can never reach the DB (spec Risk). The service maps the
+ * enriched fields into TicketDetails and mints a public share token before persisting.
  */
 import { generateTicket } from "../../../agents/ticketAgent";
 import { TICKET_GENERATION } from "../../../config";
@@ -23,11 +26,13 @@ import { InterviewSessionModel } from "../../../models/InterviewSessionModel";
 import { ProjectBitModel } from "../../../models/ProjectBitModel";
 import { ProjectModel } from "../../../models/ProjectModel";
 import { TicketModel } from "../../../models/TicketModel";
+import { generateShareToken } from "../../../utils/shareToken";
 import { generatedTicketSchema } from "../../../validation/ticket";
 import type {
   GeneratedTicket,
   ITicket,
   OwnerContext,
+  TicketDetails,
 } from "../../../types/interview";
 import type { ProjectGrounding } from "../../../types/project";
 import { TicketError } from "../feature-utils/TicketError";
@@ -35,16 +40,17 @@ import { TicketMarkdownService } from "./TicketMarkdownService";
 
 export class TicketGenerationService {
   /**
-   * Generate and persist a draft ticket for a session (spec T1). Owner-verifies
+   * Generate and persist a draft ticket for a session (spec T1/What). Owner-verifies
    * the session first (throws SESSION_NOT_FOUND when absent or another owner's,
    * §11.7), reads its decisions, grounds in the project bits when attached, calls
    * the agent (with model fallback), re-validates the result at the boundary,
-   * renders Markdown, and persists. Returns the new ticket row.
+   * renders the full Markdown, mints a public share token, and persists. Returns the
+   * new ticket row.
    *
    * Re-generation policy (spec Risk: clobbering edits): generation always writes
-   * a NEW draft ticket row (version starts at 1) — it never overwrites an
-   * existing edited/finalized ticket in place. The latest row is the current one
-   * (models order by version desc), so prior states are preserved, not clobbered.
+   * a NEW draft ticket row (version starts at 1, fresh share token) — it never
+   * overwrites an existing edited/finalized ticket in place. The latest row is the
+   * current one (models order by version desc), so prior states are preserved.
    */
   static async generateForSession(
     sessionId: number,
@@ -61,18 +67,22 @@ export class TicketGenerationService {
 
     const decisions = await DecisionRecordModel.listBySession(sessionId);
     // Ground the ticket in the session's project bits when attached (orientation
-    // only — the decisions remain the source of truth). Undefined → unchanged.
+    // only — the decisions remain the source of truth, and the bits are the sole
+    // source for codebase_grounding). Undefined → ungrounded, unchanged generation.
     const grounding = await this.loadProjectGrounding(session.project_id, owner);
     const generated = await this.callAgentWithFallback(
       { originalRequest: session.original_request, decisions, grounding },
       sessionId,
     );
 
+    const details = this.toDetails(generated);
     const renderedMarkdown = TicketMarkdownService.render({
       userStory: generated.user_story,
       acceptanceCriteria: generated.acceptance_criteria,
       effort: generated.effort,
       contextSummary: generated.context_summary,
+      priority: generated.priority,
+      details,
     });
 
     return TicketModel.create({
@@ -81,7 +91,10 @@ export class TicketGenerationService {
       acceptanceCriteria: generated.acceptance_criteria,
       effort: generated.effort,
       contextSummary: generated.context_summary,
+      priority: generated.priority,
+      details,
       renderedMarkdown,
+      shareToken: generateShareToken(),
     });
   }
 
@@ -102,6 +115,29 @@ export class TicketGenerationService {
     const bits = await ProjectBitModel.listActiveByProject(project.id);
     if (bits.length === 0) return undefined;
     return { projectName: project.name, bits };
+  }
+
+  /**
+   * Map the agent's snake_case rich fields into the camelCase TicketDetails jsonb.
+   * Best-effort fields default to empty/null so a thin model answer is still valid
+   * (spec Risk: larger model output). A blank decision detail becomes null.
+   */
+  private static toDetails(generated: GeneratedTicket): TicketDetails {
+    const problem = generated.problem_background?.trim();
+    return {
+      problemBackground: problem && problem.length > 0 ? problem : null,
+      keyDecisions: (generated.key_decisions ?? []).map((kd) => ({
+        label: kd.label,
+        detail: kd.detail && kd.detail.trim().length > 0 ? kd.detail : null,
+      })),
+      openQuestions: generated.open_questions ?? [],
+      successMetrics: generated.success_metrics ?? [],
+      dependencies: generated.dependencies ?? [],
+      codebaseGrounding: (generated.codebase_grounding ?? []).map((g) => ({
+        area: g.area,
+        note: g.note,
+      })),
+    };
   }
 
   /**
