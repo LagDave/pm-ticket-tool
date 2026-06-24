@@ -100,7 +100,7 @@ export function Dashboard({ onOpenSession, onViewTicket }: DashboardProps) {
     <main className="dashboard">
       <header className="dashboard-header">
         <div className="wizard-brand">
-          <img className="wizard-logo" src="/logo.webp"alt="" aria-hidden width={32} height={32} />
+          <img className="wizard-logo" src="/logo.webp" alt="" aria-hidden width={40} height={40} />
           <h1 className="wizard-title">Your sessions</h1>
         </div>
         <button

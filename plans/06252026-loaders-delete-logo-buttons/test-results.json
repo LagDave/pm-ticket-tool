@@ -113,6 +113,99 @@
       "evidence": ".light-button shipped in live CSS (5 refs); SessionList uses it for Resume/Finish. Not rendered locally (no session rows without the backend).",
       "notes": "Quick confirm on the live site once a session exists.",
       "waiver": ""
+    },
+    {
+      "id": "T6a",
+      "title": "(Rev 1) New session button shows a + (Plus) icon and stays orange",
+      "surface": "ui",
+      "precondition": "Dashboard rendered",
+      "steps": ["1. Open the dashboard", "2. Inspect the New session button and its icon"],
+      "expected": "A lucide Plus icon precedes the label; button background is the accent",
+      "status": "pass",
+      "evidence": "Local preview computed style: svg.lucide-plus 17x17, flex-shrink 0; button background rgb(255,117,31). No console errors.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T6b",
+      "title": "(Rev 1) Dashboard row actions are compact lucide icon buttons; rows compacted",
+      "surface": "ui",
+      "precondition": "At least one session on the live site",
+      "steps": [
+        "1. Open the dashboard with sessions",
+        "2. Confirm each row's actions are icon buttons (Play resume / FileText view / RotateCcw re-run / Trash2 delete; Check/X on confirm)",
+        "3. Confirm the rows are denser than before"
+      ],
+      "expected": "Icon-only buttons with tooltips; resume white, delete quiet-to-red, confirm filled-red; rows compact",
+      "status": "pending",
+      "evidence": ".icon-button system (is-resume/is-delete/is-danger) ships in live CSS; SessionList renders the lucide icons; row metrics reduced; dead .light-button/.danger-button/.session-delete removed.",
+      "notes": "Not rendered locally (no session rows without the backend). Quick confirm on the live site.",
+      "waiver": ""
+    },
+    {
+      "id": "T7",
+      "title": "(Rev 1) Carousel custom card selects on focus (prior option de-highlights); no overlap with the card above",
+      "surface": "ui",
+      "precondition": "A session reaching the question carousel on the live site",
+      "steps": [
+        "1. On a question, select an option (it highlights)",
+        "2. Click into the 'Something else' field",
+        "3. Confirm the custom card highlights and the previously selected option de-highlights",
+        "4. Select the option directly above the custom card; confirm it no longer visually overlaps the custom card"
+      ],
+      "expected": "Custom card highlights on focus with mutual exclusivity; selected card layers cleanly (z-10), no grow-overlap of the card below",
+      "status": "pending",
+      "evidence": "onSelectOther threaded to the custom input onFocus (sets OTHER_OPTION immediately); selected-card scale fixed to 1 + z-10 + tamed glow + wider grid gap. tsc/lint/build clean.",
+      "notes": "Needs a live session to eyeball; selection logic + layout fix are code- and build-verified.",
+      "waiver": ""
+    },
+    {
+      "id": "T8",
+      "title": "(Rev 2) Header: logo enlarged to 40px, title reduced, logo renders",
+      "surface": "ui",
+      "precondition": "Any header rendered (dashboard or wizard)",
+      "steps": ["1. Open the dashboard", "2. Inspect .wizard-logo and .wizard-title computed sizes"],
+      "expected": "Logo 40x40 (not collapsed), title smaller than before",
+      "status": "pass",
+      "evidence": "Local preview computed style: .wizard-logo offsetW/H 40x40 (after matching the img width/height attrs to the 40px CSS - the 32/40 mismatch had collapsed width to 0), .wizard-title font-size 24px (was ~27px min).",
+      "notes": "The attr/CSS mismatch would have affected the live build too; caught locally.",
+      "waiver": ""
+    },
+    {
+      "id": "T9",
+      "title": "(Rev 2) Resume icon stays visible on hover; ticket generation uses the rotating loader",
+      "surface": "ui",
+      "precondition": "A session row (resume) on the live site; a completed session to draft a ticket",
+      "steps": ["1. Hover the resume (Play) icon button", "2. Confirm the glyph stays dark/visible on the light hover", "3. Click Generate ticket; confirm the rotating ThinkingLoader shows (not a 'Generating…' label)"],
+      "expected": "Play icon visible on hover; ticket step shows the shared loader while generating",
+      "status": "pending",
+      "evidence": ".icon-button.is-resume:hover keeps color #0a0b10 (ships in CSS); TicketStep renders ThinkingLoader while generate.isPending. tsc/lint/build clean.",
+      "notes": "Needs rows/session to eyeball; CSS + code verified.",
+      "waiver": ""
+    },
+    {
+      "id": "T10",
+      "title": "(Rev 2) Last-question pager control is a Submit check; action group right-aligned",
+      "surface": "ui",
+      "precondition": "A session reaching the question carousel",
+      "steps": ["1. Navigate to the last question", "2. Confirm the right control is a check (accent when all answered) that submits", "3. Confirm the Submit answers / Stop and draft group sits at the right"],
+      "expected": "Last-slide check submits the batch; the action group is right-aligned",
+      "status": "pending",
+      "evidence": ".carousel-arrow.is-submit (2 refs) + .step-actions.is-end (1) ship in CSS; canSubmit/onSubmit threaded. tsc/lint/build clean.",
+      "notes": "Needs a live session to eyeball.",
+      "waiver": ""
+    },
+    {
+      "id": "T11",
+      "title": "(Rev 2) No 'Ready for batch N' button - auto-advance to next batch or ticket",
+      "surface": "ui",
+      "precondition": "A session in feature scope on the live site",
+      "steps": ["1. Answer batch 1 and click Submit answers", "2. Confirm a loader shows (no 'Ready for batch 2' button)", "3. Confirm it then shows batch 2's questions, OR the ticket view if the interview is complete - never an empty batch screen"],
+      "expected": "After submit it loads then shows the next batch's questions or the ticket view; the between-batches button is gone",
+      "status": "pending",
+      "evidence": "useAutoAdvanceBatches generates the next batch after submit/resume; the between-batches GenerateBatchPanel is replaced by the loader (only batch 1 keeps the Start panel). Mutations setQueryData so state updates synchronously. tsc/lint/build clean.",
+      "notes": "Needs a full interview run to eyeball the transition.",
+      "waiver": ""
     }
   ]
 }

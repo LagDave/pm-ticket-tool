@@ -207,8 +207,8 @@ body::before {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: clamp(1.7rem, 3.6vw, 2.4rem);
-  line-height: 1.04;
+  font-size: clamp(1.5rem, 3.1vw, 2.05rem);
+  line-height: 1.06;
   letter-spacing: -0.015em;
   color: var(--ink);
 }
@@ -222,8 +222,8 @@ body::before {
 }
 
 .wizard-logo {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
   border-radius: 8px;
   object-fit: contain;
@@ -448,6 +448,10 @@ textarea.request-input {
   gap: 12px;
   margin-top: 24px;
 }
+/* Right-aligned variant: the batch submit/stop group sits at the trailing edge. */
+.step-actions.is-end {
+  justify-content: flex-end;
+}
 
 .primary-button,
 .secondary-button {
@@ -623,6 +627,17 @@ textarea.request-input {
 .carousel-arrow:disabled {
   opacity: 0.32;
   cursor: not-allowed;
+}
+/* On the last question the right control becomes a Submit (check) button: accent
+ * when every question is answered, the standard disabled state otherwise. */
+.carousel-arrow.is-submit:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--canvas);
+}
+.carousel-arrow.is-submit:not(:disabled):hover {
+  border-color: var(--accent-soft);
+  background: var(--accent-soft);
 }
 
 /* The dot rail — one dot per question in the batch. */
@@ -876,6 +891,7 @@ textarea.request-input {
 .icon-button.is-resume:hover:not(:disabled) {
   background: #e9ebf2;
   border-color: #e9ebf2;
+  color: #0a0b10;
 }
 /* Delete trigger: quiet until hover, then red, signalling the destructive path. */
 .icon-button.is-delete:hover:not(:disabled) {

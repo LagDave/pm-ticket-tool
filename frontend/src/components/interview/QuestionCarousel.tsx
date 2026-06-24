@@ -17,7 +17,7 @@
  * inactive/answered dots.
  */
 import { AnimatePresence, motion, type PanInfo } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SPRING_SOFT, slideVariants } from "../../lib/motion";
 import type { InterviewQuestion } from "../../types/interview";
@@ -36,6 +36,10 @@ interface QuestionCarouselProps {
   /** Make the custom free-text the active selection for a question (on focus). */
   onSelectOther: (questionId: string) => void;
   onChangeOther: (questionId: string, otherText: string) => void;
+  /** True when every question is answered (enables the last-slide submit check). */
+  canSubmit: boolean;
+  /** Submit the batch; the check button on the last question triggers this. */
+  onSubmit: () => void;
 }
 
 /** Drag distance (px) past which a swipe commits to the next/prev question. */
@@ -47,9 +51,11 @@ export function QuestionCarousel({
   otherByQuestion,
   isAnswered,
   disabled,
+  canSubmit,
   onSelectOption,
   onSelectOther,
   onChangeOther,
+  onSubmit,
 }: QuestionCarouselProps) {
   // [index, direction] - direction (+1/-1) tells the slide which way to animate.
   const [position, setPosition] = useState<{ index: number; direction: number }>({
@@ -124,7 +130,9 @@ export function QuestionCarousel({
         index={index}
         questions={questions}
         isAnswered={isAnswered}
+        canSubmit={canSubmit}
         onJump={goTo}
+        onSubmit={onSubmit}
       />
     </div>
   );
@@ -135,12 +143,16 @@ function CarouselPager({
   index,
   questions,
   isAnswered,
+  canSubmit,
   onJump,
+  onSubmit,
 }: {
   index: number;
   questions: InterviewQuestion[];
   isAnswered: (questionId: string) => boolean;
+  canSubmit: boolean;
   onJump: (next: number) => void;
+  onSubmit: () => void;
 }) {
   const total = questions.length;
 
@@ -178,15 +190,27 @@ function CarouselPager({
         ))}
       </div>
 
-      <button
-        type="button"
-        className="carousel-arrow"
-        onClick={() => onJump(index + 1)}
-        disabled={index === total - 1}
-        aria-label="Next question"
-      >
-        <ChevronRight size={18} aria-hidden />
-      </button>
+      {index === total - 1 ? (
+        <button
+          type="button"
+          className="carousel-arrow is-submit"
+          onClick={onSubmit}
+          disabled={!canSubmit}
+          aria-label="Submit answers"
+          title="Submit answers"
+        >
+          <Check size={18} aria-hidden />
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="carousel-arrow"
+          onClick={() => onJump(index + 1)}
+          aria-label="Next question"
+        >
+          <ChevronRight size={18} aria-hidden />
+        </button>
+      )}
     </div>
   );
 }
