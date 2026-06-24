@@ -14,11 +14,13 @@
  * because QuestionBatch replays the persisted turns (spec 2). `onExit` returns to
  * the dashboard.
  */
+import { motion } from "framer-motion";
 import { useState } from "react";
 import { QuestionBatch } from "../components/interview/QuestionBatch";
 import { RequestEntry } from "../components/interview/RequestEntry";
 import { TriageBranch } from "../components/interview/TriageBranch";
 import { TicketStep } from "../components/ticket/TicketStep";
+import { SPRING_SOFT } from "../lib/motion";
 import { useSession } from "../hooks/queries/useInterviewSessionQueries";
 import type { InterviewSession, TriageRoute } from "../types/interview";
 
@@ -119,55 +121,68 @@ export function InterviewWizard({
         </ol>
       </header>
 
-      {stepIndex === WIZARD_STEP.request && (
-        <RequestEntry onCreated={handleCreated} />
-      )}
-
-      {stepIndex === WIZARD_STEP.triage && sessionId !== null && (
-        <>
-          {session && (
-            <blockquote className="request-echo">
-              {session.original_request}
-            </blockquote>
+      {/* Step transition — entrance-only, keyed on the step so each step mounts
+          fresh and animates in. Deliberately NOT wrapped in AnimatePresence with
+          an exit: the interview step renders its own nested AnimatePresence
+          (QuestionBatch's per-batch deck), and a parent presence/exit deadlocks
+          on that nested exit — leaving the old step on screen while the new one
+          mounts. A keyed motion.div re-mounts cleanly; the batch-level transition
+          inside QuestionBatch still animates the deck swap. */}
+      <motion.div
+        key={stepIndex}
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0, transition: SPRING_SOFT }}
+      >
+          {stepIndex === WIZARD_STEP.request && (
+            <RequestEntry onCreated={handleCreated} />
           )}
-          <TriageBranch sessionId={sessionId} onRouted={handleRouted} />
-          <div className="step-actions">
-            <button type="button" className="secondary-button" onClick={restart}>
-              {onExit ? "Back to dashboard" : "Start over"}
-            </button>
-          </div>
-        </>
-      )}
 
-      {stepIndex === WIZARD_STEP.interview && sessionId !== null && (
-        <>
-          {session && (
-            <blockquote className="request-echo">
-              {session.original_request}
-            </blockquote>
+          {stepIndex === WIZARD_STEP.triage && sessionId !== null && (
+            <>
+              {session && (
+                <blockquote className="request-echo">
+                  {session.original_request}
+                </blockquote>
+              )}
+              <TriageBranch sessionId={sessionId} onRouted={handleRouted} />
+              <div className="step-actions">
+                <button type="button" className="secondary-button" onClick={restart}>
+                  {onExit ? "Back to dashboard" : "Start over"}
+                </button>
+              </div>
+            </>
           )}
-          <QuestionBatch
-            sessionId={sessionId}
-            onComplete={handleInterviewComplete}
-          />
-          <div className="step-actions">
-            <button type="button" className="secondary-button" onClick={restart}>
-              {onExit ? "Back to dashboard" : "Start over"}
-            </button>
-          </div>
-        </>
-      )}
 
-      {stepIndex === WIZARD_STEP.ticket && sessionId !== null && (
-        <>
-          <TicketStep sessionId={sessionId} />
-          <div className="step-actions">
-            <button type="button" className="secondary-button" onClick={restart}>
-              {onExit ? "Back to dashboard" : "Start over"}
-            </button>
-          </div>
-        </>
-      )}
+          {stepIndex === WIZARD_STEP.interview && sessionId !== null && (
+            <>
+              {session && (
+                <blockquote className="request-echo">
+                  {session.original_request}
+                </blockquote>
+              )}
+              <QuestionBatch
+                sessionId={sessionId}
+                onComplete={handleInterviewComplete}
+              />
+              <div className="step-actions">
+                <button type="button" className="secondary-button" onClick={restart}>
+                  {onExit ? "Back to dashboard" : "Start over"}
+                </button>
+              </div>
+            </>
+          )}
+
+          {stepIndex === WIZARD_STEP.ticket && sessionId !== null && (
+            <>
+              <TicketStep sessionId={sessionId} />
+              <div className="step-actions">
+                <button type="button" className="secondary-button" onClick={restart}>
+                  {onExit ? "Back to dashboard" : "Start over"}
+                </button>
+              </div>
+            </>
+          )}
+        </motion.div>
     </main>
   );
 }

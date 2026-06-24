@@ -2,11 +2,21 @@
  * QuestionBatch — wizard step that renders the current open batch and collects
  * answers (§12.3). A component renders + delegates: server state comes from the
  * useInterview hooks (§14.3, §15.1); only the in-progress answer selections are
- * local UI state. Supports per-question free-text "other" and the global
- * "stop and generate now" control. Errors surface via the shared toast in the
- * hooks (§16.3); no fetch or business logic here (§14.1).
+ * local UI state. Each question is an animated OptionDeck (stagger-in, hover
+ * lift, recommended highlighted, build-speed meter); per-question free-text and
+ * the global "stop and generate now" are supported. Errors surface via the
+ * shared toast in the hooks (§16.3); no fetch or business logic here (§14.1).
+ *
+ * Batch progress (spec 2 UX): a "Interview · Batch N" header, a stepper of
+ * answered batches, and an answered-count make generating batch 2/3 visibly
+ * different from batch 1 — it no longer looks like the first Generate screen.
+ * The generate button advertises the real next batch number ("Ready for batch
+ * N"), generation shows a labeled BatchThinking indicator, and the deck animates
+ * out/in between batches via AnimatePresence keyed on the batch number.
  */
+import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
+import { SPRING_SOFT } from "../../lib/motion";
 import {
   useAdvanceNextBatch,
   useInterview,
@@ -17,7 +27,14 @@ import type {
   InterviewState,
   SubmittedAnswer,
 } from "../../types/interview";
-import { OTHER_OPTION, QuestionField } from "./QuestionField";
+import {
+  answeredBatchCount,
+  currentBatchNumber,
+  generateButtonLabel,
+  hasOpenBatch,
+} from "../../utils/batchProgress";
+import { BatchThinking } from "./BatchThinking";
+import { OptionDeck, OTHER_OPTION } from "./OptionDeck";
 
 interface QuestionBatchProps {
   sessionId: number;
@@ -41,9 +58,7 @@ function openQuestions(state: InterviewState | undefined): InterviewQuestion[] {
 /**
  * True when any option in the open batch is grounded in scout findings (spec 6):
  * it carries a groundingRef back to a finding. Drives the "verify with engineering"
- * note — shown only when there is grounding to verify. (Speed tiers and the
- * recommended pick are present on every option, grounded or not, so they no longer
- * signal grounding.)
+ * note — shown only when there is grounding to verify.
  */
 function hasGroundedOptions(questions: InterviewQuestion[]): boolean {
   return questions.some((question) =>
@@ -60,6 +75,10 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
   const questions = useMemo(() => openQuestions(state), [state]);
   const isGrounded = useMemo(() => hasGroundedOptions(questions), [questions]);
   const isBusy = advance.isPending || submit.isPending;
+
+  const answered = answeredBatchCount(state);
+  const batchNumber = currentBatchNumber(state);
+  const isOpen = hasOpenBatch(state);
 
   const setOption = (questionId: string, optionId: string): void => {
     setDrafts((prev) => ({
@@ -109,51 +128,111 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
 
   if (isLoading) return <p className="field-hint">Loading interview…</p>;
 
-  // No open batch yet — offer to generate the first/next one.
-  if (questions.length === 0) {
+  // Generating a batch — show the labeled, animated thinking indicator. Rendered
+  // directly (no wrapping AnimatePresence): BatchThinking owns its own internal
+  // AnimatePresence for the rotating phases, and wrapping it in a second
+  // mode="wait" presence here deadlocks its exit when the batch lands, leaving
+  // the loader stuck on screen. React swaps the trees cleanly without it.
+  if (advance.isPending) {
+    return <BatchThinking batchNumber={answered + 1} />;
+  }
+
+  // No open batch yet — offer to generate the first/next one. The header and
+  // the button label both reflect the real next batch number so this screen
+  // reads differently before batch 1 vs. between batches.
+  if (!isOpen || questions.length === 0) {
     return (
-      <section className="step-panel">
-        <h2 className="step-heading">Interview</h2>
-        <p className="field-hint">
-          Generate the next set of questions, grounded in your request.
-        </p>
-        <div className="step-actions">
-          <button
-            type="button"
-            className="primary-button"
-            onClick={handleGenerate}
-            disabled={isBusy}
-          >
-            {advance.isPending ? "Generating…" : "Generate questions"}
-          </button>
-        </div>
-      </section>
+      <GenerateBatchPanel
+        answered={answered}
+        label={generateButtonLabel(state)}
+        disabled={isBusy}
+        onGenerate={handleGenerate}
+      />
     );
   }
 
   return (
-    <section className="step-panel">
+    <AnimatePresence mode="wait">
+      <OpenBatchView
+        key={batchNumber}
+        answered={answered}
+        batchNumber={batchNumber}
+        questions={questions}
+        drafts={drafts}
+        isGrounded={isGrounded}
+        isBusy={isBusy}
+        isSaving={submit.isPending}
+        allAnswered={allAnswered}
+        onSelectOption={setOption}
+        onChangeOther={setOther}
+        onSubmit={handleSubmit}
+      />
+    </AnimatePresence>
+  );
+}
+
+/**
+ * The open-batch view: the progress header, the prompt, the grounding note, the
+ * animated decks, and the submit / stop actions. Extracted so the parent is a
+ * lean orchestrator (§13.2); it animates in/out (keyed on the batch number by
+ * the parent) so a new batch visibly arrives. Presentational — the parent owns
+ * the draft state and the mutations.
+ */
+function OpenBatchView({
+  answered,
+  batchNumber,
+  questions,
+  drafts,
+  isGrounded,
+  isBusy,
+  isSaving,
+  allAnswered,
+  onSelectOption,
+  onChangeOther,
+  onSubmit,
+}: {
+  answered: number;
+  batchNumber: number;
+  questions: InterviewQuestion[];
+  drafts: Record<string, Draft>;
+  isGrounded: boolean;
+  isBusy: boolean;
+  isSaving: boolean;
+  allAnswered: boolean;
+  onSelectOption: (questionId: string, optionId: string) => void;
+  onChangeOther: (questionId: string, otherText: string) => void;
+  onSubmit: (stopAndGenerate: boolean) => void;
+}) {
+  return (
+    <motion.section
+      className="step-panel"
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0, transition: SPRING_SOFT }}
+      exit={{ opacity: 0, y: -14, transition: { duration: 0.18 } }}
+    >
+      <BatchProgress answered={answered} current={batchNumber} />
       <h2 className="step-heading">A few questions</h2>
       <p className="field-hint">
-        Answer what you can. When you have enough, stop and we&apos;ll draft the ticket.
+        Answer what you can. When you have enough, stop and we&apos;ll draft the
+        ticket.
       </p>
       {isGrounded && (
         <p className="field-hint grounding-note">
-          Some options are grounded in a scan of your codebase and tagged with a rough
-          build-speed tier. These are orientation only — verify with engineering before
-          committing.
+          Some options are grounded in a scan of your codebase and tagged with a
+          rough build-speed tier. These are orientation only — verify with
+          engineering before committing.
         </p>
       )}
 
       {questions.map((question) => (
-        <QuestionField
+        <OptionDeck
           key={question.id}
           question={question}
           selectedOptionId={drafts[question.id]?.optionId ?? null}
           otherText={drafts[question.id]?.otherText ?? ""}
           disabled={isBusy}
-          onSelectOption={(optionId) => setOption(question.id, optionId)}
-          onChangeOther={(otherText) => setOther(question.id, otherText)}
+          onSelectOption={(optionId) => onSelectOption(question.id, optionId)}
+          onChangeOther={(otherText) => onChangeOther(question.id, otherText)}
         />
       ))}
 
@@ -161,20 +240,120 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
         <button
           type="button"
           className="primary-button"
-          onClick={() => handleSubmit(false)}
+          onClick={() => onSubmit(false)}
           disabled={!allAnswered || isBusy}
         >
-          {submit.isPending ? "Saving…" : "Submit answers"}
+          {isSaving ? "Saving…" : "Submit answers"}
         </button>
         <button
           type="button"
           className="secondary-button"
-          onClick={() => handleSubmit(true)}
+          onClick={() => onSubmit(true)}
           disabled={!allAnswered || isBusy}
         >
-          Stop and generate now
+          Stop and draft the ticket
         </button>
       </div>
-    </section>
+    </motion.section>
+  );
+}
+
+/**
+ * The batch-progress header: an "Interview · Batch N" eyebrow, an answered count,
+ * and a stepper of pips (one filled per answered batch, the current one
+ * highlighted). Kept local + presentational so the parent stays lean (§13.2).
+ */
+function BatchProgress({
+  answered,
+  current,
+}: {
+  answered: number;
+  /** The 1-indexed batch on screen, or null when none is open (between batches). */
+  current: number | null;
+}) {
+  // Show a pip per answered batch plus the current one if it's a fresh open batch.
+  const pipCount = Math.max(answered + (current && current > answered ? 1 : 0), 1);
+  const pips = Array.from({ length: pipCount }, (_, i) => i + 1);
+
+  return (
+    <div>
+      <div className="batch-bar">
+        <p className="batch-eyebrow">
+          Interview
+          {current !== null && (
+            <>
+              {" · "}
+              <span className="batch-n">Batch {current}</span>
+            </>
+          )}
+        </p>
+        <span className="batch-count">
+          {answered === 0
+            ? "No batches answered yet"
+            : `${answered} ${answered === 1 ? "batch" : "batches"} answered`}
+        </span>
+      </div>
+      <div
+        className="batch-stepper"
+        role="img"
+        aria-label={`${answered} of ${pipCount} batches answered`}
+      >
+        {pips.map((n) => (
+          <span
+            key={n}
+            className={
+              "batch-pip" +
+              (n <= answered ? " is-answered" : "") +
+              (current !== null && n === current ? " is-current" : "")
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The between-batches screen: progress so far plus the generate control whose
+ * label advertises the real next batch number. Extracted to keep the parent
+ * component lean (§13.2). Presentational; the parent owns the mutation.
+ */
+function GenerateBatchPanel({
+  answered,
+  label,
+  disabled,
+  onGenerate,
+}: {
+  answered: number;
+  label: string;
+  disabled: boolean;
+  onGenerate: () => void;
+}) {
+  return (
+    <motion.section
+      className="step-panel"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0, transition: SPRING_SOFT }}
+    >
+      <BatchProgress answered={answered} current={null} />
+      <h2 className="step-heading">
+        {answered === 0 ? "Ready when you are" : `Batch ${answered} answered`}
+      </h2>
+      <p className="field-hint">
+        {answered === 0
+          ? "We'll ask a few dependency-ordered questions at a time, grounded in your request, and stop once there's enough to draft a good ticket."
+          : "Nice — those are saved. Generate the next batch, or stop here and draft the ticket from what we have."}
+      </p>
+      <div className="step-actions">
+        <button
+          type="button"
+          className="primary-button"
+          onClick={onGenerate}
+          disabled={disabled}
+        >
+          {label}
+        </button>
+      </div>
+    </motion.section>
   );
 }

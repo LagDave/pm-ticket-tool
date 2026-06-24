@@ -1,11 +1,24 @@
 /**
- * Dark-studio design system (frontend redesign). Tailwind v4 via the Vite plugin
- * (`@import "tailwindcss"`), a characterful type pairing loaded from @fontsource
- * (Fraunces display + Sora body — deliberately not Inter/Roboto/system-ui), and
- * one vivid accent (warm amber) on a deep near-black canvas. Dark is the default
- * and only theme: the palette is set on :root with no toggle. Component motion
- * lives in the React components via Framer Motion; this file owns the tokens,
- * the canvas atmosphere, and the few primitives the wizard shell reuses.
+ * Dark-studio design system (frontend redesign). DARK is the default and only
+ * theme: deep near-black canvas, off-white ink, one vivid warm-amber accent
+ * reserved for the recommended option + primary actions. A characterful type
+ * pairing (Fraunces display + Sora body — deliberately not Inter/Roboto/system)
+ * loaded locally from @fontsource so there is no FOUT/network race.
+ *
+ * This file owns three things:
+ *   1. the design tokens, exposed BOTH to Tailwind v4's @theme (so utility
+ *      classes like `bg-surface/70`, `text-ink`, `border-accent` resolve) AND
+ *      on :root as plain CSS vars (so the hand-written component classes below
+ *      can use them);
+ *   2. the canvas atmosphere (body + a fixed radial-tint layer);
+ *   3. the semantic component classes the app shell, wizard, request entry,
+ *      interview, ticket, dashboard, and triage render with (`.wizard`,
+ *      `.step-panel`, `.primary-button`, `.session-row`, …). These were the gap:
+ *      the components referenced them but nothing defined them, so the shell
+ *      rendered as unstyled default-chrome HTML on the dark body. Defining them
+ *      here is what makes the whole app genuinely dark, not just the <body>.
+ *
+ * Component motion lives in the React components via Framer Motion.
  */
 @import "tailwindcss";
 
@@ -21,7 +34,7 @@
 @import "@fontsource/sora/700.css";
 
 /* Expose the design tokens to Tailwind v4's theme so utilities like
- * `bg-canvas`, `text-accent`, `font-display` resolve to these values. */
+ * `bg-surface/70`, `text-accent`, `font-display` resolve to these values. */
 @theme {
   --color-canvas: #08090d;
   --color-canvas-2: #0c0e14;
@@ -45,6 +58,39 @@
   --radius-card: 18px;
 }
 
+/* The same tokens as plain CSS custom properties, so the hand-written component
+ * classes below resolve them without depending on Tailwind's generated layer.
+ * Kept in lockstep with @theme above. */
+:root {
+  color-scheme: dark;
+
+  --canvas: #08090d;
+  --canvas-2: #0c0e14;
+  --surface: #12141c;
+  --surface-2: #181b25;
+  --surface-3: #1f2330;
+  --line: #262a36;
+  --line-2: #343a4a;
+  --ink: #f4f5f8;
+  --muted: #9aa0b0;
+  --faint: #686e7e;
+
+  --accent: #ffb224;
+  --accent-soft: #f6c453;
+  --accent-deep: #b27414;
+  --accent-tint: rgba(255, 178, 36, 0.12);
+  --accent-tint-strong: rgba(255, 178, 36, 0.18);
+
+  --radius-card: 18px;
+  --radius-md: 12px;
+  --radius-sm: 9px;
+
+  --shell-width: 880px;
+
+  --shadow-card: 0 24px 60px -30px rgba(0, 0, 0, 0.9);
+  --shadow-accent: 0 12px 30px -12px rgba(255, 178, 36, 0.55);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -57,16 +103,17 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-canvas);
-  color: var(--color-ink);
+  background: var(--canvas);
+  color: var(--ink);
   font-family: var(--font-body);
+  font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* Atmosphere: two restrained radial tints (violet + cyan) bleeding from the top
- * corners plus a faint grain, painted behind everything via a fixed ::before.
+/* Atmosphere: restrained radial tints (violet + cyan from the top corners,
+ * a faint amber from the bottom) painted behind everything via a fixed ::before.
  * Subtle — sets mood without becoming a "purple gradient" cliche. */
 body::before {
   content: "";
@@ -86,9 +133,9 @@ body::before {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-line-2);
+  background: var(--line-2);
   border-radius: 999px;
-  border: 2px solid var(--color-canvas);
+  border: 2px solid var(--canvas);
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -96,12 +143,12 @@ body::before {
 
 ::selection {
   background: rgba(255, 178, 36, 0.28);
-  color: var(--color-ink);
+  color: var(--ink);
 }
 
 /* Shared focus ring — amber, used app-wide on inputs/buttons. */
 :where(button, a, input, textarea, select):focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -113,4 +160,755 @@ body::before {
 /* react-hot-toast styled for dark so error/success toasts match the canvas. */
 :where([class*="toast"]) {
   font-family: var(--font-body);
+}
+
+/* ===========================================================================
+ * App shell + wizard
+ * Centered column shared by the dashboard, the wizard, and the ticket view.
+ * ======================================================================== */
+
+.wizard,
+.dashboard {
+  width: min(var(--shell-width), calc(100% - 40px));
+  margin: 0 auto;
+  padding: 56px 0 96px;
+  animation: shell-fade 0.5s ease both;
+}
+
+@keyframes shell-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.wizard-header {
+  margin-bottom: 32px;
+}
+
+.wizard-topline,
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.dashboard-header {
+  margin-bottom: 22px;
+}
+
+.wizard-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.7rem, 3.6vw, 2.4rem);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+/* The quiet back-to-dashboard link in the topline. */
+.link-button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.92rem;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  transition: color 0.18s ease, background 0.18s ease;
+}
+.link-button:hover {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+/* ---- Step rail -------------------------------------------------------- */
+
+.step-rail {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.step-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 14px 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.step-number {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-2);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--muted);
+  transition: inherit;
+}
+
+.step-dot.is-active {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+.step-dot.is-active .step-number {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--canvas);
+}
+
+.step-dot.is-done {
+  color: var(--ink);
+  border-color: var(--line-2);
+}
+.step-dot.is-done .step-number {
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line-2));
+  color: var(--accent-soft);
+}
+
+/* ===========================================================================
+ * Panels / cards — the surface every step and section sits on
+ * ======================================================================== */
+
+.step-panel {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 120px),
+    var(--surface);
+  padding: 30px 30px 28px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+/* Hairline top highlight so the card edge catches the atmosphere light. */
+.step-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line-2), transparent);
+  pointer-events: none;
+}
+
+.step-heading {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+/* The echoed original request above interview/triage. */
+.request-echo {
+  margin: 0 0 18px;
+  padding: 14px 18px;
+  border-left: 2px solid var(--accent-deep);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: var(--canvas-2);
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+/* ===========================================================================
+ * Typography helpers used across steps
+ * ======================================================================== */
+
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--font-display);
+  font-size: 1.18rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.field-hint {
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 0.96rem;
+  line-height: 1.55;
+}
+
+.field-hint.grounding-note {
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--canvas-2);
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+/* ===========================================================================
+ * Form controls — inputs, textareas, selects
+ * ======================================================================== */
+
+.request-input,
+.criterion-input,
+.ticket-effort-select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--canvas-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.98rem;
+  padding: 13px 15px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+textarea.request-input {
+  resize: vertical;
+  min-height: 84px;
+  line-height: 1.5;
+}
+
+.request-input::placeholder,
+.criterion-input::placeholder {
+  color: var(--faint);
+}
+
+.request-input:focus,
+.criterion-input:focus,
+.ticket-effort-select:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+  box-shadow: 0 0 0 3px var(--accent-tint);
+  background: var(--surface);
+}
+
+.request-input:disabled,
+.criterion-input:disabled,
+.ticket-effort-select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ticket-effort-select {
+  width: auto;
+  min-width: 140px;
+  cursor: pointer;
+}
+
+/* ===========================================================================
+ * Buttons — primary (amber), secondary (outline), and step actions row
+ * ======================================================================== */
+
+.step-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.primary-button,
+.secondary-button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 0.96rem;
+  font-weight: 600;
+  padding: 11px 20px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.18s ease,
+    border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.primary-button {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--canvas);
+  box-shadow: var(--shadow-accent);
+}
+.primary-button:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft);
+  transform: translateY(-1px);
+}
+.primary-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+}
+
+.secondary-button {
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--ink);
+}
+.secondary-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line-2));
+  background: var(--surface-2);
+  transform: translateY(-1px);
+}
+.secondary-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ===========================================================================
+ * Interview — batch progress, stepper, loading
+ * ======================================================================== */
+
+/* The "Interview · Batch N" topline above the open batch. */
+.batch-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.batch-eyebrow {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.batch-eyebrow .batch-n {
+  color: var(--accent-soft);
+}
+
+/* Count of answered batches, right-aligned in the bar. */
+.batch-count {
+  font-size: 0.82rem;
+  color: var(--faint);
+}
+
+/* The stepper of batch dots — one filled per answered batch, the current one
+ * outlined in accent, future (capacity) dots faint. */
+.batch-stepper {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 22px;
+}
+
+.batch-pip {
+  width: 26px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line);
+  transition: background 0.3s ease, box-shadow 0.3s ease, width 0.3s ease;
+}
+.batch-pip.is-answered {
+  background: color-mix(in srgb, var(--accent) 70%, var(--surface-2));
+}
+.batch-pip.is-current {
+  width: 38px;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+
+/* Labeled, animated "thinking" indicator while a batch generates. */
+.batch-loading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 120px),
+    var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.batch-loading-orb {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+.batch-loading-orb::before,
+.batch-loading-orb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  border-top-color: var(--accent);
+  animation: orb-spin 0.9s linear infinite;
+}
+.batch-loading-orb::after {
+  inset: 5px;
+  border-top-color: var(--accent-soft);
+  animation-duration: 1.4s;
+  animation-direction: reverse;
+}
+@keyframes orb-spin {
+  to { transform: rotate(360deg); }
+}
+
+.batch-loading-label {
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+.batch-loading-sub {
+  margin-top: 2px;
+  font-size: 0.85rem;
+  color: var(--faint);
+}
+
+/* ===========================================================================
+ * Dashboard — filter bar, session list, pager
+ * ======================================================================== */
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.filter-chip {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 500;
+  padding: 7px 15px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+.filter-chip:hover {
+  color: var(--ink);
+  border-color: var(--line-2);
+}
+.filter-chip.is-active {
+  color: var(--canvas);
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.session-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  padding: 18px 20px;
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+.session-row:hover {
+  border-color: var(--line-2);
+  background: var(--surface-2);
+  transform: translateY(-1px);
+}
+
+.session-main {
+  min-width: 0;
+  flex: 1 1 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.session-snippet {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+.session-meta {
+  font-size: 0.78rem;
+  color: var(--faint);
+}
+
+.session-actions {
+  display: flex;
+  gap: 9px;
+  flex-shrink: 0;
+}
+
+/* Status badge — quiet by default, the active/awaiting states tinted. */
+.session-status {
+  align-self: flex-start;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.session-status-in_progress,
+.session-status-awaiting_input {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line-2));
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-2));
+  color: var(--accent-soft);
+}
+.session-status-complete {
+  border-color: color-mix(in srgb, #3ddc97 40%, var(--line-2));
+  background: color-mix(in srgb, #3ddc97 12%, var(--surface-2));
+  color: #6ee7b0;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 26px;
+}
+.pager-status {
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+/* ===========================================================================
+ * Ticket view
+ * ======================================================================== */
+
+.ticket-view .ticket-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.ticket-status {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.ticket-status-final {
+  border-color: color-mix(in srgb, #3ddc97 40%, var(--line-2));
+  background: color-mix(in srgb, #3ddc97 12%, var(--surface-2));
+  color: #6ee7b0;
+}
+
+.ticket-section-heading {
+  margin: 22px 0 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.ticket-story {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.22rem;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.criteria-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.criterion-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 13px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--canvas-2);
+}
+.gwt {
+  font-size: 0.94rem;
+  color: var(--ink);
+}
+.gwt strong {
+  color: var(--accent-soft);
+  font-weight: 600;
+  margin-right: 5px;
+}
+
+.ticket-effort {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0;
+}
+.ticket-effort > strong {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--accent-soft);
+}
+.effort-note {
+  font-size: 0.83rem;
+  color: var(--faint);
+}
+
+.ticket-context {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* Inline edit form */
+.ticket-edit,
+.ticket-criteria-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.ticket-criteria-edit {
+  gap: 10px;
+}
+.criterion-edit-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+/* Comments */
+.ticket-comments {
+  margin-top: 30px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.comment-list {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.comment-item {
+  padding: 13px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--canvas-2);
+}
+.comment-body {
+  margin: 0 0 5px;
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.comment-meta {
+  font-size: 0.76rem;
+  color: var(--faint);
+}
+.comment-form {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===========================================================================
+ * Responsive
+ * ======================================================================== */
+
+@media (max-width: 640px) {
+  .wizard,
+  .dashboard {
+    width: min(100% - 28px, var(--shell-width));
+    padding: 36px 0 72px;
+  }
+  .step-panel {
+    padding: 22px 20px;
+  }
+  .step-rail {
+    gap: 8px;
+  }
+  .step-dot {
+    padding: 6px 11px 6px 7px;
+    font-size: 0.76rem;
+  }
+  .step-name {
+    display: none;
+  }
+  .step-dot.is-active .step-name {
+    display: inline;
+  }
+  .criterion-edit-row {
+    grid-template-columns: 1fr;
+  }
+  .session-actions {
+    width: 100%;
+  }
+}
+
+/* Respect reduced-motion: drop the shell + spin animations. */
+@media (prefers-reduced-motion: reduce) {
+  .wizard,
+  .dashboard {
+    animation: none;
+  }
+  .batch-loading-orb::before,
+  .batch-loading-orb::after {
+    animation-duration: 2.4s;
+  }
 }
