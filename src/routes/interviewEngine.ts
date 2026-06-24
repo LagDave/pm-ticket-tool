@@ -10,7 +10,10 @@ import { Router } from "express";
 import { InterviewEngineController } from "../controllers/interview/InterviewEngineController";
 import { ownerContext } from "../middleware/ownerContext";
 import { validate } from "../middleware/validate";
-import { submitAnswersSchema } from "../validation/interviewAnswers";
+import {
+  overrideSkippedSchema,
+  submitAnswersSchema,
+} from "../validation/interviewAnswers";
 import { sessionIdParamSchema } from "../validation/interviewSession";
 
 const router = Router();
@@ -34,6 +37,16 @@ router.post(
   validate(sessionIdParamSchema, "params"),
   validate(submitAnswersSchema, "body"),
   InterviewEngineController.submitAnswers,
+);
+
+// Override a question the grounding suppressed (spec R3 — suppression is never
+// silent). The /:id/interview/skipped-override sub-path does not collide with the
+// other engine paths or the foundation /:id read.
+router.post(
+  "/:id/interview/skipped-override",
+  validate(sessionIdParamSchema, "params"),
+  validate(overrideSkippedSchema, "body"),
+  InterviewEngineController.overrideSkipped,
 );
 
 export default router;

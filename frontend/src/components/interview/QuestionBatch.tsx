@@ -10,12 +10,14 @@
  * question is answered. Errors surface via the shared toast in the hooks (§16.3);
  * no fetch or business logic here (§14.1).
  *
- * Batch progress (spec 2 UX): a "Interview · Batch N" header, a stepper of
+ * Suppressed questions (spec R3): when the project grounding settles a question it
+ * is NOT asked, but it is shown in a "Skipped - based on your project context"
+ * notice with the reason, and the PM can "Answer anyway" to record an override
+ * decision. Suppression is therefore never silent.
+ *
+ * Batch progress (spec 2 UX): a "Feature Scope · Batch N" header, a stepper of
  * answered batches, and an answered-count make generating batch 2/3 visibly
  * different from batch 1 - it no longer looks like the first Generate screen.
- * The generate button advertises the real next batch number ("Ready for batch
- * N"), generation shows the shared ThinkingLoader, and the deck animates
- * out/in between batches via AnimatePresence keyed on the batch number.
  */
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
@@ -23,11 +25,13 @@ import { SPRING_SOFT } from "../../lib/motion";
 import {
   useAdvanceNextBatch,
   useInterview,
+  useOverrideSkipped,
   useSubmitAnswers,
 } from "../../hooks/queries/useInterviewQueries";
 import type {
   InterviewQuestion,
   InterviewState,
+  SkippedQuestion,
   SubmittedAnswer,
 } from "../../types/interview";
 import {
@@ -71,9 +75,19 @@ function openQuestions(state: InterviewState | undefined): InterviewQuestion[] {
 }
 
 /**
- * True when any option in the open batch is grounded in scout findings (spec 6):
- * it carries a groundingRef back to a finding. Drives the "verify with engineering"
- * note - shown only when there is grounding to verify.
+ * The questions the grounding SUPPRESSED on the open batch (spec R3). Shown with
+ * their reasons so suppression is visible, never silent; each can be overridden.
+ */
+function openSkipped(state: InterviewState | undefined): SkippedQuestion[] {
+  if (!state || state.turns.length === 0) return [];
+  const last = state.turns[state.turns.length - 1];
+  return last.answers === null ? (last.questions.skipped ?? []) : [];
+}
+
+/**
+ * True when any option in the open batch is grounded in the project context (spec
+ * R3): it carries a groundingRef back to a bit. Drives the "verify with
+ * engineering" note - shown only when there is grounding to verify.
  */
 function hasGroundedOptions(questions: InterviewQuestion[]): boolean {
   return questions.some((question) =>
@@ -85,9 +99,11 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
   const { data: state, isLoading } = useInterview(sessionId);
   const advance = useAdvanceNextBatch(sessionId);
   const submit = useSubmitAnswers(sessionId);
+  const override = useOverrideSkipped(sessionId);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
 
   const questions = useMemo(() => openQuestions(state), [state]);
+  const skipped = useMemo(() => openSkipped(state), [state]);
   const isGrounded = useMemo(() => hasGroundedOptions(questions), [questions]);
   const isBusy = advance.isPending || submit.isPending;
 
@@ -162,6 +178,10 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
     });
   };
 
+  const handleOverride = (decisionKey: string, answer: string): void => {
+    override.mutate({ decisionKey, answer });
+  };
+
   if (isLoading) return <ThinkingLoader subtitle="Loading your feature scope" />;
 
   // Generating a batch - show the shared ThinkingLoader. Rendered directly (no
@@ -194,16 +214,19 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
         answered={answered}
         batchNumber={batchNumber}
         questions={questions}
+        skipped={skipped}
         selectedByQuestion={selectedByQuestion}
         otherByQuestion={otherByQuestion}
         isAnswered={isAnswered}
         isGrounded={isGrounded}
         isBusy={isBusy}
         isSaving={submit.isPending}
+        isOverriding={override.isPending}
         allAnswered={allAnswered}
         onSelectOption={setOption}
         onChangeOther={setOther}
         onSubmit={handleSubmit}
+        onOverride={handleOverride}
       />
     </AnimatePresence>
   );
@@ -211,39 +234,44 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
 
 /**
  * The open-batch view: the progress header, the prompt, the grounding note, the
- * one-question-per-screen carousel, and the submit / stop actions. Extracted so
- * the parent is a lean orchestrator (§13.2); it animates in/out (keyed on the
- * batch number by the parent) so a new batch visibly arrives. Presentational -
- * the parent owns the draft state and the mutations.
+ * one-question-per-screen carousel, the suppressed-questions notice, and the
+ * submit / stop actions. Extracted so the parent is a lean orchestrator (§13.2).
+ * Presentational - the parent owns the draft state and the mutations.
  */
 function OpenBatchView({
   answered,
   batchNumber,
   questions,
+  skipped,
   selectedByQuestion,
   otherByQuestion,
   isAnswered,
   isGrounded,
   isBusy,
   isSaving,
+  isOverriding,
   allAnswered,
   onSelectOption,
   onChangeOther,
   onSubmit,
+  onOverride,
 }: {
   answered: number;
   batchNumber: number;
   questions: InterviewQuestion[];
+  skipped: SkippedQuestion[];
   selectedByQuestion: Record<string, string | null>;
   otherByQuestion: Record<string, string>;
   isAnswered: (questionId: string) => boolean;
   isGrounded: boolean;
   isBusy: boolean;
   isSaving: boolean;
+  isOverriding: boolean;
   allAnswered: boolean;
   onSelectOption: (questionId: string, optionId: string) => void;
   onChangeOther: (questionId: string, otherText: string) => void;
   onSubmit: (stopAndGenerate: boolean) => void;
+  onOverride: (decisionKey: string, answer: string) => void;
 }) {
   return (
     <motion.section
@@ -261,7 +289,7 @@ function OpenBatchView({
       </p>
       {isGrounded && (
         <p className="field-hint grounding-note">
-          Some options are grounded in a scan of your codebase and tagged with a
+          Some options are grounded in your project context and tagged with a
           rough build-speed tier. These are orientation only. Verify with
           engineering before committing.
         </p>
@@ -276,6 +304,8 @@ function OpenBatchView({
         onSelectOption={onSelectOption}
         onChangeOther={onChangeOther}
       />
+
+      <SkippedNotice skipped={skipped} disabled={isBusy || isOverriding} onOverride={onOverride} />
 
       <div className="step-actions">
         <button
@@ -296,6 +326,104 @@ function OpenBatchView({
         </button>
       </div>
     </motion.section>
+  );
+}
+
+/**
+ * The suppressed-questions notice (spec R3). Lists each question the project
+ * context settled, with its reason, so suppression is visible. Each row offers
+ * "Answer anyway" - a free-text override the PM can record when a settled bit is
+ * stale or wrong. Presentational; the parent owns the override mutation.
+ */
+function SkippedNotice({
+  skipped,
+  disabled,
+  onOverride,
+}: {
+  skipped: SkippedQuestion[];
+  disabled: boolean;
+  onOverride: (decisionKey: string, answer: string) => void;
+}) {
+  if (skipped.length === 0) return null;
+  return (
+    <section className="skipped-notice">
+      <p className="skipped-notice-title">
+        Skipped, based on your project context ({skipped.length})
+      </p>
+      <ul className="skipped-list">
+        {skipped.map((item) => (
+          <SkippedRow
+            key={item.decisionKey}
+            item={item}
+            disabled={disabled}
+            onOverride={onOverride}
+          />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** One suppressed question + its "Answer anyway" override form (local input state). */
+function SkippedRow({
+  item,
+  disabled,
+  onOverride,
+}: {
+  item: SkippedQuestion;
+  disabled: boolean;
+  onOverride: (decisionKey: string, answer: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [answer, setAnswer] = useState("");
+
+  const submit = (): void => {
+    const trimmed = answer.trim();
+    if (trimmed.length === 0) return;
+    onOverride(item.decisionKey, trimmed);
+    setAnswer("");
+    setOpen(false);
+  };
+
+  return (
+    <li className="skipped-row">
+      <div className="skipped-reason">
+        <span className="skipped-key">{item.decisionKey}</span>
+        <span>{item.reason}</span>
+      </div>
+      {open ? (
+        <div className="skipped-override">
+          <input
+            type="text"
+            className="text-input"
+            placeholder="Your answer instead…"
+            value={answer}
+            disabled={disabled}
+            onChange={(e) => setAnswer(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") submit();
+            }}
+          />
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={submit}
+            disabled={disabled || answer.trim().length === 0}
+          >
+            Save
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="link-button"
+          onClick={() => setOpen(true)}
+          disabled={disabled}
+        >
+          Answer anyway
+        </button>
+      )}
+    </li>
   );
 }
 

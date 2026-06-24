@@ -19,8 +19,11 @@ import {
   updateProjectSchema,
 } from "../validation/project";
 import {
+  applyResolutionsSchema,
   bitIdParamSchema,
   candidateBitSchema,
+  importBitsSchema,
+  reconcileBitsSchema,
   updateBitSchema,
 } from "../validation/projectBit";
 
@@ -46,6 +49,40 @@ router.post(
   validate(candidateBitSchema, "body"),
   ProjectController.createBit,
 );
+
+// Reconcile / apply / import / generate-prompt (T9/T10). These sit at the
+// /:id/bits/<verb> depth; their string verbs never collide with the numeric
+// :bitId routes below (those are PATCH/DELETE on a positive-integer id). Each
+// validates the project :id param and its body at the boundary (§11.2).
+//
+// POST /:id/bits/reconcile — plan only, no writes (preview-then-confirm).
+router.post(
+  "/:id/bits/reconcile",
+  validate(projectIdParamSchema, "params"),
+  validate(reconcileBitsSchema, "body"),
+  ProjectController.reconcileBits,
+);
+// POST /:id/bits/apply — apply the human-confirmed resolutions in a transaction.
+router.post(
+  "/:id/bits/apply",
+  validate(projectIdParamSchema, "params"),
+  validate(applyResolutionsSchema, "body"),
+  ProjectController.applyBits,
+);
+// POST /:id/bits/import — additive by default (returns a plan); clears only on force.
+router.post(
+  "/:id/bits/import",
+  validate(projectIdParamSchema, "params"),
+  validate(importBitsSchema, "body"),
+  ProjectController.importBits,
+);
+// GET /:id/bit-prompt — the server-owned generate-bits prompt (embeds the schema).
+router.get(
+  "/:id/bit-prompt",
+  validate(projectIdParamSchema, "params"),
+  ProjectController.getBitPrompt,
+);
+
 router.patch(
   "/:id/bits/:bitId",
   validate(bitIdParamSchema, "params"),

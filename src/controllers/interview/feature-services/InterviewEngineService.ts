@@ -146,6 +146,27 @@ export class InterviewEngineService {
     return this.getState(sessionId, owner);
   }
 
+  /**
+   * Record an override decision for a question the grounding SUPPRESSED (spec R3:
+   * suppression is never silent — the PM can "answer anyway"). Owner-verifies the
+   * session, writes a decision_record row keyed by the suppressed decisionKey with
+   * source "answer" (the PM's own input wins over the settled bit that suppressed
+   * it), and returns the refreshed state. The free-text answer is stored as
+   * { otherText }, matching how a free-text answer is recorded.
+   */
+  static async recordSkippedOverride(
+    sessionId: number,
+    owner: OwnerContext,
+    decisionKey: string,
+    answer: string,
+  ): Promise<InterviewState> {
+    await this.requireSession(sessionId, owner);
+    await DecisionRecordModel.createMany([
+      { sessionId, key: decisionKey, value: { otherText: answer }, source: "answer" },
+    ]);
+    return this.getState(sessionId, owner);
+  }
+
   /* ----------------------------- private helpers ------------------------- */
 
   /** Owner-verify a session or throw NOT_FOUND (§11.7). */

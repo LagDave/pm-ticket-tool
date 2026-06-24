@@ -10,12 +10,16 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  applyResolutions,
   createBit,
   createProject,
   deleteBit,
   deleteProject,
+  getBitPrompt,
   getProject,
+  importBits,
   listProjects,
+  reconcileBits,
   updateBit,
   updateProject,
 } from "../../api/projects";
@@ -23,11 +27,17 @@ import type { ApiError } from "../../api";
 import { QUERY_KEYS } from "../../lib/queryClient";
 import { toast } from "../../lib/toast";
 import type {
+  ApplyResolutionsInput,
+  BitPrompt,
+  CandidateBit,
   CreateBitInput,
   CreateProjectInput,
+  ImportBitsInput,
+  ImportResult,
   Project,
   ProjectBit,
   ProjectWithBits,
+  ReconciliationPlan,
   UpdateBitInput,
   UpdateProjectInput,
 } from "../../types/project";
@@ -142,6 +152,75 @@ export function useDeleteBit(projectId: number | null) {
     },
     onError: (error) => {
       toast.error(error.message || "Could not delete the bit.");
+    },
+  });
+}
+
+/**
+ * Fetch the server-owned generate-bits prompt for a project. Enabled-gated so it
+ * only fetches when the prompt popup is open (the caller passes `enabled`), and
+ * disabled until an id is present (§15.1).
+ */
+export function useBitPrompt(projectId: number | null, enabled: boolean) {
+  return useQuery<BitPrompt, ApiError>({
+    queryKey: QUERY_KEYS.bitPrompt(projectId ?? 0),
+    queryFn: () => getBitPrompt(projectId as number),
+    enabled: enabled && projectId !== null && projectId > 0,
+  });
+}
+
+/**
+ * Diff incoming candidates against the project's active bits → a plan to resolve.
+ * No writes happen here, so there is nothing to invalidate; failures toast (§16.3).
+ */
+export function useReconcileBits(projectId: number | null) {
+  return useMutation<ReconciliationPlan, ApiError, CandidateBit[]>({
+    mutationFn: (candidates) => reconcileBits(projectId as number, candidates),
+    onError: (error) => {
+      toast.error(error.message || "Could not reconcile the bits.");
+    },
+  });
+}
+
+/**
+ * Submit a parsed import. The result is a tagged union: a `reconcile` result
+ * just hands back a plan for the PM to resolve (nothing written yet, so no
+ * invalidation); an `applied` result means a forced import already replaced the
+ * bits, so refresh the project detail and toast. Failures toast (§16.3).
+ */
+export function useImportBits(projectId: number | null) {
+  const queryClient = useQueryClient();
+  return useMutation<ImportResult, ApiError, ImportBitsInput>({
+    mutationFn: (input) => importBits(projectId as number, input.bits, input.force),
+    onSuccess: (result) => {
+      if (result.mode === "applied" && projectId !== null) {
+        void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.project(projectId) });
+        toast.success("Bits imported.");
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message || "Could not import the bits.");
+    },
+  });
+}
+
+/**
+ * Apply the PM-confirmed resolutions → the resulting bits. A multi-row write, so
+ * refresh the project detail and toast; failures toast (§16.3).
+ */
+export function useApplyResolutions(projectId: number | null) {
+  const queryClient = useQueryClient();
+  return useMutation<ProjectBit[], ApiError, ApplyResolutionsInput>({
+    mutationFn: (input) =>
+      applyResolutions(projectId as number, input.candidates, input.resolutions),
+    onSuccess: () => {
+      if (projectId !== null) {
+        void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.project(projectId) });
+      }
+      toast.success("Bits updated.");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Could not apply the changes.");
     },
   });
 }

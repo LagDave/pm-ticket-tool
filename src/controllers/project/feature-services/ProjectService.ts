@@ -5,9 +5,10 @@
  * into every model call (§11.7). Never touches req/res. Mirrors
  * InterviewSessionService (§6.1).
  */
+import { ProjectBitModel } from "../../../models/ProjectBitModel";
 import { ProjectModel } from "../../../models/ProjectModel";
 import type { OwnerContext } from "../../../types/interview";
-import type { IProject } from "../../../types/project";
+import type { IProject, IProjectBit } from "../../../types/project";
 import type {
   CreateProjectBody,
   UpdateProjectBody,
@@ -49,6 +50,21 @@ export class ProjectService {
       );
     }
     return project;
+  }
+
+  /**
+   * Fetch a project the caller owns together with its bits — the detail read
+   * (GET /projects/:id). Owner-verifies via getProjectForOwner (NOT_FOUND when
+   * missing/foreign, §11.7), then loads the project's bits through the model. The
+   * frontend project detail + the interview/ticket grounding both read this shape.
+   */
+  static async getProjectWithBits(
+    id: number,
+    owner: OwnerContext,
+  ): Promise<{ project: IProject; bits: IProjectBit[] }> {
+    const project = await this.getProjectForOwner(id, owner);
+    const bits = await ProjectBitModel.listByProject(project.id);
+    return { project, bits };
   }
 
   /**

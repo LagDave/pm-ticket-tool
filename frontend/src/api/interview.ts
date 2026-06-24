@@ -27,3 +27,14 @@ export async function submitInterviewAnswers(
 ): Promise<InterviewState> {
   return apiPost<InterviewState>(`/sessions/${sessionId}/interview/answers`, input);
 }
+
+/** POST /sessions/:id/interview/skipped-override - record a PM override for a suppressed question (spec R3). */
+export async function overrideSkippedQuestion(
+  sessionId: number,
+  input: { decisionKey: string; answer: string },
+): Promise<InterviewState> {
+  return apiPost<InterviewState>(
+    `/sessions/${sessionId}/interview/skipped-override`,
+    input,
+  );
+}

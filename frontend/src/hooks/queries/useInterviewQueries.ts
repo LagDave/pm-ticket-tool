@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   advanceNextBatch,
   getInterviewState,
+  overrideSkippedQuestion,
   submitInterviewAnswers,
 } from "../../api/interview";
 import type { ApiError } from "../../api";
@@ -49,6 +50,20 @@ export function useSubmitAnswers(sessionId: number | null) {
     },
     onError: (error) => {
       toast.error(error.message || "Could not submit your answers.");
+    },
+  });
+}
+
+/** Override a question the grounding suppressed (spec R3); surface failures via toast. */
+export function useOverrideSkipped(sessionId: number | null) {
+  const queryClient = useQueryClient();
+  return useMutation<InterviewState, ApiError, { decisionKey: string; answer: string }>({
+    mutationFn: (input) => overrideSkippedQuestion(sessionId as number, input),
+    onSuccess: (state) => {
+      queryClient.setQueryData(QUERY_KEYS.interview(state.sessionId), state);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Could not record your answer.");
     },
   });
 }

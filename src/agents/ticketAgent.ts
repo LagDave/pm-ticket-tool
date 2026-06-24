@@ -1,11 +1,12 @@
 /**
  * Ticket agent — the seam to the Anthropic SDK for ticket generation (§6.2).
  * Makes one bounded, structured-output call: given the original request plus the
- * session's recorded decisions, it returns a ticket as validated JSON — a user
- * story (As a / I want / So that), an array of Given/When/Then acceptance
- * criteria, an effort TIER (never hours), and a short context summary (spec T1).
- * Server-side only — the API key is read through config and never exposed to the
- * frontend (§5.1, §17.3). Mirrors agents/interviewAgent.ts.
+ * session's recorded decisions (and, when the session is attached to a project,
+ * its bits as orientation), it returns a ticket as validated JSON — a user story
+ * (As a / I want / So that), an array of Given/When/Then acceptance criteria, an
+ * effort TIER (never hours), and a short context summary (spec T1). Server-side
+ * only — the API key is read through config and never exposed to the frontend
+ * (§5.1, §17.3). Mirrors agents/interviewAgent.ts.
  *
  * Cost/latency controls (spec Constraints): adaptive thinking at MEDIUM effort, a
  * bounded max_tokens, and a single short-lived call (not a long agent loop), so
@@ -16,6 +17,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { TICKET_GENERATION, requireAnthropicApiKey } from "../config";
 import { logger } from "../config/logger";
 import { generatedTicketOutputSchema } from "../validation/ticket";
+import type { ProjectGrounding } from "../types/project";
 import type { IDecisionRecord } from "../types/interview";
 
 /** Lazily-constructed singleton so a missing key fails fast at first use (§5.6). */
@@ -33,6 +35,14 @@ export interface GenerateTicketParams {
   originalRequest: string;
   /** The structured decisions recorded during the interview (the real source of truth). */
   decisions: IDecisionRecord[];
+  /**
+   * The session's project-bits grounding (project context), when the session is
+   * attached to a project with active bits. ORIENTATION ONLY — it makes the ticket
+   * concrete against the real app, but the decisions remain the source of truth and
+   * the model must not invent requirements they did not settle. Absent (undefined)
+   * leaves ticket generation unchanged. A single call, so no prompt caching here.
+   */
+  grounding?: ProjectGrounding;
 }
 
 const EFFORT_TIER_GUIDANCE = [
@@ -60,11 +70,25 @@ const SYSTEM_PROMPT = [
   "  invent requirements that were not decided; prefer the decisions over the vague",
   "  original request where they conflict.",
   "- context_summary is 1-3 sentences a developer reads first: what this is and why.",
+  "- If a 'Project context' block is present, use it as ORIENTATION about the existing",
+  "  app (what already exists, the stack, integrations, constraints) to make the ticket",
+  "  concrete — but never add requirements it implies that the decisions did not settle.",
   "- Never use em-dashes (—) or en-dashes (–) in any output. Use commas, periods,",
   "  parentheses, or hyphens instead.",
   "",
   EFFORT_TIER_GUIDANCE,
 ].join("\n");
+
+/** Render project bits as orientation context for the ticket (never new requirements). */
+function buildProjectContextBlock(grounding: ProjectGrounding): string {
+  const lines = grounding.bits.map(
+    (bit) => `- [${bit.kind}] (${bit.bit_key}) ${bit.summary}`,
+  );
+  return [
+    `Project context for "${grounding.projectName}" (orientation only — do not invent requirements beyond the decisions):`,
+    ...lines,
+  ].join("\n");
+}
 
 function buildUserPrompt(params: GenerateTicketParams): string {
   const decisionLines =
@@ -74,13 +98,16 @@ function buildUserPrompt(params: GenerateTicketParams): string {
           .map((d) => `- ${d.key}: ${JSON.stringify(d.value)} [source: ${d.source}]`)
           .join("\n");
 
-  return [
+  const lines = [
     `Original request:\n${params.originalRequest}`,
     "",
     `Settled decisions:\n${decisionLines}`,
-    "",
-    "Produce the ticket now as structured output.",
-  ].join("\n");
+  ];
+  if (params.grounding) {
+    lines.push("", buildProjectContextBlock(params.grounding));
+  }
+  lines.push("", "Produce the ticket now as structured output.");
+  return lines.join("\n");
 }
 
 /**

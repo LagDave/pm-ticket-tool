@@ -11,9 +11,7 @@ import pinoHttp from "pino-http";
 import { config } from "./config";
 import { logger } from "./config/logger";
 import { errorHandler, notFoundHandler } from "./middleware/error";
-import codeScoutRouter from "./routes/codeScout";
 import healthRouter from "./routes/health";
-import internalScoutRouter from "./routes/internalScout";
 import interviewEngineRouter from "./routes/interviewEngine";
 import interviewSessionsRouter from "./routes/interviewSessions";
 import projectsRouter from "./routes/projects";
@@ -48,14 +46,6 @@ export function createApp(): Application {
   app.use("/projects", projectsRouter);
   app.use("/sessions", interviewSessionsRouter);
   app.use("/sessions", interviewEngineRouter);
-  // Code scout (spec 5): owns POST/GET /sessions/:id/scout. Paths do not collide
-  // with the sessions/engine/ticket routers (spec T4).
-  app.use("/sessions", codeScoutRouter);
-  // Internal scout processor trigger (deploy runtime Option C, §21): the guarded
-  // POST /internal/scout/process Vercel Cron hits to drain the queue. Authorized
-  // by a worker secret in the controller (§5.4), not ownerContext — it is a
-  // machine-to-machine trigger, not a user route.
-  app.use("/internal", internalScoutRouter);
   // Ticket-draft (spec 3): mounted at "/" — it owns POST /sessions/:id/ticket
   // (generation off the session resource) and the /tickets/:ticketId reads/edits.
   // These paths do not collide with the sessions/engine routers above.

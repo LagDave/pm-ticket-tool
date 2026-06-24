@@ -184,60 +184,6 @@ export interface TriageClassificationShape {
   reason: string;
 }
 
-/**
- * A synthetic scout summary matching the scout agent's structured-output shape
- * (spec 5) — what the MODEL returns, before the service/agent stamps the
- * `verifyWithEngineering` flag. Used to mock the agent's model call in tests
- * (§20.4). Coarse, orientation-only areas, never file-level steps.
- */
-export function makeScoutSummary(
-  overrides: Partial<ScoutSummaryShape> = {},
-): ScoutSummaryShape {
-  return {
-    summary:
-      overrides.summary ??
-      "The request touches authentication and the user model; both already exist.",
-    relevantAreas: overrides.relevantAreas ?? [
-      {
-        area: "Authentication",
-        whatExists: "A session-based login flow already exists.",
-        roughSize: "M",
-        whatItTouches: ["User model", "Session middleware"],
-        feasibility: "likely",
-        paths: ["src/auth/login.ts"],
-      },
-    ],
-  };
-}
-
-/** The full ScoutFindings (summary + areas + the always-true verify flag). */
-export function makeScoutFindings(
-  overrides: Partial<ScoutSummaryShape> = {},
-): ScoutFindingsShape {
-  return { ...makeScoutSummary(overrides), verifyWithEngineering: true };
-}
-
-/** Local mirror of one relevant area (no circular import of production types). */
-export interface RelevantAreaShape {
-  area: string;
-  whatExists: string;
-  roughSize: "XS" | "S" | "M" | "L" | "XL";
-  whatItTouches: string[];
-  feasibility: "clear" | "likely" | "uncertain";
-  paths: string[];
-}
-
-/** Local mirror of the model's scout summary shape. */
-export interface ScoutSummaryShape {
-  summary: string;
-  relevantAreas: RelevantAreaShape[];
-}
-
-/** Local mirror of the full findings shape (verify flag stamped). */
-export interface ScoutFindingsShape extends ScoutSummaryShape {
-  verifyWithEngineering: true;
-}
-
 /** Local mirror of the batch shape so factories don't import production types circularly. */
 export interface GeneratedBatchShape {
   questions: Array<{

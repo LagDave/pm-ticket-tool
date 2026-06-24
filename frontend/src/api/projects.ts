@@ -6,11 +6,16 @@
  */
 import { apiDelete, apiGet, apiPatch, apiPost } from "./index";
 import type {
+  BitPrompt,
+  CandidateBit,
   CreateBitInput,
   CreateProjectInput,
+  ImportResult,
   Project,
   ProjectBit,
   ProjectWithBits,
+  ReconciliationPlan,
+  Resolution,
   UpdateBitInput,
   UpdateProjectInput,
 } from "../types/project";
@@ -73,4 +78,60 @@ export async function deleteBit(
   bitId: number,
 ): Promise<{ id: number }> {
   return apiDelete<{ id: number }>(`/projects/${projectId}/bits/${bitId}`);
+}
+
+/**
+ * POST /projects/:id/bits/reconcile - diff incoming candidates against the
+ * project's active bits → a reconciliation plan. No writes happen here; the PM
+ * resolves the plan, then calls applyResolutions (spec T11/T9).
+ */
+export async function reconcileBits(
+  projectId: number,
+  candidates: CandidateBit[],
+): Promise<ReconciliationPlan> {
+  return apiPost<ReconciliationPlan>(`/projects/${projectId}/bits/reconcile`, {
+    candidates,
+  });
+}
+
+/**
+ * POST /projects/:id/bits/apply - apply the PM-confirmed resolutions for the
+ * given candidates → the resulting project bits. Multi-row write, transactional
+ * on the server (spec T9).
+ */
+export async function applyResolutions(
+  projectId: number,
+  candidates: CandidateBit[],
+  resolutions: Resolution[],
+): Promise<ProjectBit[]> {
+  return apiPost<ProjectBit[]>(`/projects/${projectId}/bits/apply`, {
+    candidates,
+    resolutions,
+  });
+}
+
+/**
+ * POST /projects/:id/bits/import - submit the parsed import bits. Returns a
+ * tagged union (spec T10): additive imports come back as `{ mode: "reconcile",
+ * plan }` for the PM to resolve; a forced import has already replaced the bits
+ * server-side and comes back as `{ mode: "applied", bits }`, so the caller skips
+ * the resolve step (spec T11).
+ */
+export async function importBits(
+  projectId: number,
+  bits: CandidateBit[],
+  force = false,
+): Promise<ImportResult> {
+  return apiPost<ImportResult>(`/projects/${projectId}/bits/import`, {
+    bits,
+    force,
+  });
+}
+
+/**
+ * GET /projects/:id/bit-prompt - the server-owned generate-bits prompt to paste
+ * into a separate Claude Code session run against the app's repo (spec T10/T11).
+ */
+export async function getBitPrompt(projectId: number): Promise<BitPrompt> {
+  return apiGet<BitPrompt>(`/projects/${projectId}/bit-prompt`);
 }

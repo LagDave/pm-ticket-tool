@@ -82,6 +82,36 @@ export const TICKET_GENERATION = {
 } as const;
 
 /**
+ * Bit reconciliation constants (spec project-context-bits, T8). One bounded
+ * structured-output call decides, for each incoming candidate bit, whether to
+ * insert / update(merge) / skip_duplicate / conflict / similar against the
+ * project's existing ACTIVE bits AND the other candidates in the same batch. No
+ * magic values in the reconciliation logic (§4.2). MEDIUM effort (like the ticket
+ * generator, vs the engine/triage's LOW): semantic dedup-and-merge across two sets
+ * of bits is synthesis, not a cheap yes/no split, so it gets a touch more
+ * reasoning budget — still bounded by MAX_TOKENS so the single call stays
+ * short-lived under a serverless timeout (spec Risk R5).
+ *
+ * The two input caps mirror validation/projectBit.ts so the agent and the import
+ * boundary share one source of truth (§4.2): MAX_BITS_PER_IMPORT bounds how many
+ * candidates one call may reconcile, MAX_SUMMARY_CHARS bounds a single summary so
+ * a runaway row cannot blow the prompt.
+ */
+export const BIT_RECONCILIATION = {
+  /** Primary model; falls back to FALLBACK_MODEL if the key rejects it. */
+  MODEL: "claude-opus-4-8",
+  FALLBACK_MODEL: "claude-sonnet-4-6",
+  /** Medium reasoning effort for the dedup/merge synthesis call (spec T8). */
+  EFFORT: "medium",
+  /** Bounded output so a single reconciliation call stays short-lived (serverless). */
+  MAX_TOKENS: 4_096,
+  /** HARD CAP on candidates one reconciliation call may take (mirrors the import cap, §4.2). */
+  MAX_BITS_PER_IMPORT: 200,
+  /** Per-summary char cap so one runaway row cannot blow the prompt (mirrors the validation cap). */
+  MAX_SUMMARY_CHARS: 2_000,
+} as const;
+
+/**
  * Triage constants (spec 7). One cheap, low-effort structured-output call labels
  * the original request `simple` or `scoped` (spec T1). No magic values in the
  * triage logic (§4.2). LOW effort (like the engine, vs the ticket generator's
@@ -116,66 +146,6 @@ export const TITLE_GENERATION = {
   EFFORT: "low",
   /** Small bounded output: the model returns a single short title string. */
   MAX_TOKENS: 256,
-} as const;
-
-/**
- * Code scout constants (spec 5). The scout is the longest operation in the app
- * (a bounded loop over an external repo), so the caps here are what keep it from
- * running away under a serverless timeout (spec Risk). No magic values in the
- * scout logic (§4.2). MEDIUM effort (like the ticket generator, vs the engine's
- * LOW): summarizing a codebase into coarse "relevant areas" is synthesis, so it
- * gets a touch more reasoning budget — still bounded by MAX_TOKENS.
- *
- * The three hard caps (spec Must: cap tool-calls, files, tokens):
- *  - MAX_SEARCH_CALLS — search queries the scout may issue to the provider.
- *  - MAX_FILES_READ   — files the scout may read from the provider.
- *  - MAX_TOKENS       — output budget on the single summarization call.
- * MAX_FILE_BYTES and MAX_SEARCH_HITS bound each individual provider read so one
- * call cannot pull an unbounded payload.
- */
-export const SCOUT = {
-  /** Primary model; falls back to FALLBACK_MODEL if the key rejects it. */
-  MODEL: "claude-opus-4-8",
-  FALLBACK_MODEL: "claude-sonnet-4-6",
-  /** Medium effort for the synthesis-into-areas call (spec T4). */
-  EFFORT: "medium",
-  /** Bounded output so the single summarization call stays short-lived (serverless). */
-  MAX_TOKENS: 4_096,
-  /** HARD CAP on provider search calls per scan (spec Must: cap tool-calls). */
-  MAX_SEARCH_CALLS: 6,
-  /** HARD CAP on files read per scan (spec Must: cap files). */
-  MAX_FILES_READ: 8,
-  /** Per-search-call hit cap so one search can't pull an unbounded list. */
-  MAX_SEARCH_HITS: 10,
-  /** Per-file byte cap so one read can't pull an unbounded payload. */
-  MAX_FILE_BYTES: 50_000,
-  /** Most relevant areas the scout returns — keeps findings coarse (spec Risk). */
-  MAX_AREAS: 6,
-} as const;
-
-/**
- * Code-scout background-job constants (deploy spec runtime Option C, §21). The
- * scout runs as a queued DB job, not inline in the request: the POST enqueues a
- * scout_jobs row and a processor (Vercel Cron in prod, `npm run scout:work`
- * locally) claims and runs it. No magic values in the job/processor logic (§4.2).
- */
-export const SCOUT_JOB = {
-  /**
-   * Bounded retries before a job is dead-lettered (§21.2). attempts is counted at
-   * claim time; on reaching this cap the job's terminal state is `failed`
-   * (dead-letter, held for inspection — never silently dropped). 3 attempts ride
-   * out transient provider/model blips without retrying a genuinely broken scan
-   * forever.
-   */
-  MAX_ATTEMPTS: 3,
-  /**
-   * The shared-secret header name the internal processor trigger checks (§5.4).
-   * Vercel Cron sends this header; an unauthenticated caller is rejected so the
-   * processor is not a public endpoint. Named, not magic (§4.2).
-   */
-  TRIGGER_HEADER: "x-scout-worker-secret",
-  /** Poll interval (ms) for the local `scout:work` dev loop between empty passes. */
-  LOCAL_POLL_INTERVAL_MS: 2_000,
 } as const;
 
 /**
@@ -220,21 +190,6 @@ const envSchema = z.object({
       value === undefined ? undefined : value === "true",
     ),
   /**
-   * Run the scout queue worker IN-PROCESS on server startup (deploy spec Rev 2,
-   * Railway single service, §21). On Railway there is no cron, so the long-running
-   * web process drains the scout_jobs queue itself via ScoutJobProcessor — the
-   * same processor the Vercel cron path used, called directly, not over HTTP. A
-   * scout failure can never bring down the web server (the processor never throws
-   * to its caller, §21.4). Defaults to ON in production and OFF otherwise; force
-   * with "true"/"false". Local dev keeps using `npm run scout:work` instead.
-   */
-  RUN_SCOUT_WORKER: z
-    .enum(["true", "false"])
-    .optional()
-    .transform((value) =>
-      value === undefined ? undefined : value === "true",
-    ),
-  /**
    * Verify the DB server certificate (§5.4). Defaults to "true" — never weaken
    * TLS silently. Set to "false" ONLY when a provider serves a cert the default
    * CA bundle can't chain (some managed Postgres poolers) and you accept the
@@ -254,25 +209,6 @@ const envSchema = z.object({
    * foundation; the orchestrator injects the real value for later specs.
    */
   ANTHROPIC_API_KEY: z.string().optional().default(""),
-  /**
-   * Optional GitHub token for the code scout's GitHub provider (spec 5). Server-
-   * side only — never shipped in the frontend bundle (§5.1, §17.3) and never
-   * logged (§5.3). The GitHub REST API works UNAUTHENTICATED on public repos, so
-   * a public-repo scan needs no token; a token is required only for private repos
-   * or higher rate limits. Optional + empty default so the server boots without
-   * it; the provider sends it as a Bearer header only when present.
-   */
-  GITHUB_TOKEN: z.string().optional().default(""),
-  /**
-   * Shared secret guarding the internal scout-processor trigger (§5.4). Vercel
-   * Cron sends it as a header; the endpoint rejects callers that do not present
-   * it, so the processor is never publicly invokable. Server-side only — never in
-   * the frontend bundle (§5.1, §17.3) and never logged (§5.3). Optional + empty
-   * default so the server boots without it (the processor is then trigger-locked
-   * and runs only via the in-process local worker); set it in any environment
-   * that exposes the HTTP trigger.
-   */
-  SCOUT_WORKER_SECRET: z.string().optional().default(""),
 });
 
 export type AppConfig = {
@@ -283,12 +219,9 @@ export type AppConfig = {
   databaseSslRejectUnauthorized: boolean;
   databasePoolMode: "serverless" | "persistent";
   serveStatic: boolean;
-  runScoutWorker: boolean;
   corsOrigins: string[];
   logLevel: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
   anthropicApiKey: string;
-  githubToken: string;
-  scoutWorkerSecret: string;
 };
 
 /**
@@ -308,8 +241,8 @@ function loadConfig(): AppConfig {
   }
 
   const env = parsed.data;
-  // Both Railway-runtime flags default ON in production and OFF elsewhere, but an
-  // explicit env value always wins (env-driven, never hardcoded per environment).
+  // serveStatic defaults ON in production and OFF elsewhere, but an explicit env
+  // value always wins (env-driven, never hardcoded per environment).
   const isProduction = env.NODE_ENV === "production";
   return {
     nodeEnv: env.NODE_ENV,
@@ -319,14 +252,11 @@ function loadConfig(): AppConfig {
     databaseSslRejectUnauthorized: env.DATABASE_SSL_REJECT_UNAUTHORIZED,
     databasePoolMode: env.DATABASE_POOL_MODE,
     serveStatic: env.SERVE_STATIC ?? isProduction,
-    runScoutWorker: env.RUN_SCOUT_WORKER ?? isProduction,
     corsOrigins: env.CORS_ORIGINS.split(",")
       .map((origin) => origin.trim())
       .filter((origin) => origin.length > 0),
     logLevel: env.LOG_LEVEL,
     anthropicApiKey: env.ANTHROPIC_API_KEY,
-    githubToken: env.GITHUB_TOKEN,
-    scoutWorkerSecret: env.SCOUT_WORKER_SECRET,
   };
 }
 
@@ -348,29 +278,4 @@ export function requireAnthropicApiKey(): string {
     );
   }
   return config.anthropicApiKey;
-}
-
-/**
- * Return the optional GitHub token, or null when unset (spec 5). Unlike the
- * Anthropic key, this does NOT fail fast: the GitHub REST API works
- * unauthenticated on public repos, so an empty token is a valid configuration
- * (public-repo scan). The provider sends a Bearer header only when this returns
- * a non-null value; a private-repo or rate-limited scan that needs a token will
- * surface a typed auth/rate-limit error from the provider instead. Server-side
- * only; never exposed to the frontend (§5.1, §17.3) and never logged (§5.3).
- */
-export function getGitHubToken(): string | null {
-  return config.githubToken ? config.githubToken : null;
-}
-
-/**
- * Return the scout-processor trigger secret, or null when unset (§5.4). When
- * null, the internal HTTP trigger refuses every caller (fail closed) — the
- * processor is then reachable only via the in-process local worker
- * (`npm run scout:work`) or direct invocation in tests, never over HTTP. When
- * set, the trigger requires an exact header match. Server-side only; never
- * exposed to the frontend (§5.1, §17.3) and never logged (§5.3).
- */
-export function getScoutWorkerSecret(): string | null {
-  return config.scoutWorkerSecret ? config.scoutWorkerSecret : null;
 }

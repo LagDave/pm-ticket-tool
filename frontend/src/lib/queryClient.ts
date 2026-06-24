@@ -41,4 +41,6 @@ export const QUERY_KEYS = {
   projects: () => ["projects"] as const,
   /** One project + its bits, keyed by project id (project context grounding). */
   project: (id: number) => ["project", id] as const,
+  /** The server-owned generate-bits prompt for a project (project context grounding). */
+  bitPrompt: (id: number) => ["bit-prompt", id] as const,
 };

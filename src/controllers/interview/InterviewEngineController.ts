@@ -7,7 +7,10 @@
 import type { Request, Response } from "express";
 import { requireOwner } from "../../middleware/ownerContext";
 import type { SessionIdParam } from "../../validation/interviewSession";
-import type { SubmitAnswersBody } from "../../validation/interviewAnswers";
+import type {
+  OverrideSkippedBody,
+  SubmitAnswersBody,
+} from "../../validation/interviewAnswers";
 import { InterviewEngineService } from "./feature-services/InterviewEngineService";
 import { handleError, ok } from "./feature-utils/controllerResponses";
 
@@ -43,6 +46,28 @@ export class InterviewEngineController {
       const { id } = req.params as unknown as SessionIdParam;
       const body = req.body as SubmitAnswersBody;
       const state = await InterviewEngineService.submitAnswers(id, owner, body);
+      return ok(res, state);
+    } catch (error) {
+      return handleError(res, error);
+    }
+  }
+
+  /**
+   * POST /sessions/:id/interview/skipped-override — record a PM override for a
+   * question the grounding suppressed (spec R3: suppression is never silent). Thin:
+   * validated body + server owner → service → envelope.
+   */
+  static async overrideSkipped(req: Request, res: Response): Promise<Response> {
+    try {
+      const owner = requireOwner(req);
+      const { id } = req.params as unknown as SessionIdParam;
+      const { decisionKey, answer } = req.body as OverrideSkippedBody;
+      const state = await InterviewEngineService.recordSkippedOverride(
+        id,
+        owner,
+        decisionKey,
+        answer,
+      );
       return ok(res, state);
     } catch (error) {
       return handleError(res, error);

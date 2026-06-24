@@ -22,3 +22,27 @@ export const submitAnswersSchema = z.object({
 });
 
 export type SubmitAnswersBody = z.infer<typeof submitAnswersSchema>;
+
+/** Bound for a suppressed-question decision key. Named, not magic (§4.2). */
+const DECISION_KEY_MAX_LENGTH = 200;
+
+/**
+ * Body for POST /:id/interview/skipped-override — the PM answering a question the
+ * grounding SUPPRESSED (spec R3: suppression is never silent). The free-text answer
+ * is recorded under decisionKey as a decision, so a stale settled bit can always be
+ * overridden by the PM.
+ */
+export const overrideSkippedSchema = z.object({
+  decisionKey: z
+    .string()
+    .trim()
+    .min(1, "decisionKey is required.")
+    .max(DECISION_KEY_MAX_LENGTH, "decisionKey is too long."),
+  answer: z
+    .string()
+    .trim()
+    .min(1, "answer is required.")
+    .max(OTHER_TEXT_MAX_LENGTH, "answer is too long."),
+});
+
+export type OverrideSkippedBody = z.infer<typeof overrideSkippedSchema>;

@@ -6,6 +6,11 @@
  * before reading its decisions and by writing the ticket against that session
  * (§11.7). Never touches req/res. Mirrors InterviewEngineService (§6.1).
  *
+ * Grounding (project bits): when the session is attached to a project with active
+ * bits, they are loaded and passed to the agent as ORIENTATION (the decisions stay
+ * the source of truth) so the ticket reflects the real app. Mirrors the engine's
+ * loadProjectGrounding.
+ *
  * Boundary discipline (§11.2): the model output is re-validated against the
  * boundary schema and rejected (never persisted) when off-shape — so malformed
  * Gherkin or a bad effort value can never reach the DB (spec Risk).
@@ -15,6 +20,8 @@ import { TICKET_GENERATION } from "../../../config";
 import { logger } from "../../../config/logger";
 import { DecisionRecordModel } from "../../../models/DecisionRecordModel";
 import { InterviewSessionModel } from "../../../models/InterviewSessionModel";
+import { ProjectBitModel } from "../../../models/ProjectBitModel";
+import { ProjectModel } from "../../../models/ProjectModel";
 import { TicketModel } from "../../../models/TicketModel";
 import { generatedTicketSchema } from "../../../validation/ticket";
 import type {
@@ -22,6 +29,7 @@ import type {
   ITicket,
   OwnerContext,
 } from "../../../types/interview";
+import type { ProjectGrounding } from "../../../types/project";
 import { TicketError } from "../feature-utils/TicketError";
 import { TicketMarkdownService } from "./TicketMarkdownService";
 
@@ -29,9 +37,9 @@ export class TicketGenerationService {
   /**
    * Generate and persist a draft ticket for a session (spec T1). Owner-verifies
    * the session first (throws SESSION_NOT_FOUND when absent or another owner's,
-   * §11.7), reads its decisions, calls the agent (with model fallback),
-   * re-validates the result at the boundary, renders Markdown, and persists.
-   * Returns the new ticket row.
+   * §11.7), reads its decisions, grounds in the project bits when attached, calls
+   * the agent (with model fallback), re-validates the result at the boundary,
+   * renders Markdown, and persists. Returns the new ticket row.
    *
    * Re-generation policy (spec Risk: clobbering edits): generation always writes
    * a NEW draft ticket row (version starts at 1) — it never overwrites an
@@ -52,8 +60,11 @@ export class TicketGenerationService {
     }
 
     const decisions = await DecisionRecordModel.listBySession(sessionId);
+    // Ground the ticket in the session's project bits when attached (orientation
+    // only — the decisions remain the source of truth). Undefined → unchanged.
+    const grounding = await this.loadProjectGrounding(session.project_id, owner);
     const generated = await this.callAgentWithFallback(
-      { originalRequest: session.original_request, decisions },
+      { originalRequest: session.original_request, decisions, grounding },
       sessionId,
     );
 
@@ -75,6 +86,23 @@ export class TicketGenerationService {
   }
 
   /* ----------------------------- private helpers ------------------------- */
+
+  /**
+   * Load the project-bits grounding for a session's project, or undefined when
+   * there is no project / no active bits. Orientation for the ticket; mirrors
+   * InterviewEngineService.loadProjectGrounding (owner-scoped, §11.7).
+   */
+  private static async loadProjectGrounding(
+    projectId: number | null,
+    owner: OwnerContext,
+  ): Promise<ProjectGrounding | undefined> {
+    if (projectId === null) return undefined;
+    const project = await ProjectModel.findByIdForOwner(projectId, owner);
+    if (!project) return undefined;
+    const bits = await ProjectBitModel.listActiveByProject(project.id);
+    if (bits.length === 0) return undefined;
+    return { projectName: project.name, bits };
+  }
 
   /**
    * Call the agent; on a model-rejection error, retry once with the fallback
