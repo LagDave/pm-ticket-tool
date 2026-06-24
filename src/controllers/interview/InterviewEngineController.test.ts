@@ -141,7 +141,7 @@ describe("Interview engine endpoints", () => {
             id: "q1",
             decisionKey: "sso_provider",
             text: "Which provider?",
-            options: [{ id: "opt_okta", label: "Okta", groundingRef: null, effort: null, recommended: null }],
+            options: [{ id: "opt_okta", label: "Okta", groundingRef: null, speed: "fast", recommended: true }],
             allowOther: false,
             dependsOn: [],
           },

@@ -142,29 +142,38 @@ export interface PaginatedResult<T> {
 /* ---------------------------------------------------------------------------
  * Interview engine (spec 2) + grounded options (spec 6). The generated question
  * batch, its options, and the answer-submission shapes. JSON columns stay
- * structured, never `any` (§4.5). Option grounding + effort tiers are filled by
- * the grounding step (spec 6) when the session has cached scout findings, and
- * left null on the no-findings fallback.
+ * structured, never `any` (§4.5). Option grounding is filled by the grounding
+ * step (spec 6) when the session has cached scout findings, and left null on the
+ * no-findings fallback. Every option carries a build-`speed` tier and exactly one
+ * option per question is `recommended` on both paths.
  * ------------------------------------------------------------------------- */
+
+/**
+ * The ordered per-option build-speed scale (spec 6). 5 steps, slowest→fastest,
+ * where `fastest` = least build effort and `slowest` = most. Mirrors the
+ * SPEED_TIERS enum in validation/interviewQuestions.ts (the source of truth) and
+ * the frontend type. Distinct from EffortTier (ticket complexity).
+ */
+export type OptionSpeed = "slowest" | "slow" | "moderate" | "fast" | "fastest";
 
 /**
  * One answer option for a question (spec 6 — grounded options). When the session
  * has cached scout findings, `groundingRef` points the option back to the finding
- * that supports it, `effort` carries a coarse complexity tier, and one option per
- * question may carry `recommended` — the "here's the easier way" pick. On the
- * no-findings fallback all three are null (ungrounded options, as before).
+ * that supports it (null/absent when ungrounded). `speed` is the ordered build-
+ * speed tier on every option, and exactly one option per question is
+ * `recommended` (the single best pick) on both the grounded and ungrounded paths.
  */
 export interface QuestionOption {
   /** Stable id within the question, e.g. "opt_a". */
-  id: string;
+  id?: string;
   /** Human-readable choice text. */
   label: string;
-  /** A reference into the codebase (a scout finding) backing this option; null when ungrounded. */
-  groundingRef: string | null;
-  /** Coarse effort TIER for this option (never hours); null when ungrounded. */
-  effort: EffortTier | null;
-  /** True on the single recommended (easier) pick; null/false otherwise. At most one per question. */
-  recommended: boolean | null;
+  /** Ordered build-speed tier for this option (slowest→fastest, fastest = least effort). */
+  speed: OptionSpeed;
+  /** True on the single best (recommended) pick; exactly one per question. */
+  recommended: boolean;
+  /** A reference into the codebase (a scout finding) backing this option; null/absent when ungrounded. */
+  groundingRef?: string | null;
 }
 
 /**

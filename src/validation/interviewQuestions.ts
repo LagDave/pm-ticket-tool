@@ -16,23 +16,37 @@
  */
 import * as z from "zod/v4";
 import { INTERVIEW_ENGINE } from "../config";
-import { EFFORT_HINTS } from "./codeScout";
+
+/**
+ * The per-option build-SPEED scale (spec 6 — grounded options). An ORDERED
+ * 5-step indicator of how much work the option is to build: `slowest` = most
+ * work, `fastest` = least. Distinct from the scout's roughSize/EFFORT_HINTS and
+ * the ticket's EffortTier — it answers "how fast can we ship this option", not
+ * "how big is the area". A closed-set enum is structured-output-safe (the SDK
+ * keeps `enum` constraints), so the generation schema and this boundary schema
+ * stay identical. Source of truth for the speed vocabulary across surfaces.
+ */
+export const SPEED_TIERS = [
+  "slowest",
+  "slow",
+  "moderate",
+  "fast",
+  "fastest",
+] as const;
 
 /**
  * A single answer option (spec 6 — grounded options). `groundingRef` points
  * the option back to the cached scout finding that supports it (null when the
- * session has no findings — the ungrounded fallback). `effort` is a coarse
- * complexity TIER (never hours), reusing the scout's EFFORT_HINTS source of
- * truth so a grounded option speaks the same tier vocabulary as the finding's
- * roughSize. `recommended` flags the single "here's the easier way" pick (null
- * on the ungrounded path, and at most one per question — enforced below).
+ * session has no findings — the ungrounded fallback). `speed` is the ordered
+ * build-speed tier (slowest→fastest, fastest = least build effort). `recommended`
+ * flags the single best option (one per question — enforced below).
  */
 export const questionOptionSchema = z.object({
   id: z.string(),
   label: z.string(),
   groundingRef: z.string().nullable(),
-  effort: z.enum(EFFORT_HINTS).nullable(),
-  recommended: z.boolean().nullable(),
+  speed: z.enum(SPEED_TIERS),
+  recommended: z.boolean(),
 });
 
 /** A single generated question. */

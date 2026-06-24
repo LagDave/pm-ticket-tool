@@ -27,6 +27,7 @@ import {
 } from "../../../test/factories";
 import type { ScoutFindings } from "../../../types/codeScout";
 import type { OwnerContext } from "../../../types/interview";
+import { SPEED_TIERS } from "../../../validation/interviewQuestions";
 import { InterviewEngineService } from "./InterviewEngineService";
 
 const mockGenerate = vi.mocked(generateBatch);
@@ -86,7 +87,7 @@ describe("InterviewEngineService", () => {
       id: `q${i}`,
       decisionKey: `key_${i}`,
       text: `Q${i}?`,
-      options: [{ id: "a", label: "A", groundingRef: null, effort: null, recommended: null }],
+      options: [{ id: "a", label: "A", groundingRef: null, speed: "fast" as const, recommended: true }],
       allowOther: false,
       dependsOn: [],
     }));
@@ -254,21 +255,22 @@ describe("InterviewEngineService", () => {
       const params = mockGenerate.mock.calls[0][0];
       expect(params.findings).toBeUndefined();
 
-      // The persisted options carry no grounding/effort/recommended; skipped is null.
+      // The persisted options carry no grounding and skipped is null, but each
+      // still carries a speed tier and exactly one option is recommended.
       const persisted = state.turns[0].questions as {
         questions: Array<{
           options: Array<{
             groundingRef: string | null;
-            effort: string | null;
-            recommended: boolean | null;
+            speed: string;
+            recommended: boolean;
           }>;
         }>;
         skipped: unknown;
       };
-      const option = persisted.questions[0].options[0];
-      expect(option.groundingRef).toBeNull();
-      expect(option.effort).toBeNull();
-      expect(option.recommended).toBeNull();
+      const options = persisted.questions[0].options;
+      expect(options.every((o) => o.groundingRef === null)).toBe(true);
+      expect(options.every((o) => SPEED_TIERS.includes(o.speed as never))).toBe(true);
+      expect(options.filter((o) => o.recommended === true)).toHaveLength(1);
       expect(persisted.skipped).toBeNull();
     });
 
@@ -286,20 +288,20 @@ describe("InterviewEngineService", () => {
       expect(params.findings).toBeDefined();
       expect(params.findings?.summary).toBe("Auth + Postgres already exist.");
 
-      // Options reference a finding, carry an effort tier, and ONE is recommended.
+      // Options reference a finding, carry a speed tier, and ONE is recommended.
       const persisted = state.turns[0].questions as {
         questions: Array<{
           options: Array<{
             groundingRef: string | null;
-            effort: string | null;
-            recommended: boolean | null;
+            speed: string;
+            recommended: boolean;
           }>;
         }>;
         skipped: Array<{ decisionKey: string; reason: string }> | null;
       };
       const options = persisted.questions[0].options;
       expect(options.some((o) => o.groundingRef !== null)).toBe(true);
-      expect(options.some((o) => o.effort !== null)).toBe(true);
+      expect(options.every((o) => SPEED_TIERS.includes(o.speed as never))).toBe(true);
       expect(options.filter((o) => o.recommended === true)).toHaveLength(1);
 
       // A fully-determined question was skipped, with a recorded reason (auditable).
@@ -321,8 +323,8 @@ describe("InterviewEngineService", () => {
               decisionKey: "auth_method",
               text: "How should users authenticate?",
               options: [
-                { id: "a", label: "A", groundingRef: "Auth", effort: "S", recommended: true },
-                { id: "b", label: "B", groundingRef: "Auth", effort: "M", recommended: true },
+                { id: "a", label: "A", groundingRef: "Auth", speed: "fast", recommended: true },
+                { id: "b", label: "B", groundingRef: "Auth", speed: "moderate", recommended: true },
               ],
               allowOther: false,
               dependsOn: [],
@@ -339,7 +341,7 @@ describe("InterviewEngineService", () => {
       expect(await InterviewTurnModel.listBySession(sessionId)).toHaveLength(0);
     });
 
-    it("accepts a grounded batch with no recommended pick (recommended is optional)", async () => {
+    it("accepts a grounded batch with no recommended pick (the ≤1 refine permits zero)", async () => {
       const owner = makeOwner();
       const sessionId = await seedSession(owner);
       await seedFindings(sessionId);
@@ -351,8 +353,8 @@ describe("InterviewEngineService", () => {
               decisionKey: "auth_method",
               text: "How should users authenticate?",
               options: [
-                { id: "a", label: "A", groundingRef: "Auth", effort: "S", recommended: null },
-                { id: "b", label: "B", groundingRef: "Auth", effort: "M", recommended: null },
+                { id: "a", label: "A", groundingRef: "Auth", speed: "fast", recommended: false },
+                { id: "b", label: "B", groundingRef: "Auth", speed: "moderate", recommended: false },
               ],
               allowOther: false,
               dependsOn: [],
@@ -364,6 +366,35 @@ describe("InterviewEngineService", () => {
 
       const state = await InterviewEngineService.advanceNextBatch(sessionId, owner);
       expect(state.turns).toHaveLength(1);
+    });
+
+    it("rejects an option with an invalid speed value (enum, §11.2)", async () => {
+      const owner = makeOwner();
+      const sessionId = await seedSession(owner);
+      await seedFindings(sessionId);
+      mockGenerate.mockResolvedValueOnce(
+        makeGroundedBatch({
+          questions: [
+            {
+              id: "q1",
+              decisionKey: "auth_method",
+              text: "How should users authenticate?",
+              options: [
+                // "medium" is not on the speed scale → boundary validation rejects it.
+                { id: "a", label: "A", groundingRef: "Auth", speed: "medium" as never, recommended: true },
+              ],
+              allowOther: false,
+              dependsOn: [],
+            },
+          ],
+          skipped: null,
+        }),
+      );
+
+      await expect(
+        InterviewEngineService.advanceNextBatch(sessionId, owner),
+      ).rejects.toMatchObject({ code: "BATCH_GENERATION_INVALID" });
+      expect(await InterviewTurnModel.listBySession(sessionId)).toHaveLength(0);
     });
   });
 });

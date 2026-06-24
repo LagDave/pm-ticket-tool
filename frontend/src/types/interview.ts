@@ -81,25 +81,33 @@ export interface ListSessionsParams {
 
 /* ---------------------------------------------------------------------------
  * Interview engine (spec 2) + grounded options (spec 6). Mirrors the backend
- * engine shapes; no `any` (§17.2). Option grounding/effort/recommended are filled
- * when the session has cached scout findings, and null on the no-findings path.
+ * engine shapes; no `any` (§17.2). Option grounding is filled when the session
+ * has cached scout findings, and null on the no-findings path. Every option
+ * carries a build-`speed` tier and exactly one option per question is
+ * `recommended` on both paths.
  * ------------------------------------------------------------------------- */
 
 /** A coarse effort/complexity TIER (mirrors the backend EffortTier); never hours. */
 export type EffortTier = "XS" | "S" | "M" | "L" | "XL";
 
 /**
+ * The ordered per-option build-speed scale (spec 6), mirroring the backend
+ * OptionSpeed. 5 steps slowest→fastest, where `fastest` = least build effort.
+ */
+export type OptionSpeed = "slowest" | "slow" | "moderate" | "fast" | "fastest";
+
+/**
  * One answer option for a question (spec 6). When grounded in scout findings,
- * `groundingRef` references the supporting finding, `effort` carries a coarse
- * tier, and one option per question may be `recommended` (the easier pick). All
- * three are null on the ungrounded fallback.
+ * `groundingRef` references the supporting finding. `speed` is the ordered
+ * build-speed tier on every option, and exactly one option per question is
+ * `recommended` (the single best pick) on both the grounded and ungrounded paths.
  */
 export interface QuestionOption {
-  id: string;
+  id?: string;
   label: string;
-  groundingRef: string | null;
-  effort: EffortTier | null;
-  recommended: boolean | null;
+  speed: OptionSpeed;
+  recommended: boolean;
+  groundingRef?: string | null;
 }
 
 /** One question the grounding step skipped because a finding answered it (spec 6). */

@@ -22,9 +22,9 @@ export function makeRequestText(suffix = ""): string {
 
 /**
  * A synthetic UNGROUNDED generated batch matching the engine's structured-output
- * shape (the no-findings fallback, spec 6): every option's grounding/effort/
- * recommended is null and `skipped` is null. `hasOpenMaterialDecisions` drives the
- * materiality gate in tests.
+ * shape (the no-findings fallback, spec 6): no groundingRef and `skipped` is null,
+ * but every option still carries a `speed` tier and exactly one option is
+ * `recommended`. `hasOpenMaterialDecisions` drives the materiality gate in tests.
  */
 export function makeBatch(
   overrides: Partial<{
@@ -40,8 +40,8 @@ export function makeBatch(
         decisionKey: "auth_method",
         text: "How should users authenticate?",
         options: [
-          { id: "opt_magic", label: "Magic link", groundingRef: null, effort: null, recommended: null },
-          { id: "opt_pw", label: "Password", groundingRef: null, effort: null, recommended: null },
+          { id: "opt_magic", label: "Magic link", groundingRef: null, speed: "fast", recommended: true },
+          { id: "opt_pw", label: "Password", groundingRef: null, speed: "moderate", recommended: false },
         ],
         allowOther: true,
         dependsOn: [],
@@ -54,9 +54,9 @@ export function makeBatch(
 
 /**
  * A synthetic GROUNDED generated batch (spec 6 — findings present): options carry
- * a groundingRef + effort tier, exactly one option is recommended (the easier
- * pick), and `skipped` lists a question a finding already answered. Used to mock
- * the agent so the service's grounded path can be asserted end to end (§20.4).
+ * a groundingRef + a build-speed tier, exactly one option is recommended (the
+ * single best pick), and `skipped` lists a question a finding already answered.
+ * Used to mock the agent so the service's grounded path can be asserted (§20.4).
  */
 export function makeGroundedBatch(
   overrides: Partial<{
@@ -76,15 +76,15 @@ export function makeGroundedBatch(
             id: "opt_reuse",
             label: "Reuse the existing auth provider (verify with engineering)",
             groundingRef: "Authentication",
-            effort: "S",
+            speed: "fast",
             recommended: true,
           },
           {
             id: "opt_new",
             label: "Build a new auth flow",
             groundingRef: "Authentication",
-            effort: "L",
-            recommended: null,
+            speed: "slow",
+            recommended: false,
           },
         ],
         allowOther: true,
@@ -221,8 +221,8 @@ export interface GeneratedBatchShape {
       id: string;
       label: string;
       groundingRef: string | null;
-      effort: "XS" | "S" | "M" | "L" | "XL" | null;
-      recommended: boolean | null;
+      speed: "slowest" | "slow" | "moderate" | "fast" | "fastest";
+      recommended: boolean;
     }>;
     allowOther: boolean;
     dependsOn: string[];

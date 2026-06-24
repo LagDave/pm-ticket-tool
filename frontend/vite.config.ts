@@ -1,3 +1,4 @@
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
@@ -5,10 +6,11 @@ import { defineConfig } from "vite";
 // needs an absolute API URL in dev; in prod VITE_API_BASE_URL points at the API.
 // Port defaults to 5173 (the CORS allow-list origin) but honors PORT when a
 // launcher assigns one, so it never fights tooling for a busy port.
+// Tailwind v4 runs through its first-party Vite plugin (no PostCSS config file).
 const DEV_PORT = process.env.PORT ? Number(process.env.PORT) : 5173;
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: {
     port: DEV_PORT,
     proxy: {

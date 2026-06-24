@@ -243,6 +243,13 @@
         </ul>
         <p><strong>Updated Done criteria:</strong> all six Done items met and verified (build/lint/strict/live-run).</p>
       </article>
+      <article class="revision-entry">
+        <h3>Rev 2 - 2026-06-24</h3>
+        <p><strong>Change — User QA:</strong> The generated-question option tagging changed: the option-level <code>effort</code> tier was replaced with an ordered build-<code>speed</code> scale (<code>slowest|slow|moderate|fast|fastest</code>; slowest = most work, fastest = least), and exactly one option per question is now flagged <code>recommended</code>. The shared <code>QuestionOption</code> contract is now <code>{ id?, label, speed, recommended, groundingRef? }</code>. (Primary detail lives in the grounded-options spec Rev&nbsp;2.)</p>
+        <p><strong>Reason — User QA:</strong> The option schema in <code>src/validation/interviewQuestions.ts</code> swapped the <code>effort</code> enum for a dedicated <code>SPEED_TIERS</code> enum and made <code>recommended</code> a non-nullable boolean (the <code>≤1</code>-recommended refine preserved). Both generation prompts in <code>src/agents/interviewAgent.ts</code> now explain the slowest→fastest scale and the exactly-one-recommended rule on both the grounded and ungrounded paths; the no-findings fallback is intact (no <code>groundingRef</code>, <code>skipped: null</code>, but still a <code>speed</code> tier + one recommended). The shared types (<code>src/types/interview.ts</code>, <code>frontend/src/types/interview.ts</code>) and the engine's option-shape tests were updated; <code>InterviewEngineService</code>/<code>MaterialityGateService</code> handle options opaquely, so no engine logic changed. No <code>any</code>, no <code>console</code> (§4.5/§9.1/§17.1/§17.2).</p>
+        <p><strong>Verification:</strong> backend + frontend <code>tsc</code> clean; both lints clean; <code>check:conventions --strict</code> passes; <code>npm run test</code> 156/156 backend + 2/2 frontend green; frontend <code>vite build</code> succeeds. No git/commit/deploy.</p>
+        <p><strong>Updated Done criteria:</strong> contract-shape change only; all prior Done items remain met.</p>
+      </article>
     </section>
   </main>
 </body>

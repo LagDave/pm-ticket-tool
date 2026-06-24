@@ -1,13 +1,48 @@
-:root {
-  --paper: #fcfcfb;
-  --surface: #ffffff;
-  --ink: #0a0a0a;
-  --muted: #6b6b6b;
-  --line: #e3e2de;
-  --accent: #0a0a0a;
-  --focus: #2563eb;
-  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  color-scheme: light;
+/**
+ * Dark-studio design system (frontend redesign). Tailwind v4 via the Vite plugin
+ * (`@import "tailwindcss"`), a characterful type pairing loaded from @fontsource
+ * (Fraunces display + Sora body — deliberately not Inter/Roboto/system-ui), and
+ * one vivid accent (warm amber) on a deep near-black canvas. Dark is the default
+ * and only theme: the palette is set on :root with no toggle. Component motion
+ * lives in the React components via Framer Motion; this file owns the tokens,
+ * the canvas atmosphere, and the few primitives the wizard shell reuses.
+ */
+@import "tailwindcss";
+
+/* Characterful display + clean body. Loaded locally so no FOUT/network race. */
+@import "@fontsource/fraunces/400.css";
+@import "@fontsource/fraunces/500.css";
+@import "@fontsource/fraunces/600.css";
+@import "@fontsource/fraunces/700.css";
+@import "@fontsource/sora/300.css";
+@import "@fontsource/sora/400.css";
+@import "@fontsource/sora/500.css";
+@import "@fontsource/sora/600.css";
+@import "@fontsource/sora/700.css";
+
+/* Expose the design tokens to Tailwind v4's theme so utilities like
+ * `bg-canvas`, `text-accent`, `font-display` resolve to these values. */
+@theme {
+  --color-canvas: #08090d;
+  --color-canvas-2: #0c0e14;
+  --color-surface: #12141c;
+  --color-surface-2: #181b25;
+  --color-line: #262a36;
+  --color-line-2: #343a4a;
+  --color-ink: #f4f5f8;
+  --color-muted: #9aa0b0;
+  --color-faint: #686e7e;
+
+  /* The one vivid accent — warm amber, used sharply for the recommended card,
+   * primary actions, and focus. Cold dark canvas + warm accent = the studio feel. */
+  --color-accent: #ffb224;
+  --color-accent-soft: #f6c453;
+  --color-accent-deep: #b27414;
+
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-body: "Sora", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 18px;
 }
 
 * {
@@ -22,514 +57,60 @@ body,
 
 body {
   margin: 0;
-  background: var(--paper);
-  color: var(--ink);
-  line-height: 1.5;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-.wizard {
-  width: min(680px, calc(100% - 40px));
-  margin: 0 auto;
-  padding: 72px 0 96px;
+/* Atmosphere: two restrained radial tints (violet + cyan) bleeding from the top
+ * corners plus a faint grain, painted behind everything via a fixed ::before.
+ * Subtle — sets mood without becoming a "purple gradient" cliche. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 40rem at 12% -8%, rgba(120, 86, 255, 0.14), transparent 60%),
+    radial-gradient(54rem 38rem at 92% 2%, rgba(38, 198, 218, 0.1), transparent 58%),
+    radial-gradient(40rem 40rem at 50% 120%, rgba(255, 178, 36, 0.06), transparent 60%);
 }
 
-.wizard-header {
-  margin-bottom: 36px;
+/* Custom scrollbar so the dark canvas stays cohesive in Chromium. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
-
-.wizard-title {
-  margin: 0 0 28px;
-  font-size: 1.45rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.step-rail {
-  display: flex;
-  gap: 28px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.step-dot {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-
-.step-number {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--line);
+::-webkit-scrollbar-thumb {
+  background: var(--color-line-2);
   border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  background: var(--surface);
+  border: 2px solid var(--color-canvas);
 }
-
-.step-dot.is-active {
-  color: var(--ink);
-}
-
-.step-dot.is-active .step-number {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--surface);
-}
-
-.step-dot.is-done .step-number {
-  border-color: var(--ink);
-  color: var(--ink);
-}
-
-.step-panel {
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
-  padding: 32px;
-  display: flex;
-  flex-direction: column;
-}
-
-.step-heading {
-  margin: 0 0 12px;
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.field-label {
-  font-size: 1.05rem;
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-
-.field-hint {
-  margin: 0 0 18px;
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.request-input {
-  width: 100%;
-  resize: vertical;
-  padding: 14px 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  font: inherit;
-  color: var(--ink);
-  background: var(--paper);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.request-input:focus {
-  outline: none;
-  border-color: var(--focus);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-}
-
-.step-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 22px;
-}
-
-.primary-button,
-.secondary-button {
-  font: inherit;
-  font-weight: 700;
-  padding: 11px 20px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: transform 0.05s ease, opacity 0.15s ease;
-}
-
-.primary-button {
-  border: 1px solid var(--ink);
-  background: var(--ink);
-  color: var(--surface);
-}
-
-.primary-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.primary-button:not(:disabled):active {
-  transform: translateY(1px);
-}
-
-.secondary-button {
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
-}
-
-.confirm-line {
-  margin: 0 0 14px;
-  font-size: 1rem;
-}
-
-.request-echo {
-  margin: 0 0 16px;
-  padding: 14px 16px;
-  border-left: 3px solid var(--ink);
-  background: var(--paper);
-  border-radius: 0 8px 8px 0;
-  color: var(--ink);
-  font-size: 0.95rem;
-}
-
-/* ---- Ticket draft (spec 3) ---- */
-.ticket-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.ticket-status {
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  color: var(--muted);
-}
-
-.ticket-status-final {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--surface);
-}
-
-.ticket-section-heading {
-  margin: 18px 0 6px;
-  font-size: 0.82rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--muted);
-}
-
-.ticket-story {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 600;
-}
-
-.criteria-list {
-  margin: 0;
-  padding-left: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.criterion-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.gwt {
-  font-size: 0.95rem;
-}
-
-.ticket-effort {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.ticket-effort strong {
-  font-size: 1.1rem;
-  padding: 2px 10px;
-  border: 1px solid var(--ink);
-  border-radius: 8px;
-}
-
-.effort-note {
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-/* Grounded option chrome (spec 6): effort tag + recommended marker on options. */
-.option-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.option-label {
-  flex: 1;
-}
-
-.option-tags {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-}
-
-.option-effort {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  padding: 1px 8px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.option-recommended {
-  font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 1px 8px;
-  border: 1px solid var(--ink);
-  border-radius: 999px;
-  background: var(--ink);
-  color: var(--paper);
-  white-space: nowrap;
-}
-
-.grounding-note {
-  border-left: 2px solid var(--line);
-  padding-left: 12px;
-}
-
-.ticket-context {
-  margin: 0;
-  font-size: 0.95rem;
-}
-
-.ticket-effort-select,
-.criterion-input {
-  font: inherit;
-  padding: 8px 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--ink);
-  background: var(--paper);
-}
-
-.criterion-edit-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.ticket-criteria-edit {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 14px;
-  margin: 12px 0;
-}
-
-.comment-list {
-  list-style: none;
-  margin: 0 0 16px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.comment-item {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 12px 14px;
-}
-
-.comment-body {
-  margin: 0 0 4px;
-  font-size: 0.95rem;
-}
-
-.comment-meta {
-  color: var(--muted);
-  font-size: 0.78rem;
-}
-
-.ticket-comments {
-  margin-top: 24px;
-  border-top: 1px solid var(--line);
-  padding-top: 16px;
-}
-
-/* ---- Dashboard (spec 4) ---- */
-.dashboard {
-  width: min(820px, calc(100% - 40px));
-  margin: 0 auto;
-  padding: 72px 0 96px;
-}
-
-.dashboard-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.wizard-topline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 28px;
-}
-
-.link-button {
-  font: inherit;
-  font-weight: 600;
-  font-size: 0.85rem;
-  background: none;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  padding: 4px 0;
-}
-
-.link-button:hover {
-  color: var(--ink);
-}
-
-.filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.filter-chip {
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 600;
-  padding: 6px 14px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--muted);
-  cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
-}
-
-.filter-chip.is-active {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--surface);
-}
-
-.session-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.session-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
-  padding: 18px 20px;
-}
-
-.session-main {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.session-status {
-  align-self: flex-start;
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  color: var(--muted);
-}
-
-.session-status-complete {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--surface);
-}
-
-.session-status-in_progress,
-.session-status-awaiting_input {
-  border-color: var(--focus);
-  color: var(--focus);
-}
-
-.session-snippet {
-  margin: 0;
-  font-size: 0.98rem;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.session-meta {
-  color: var(--muted);
-  font-size: 0.78rem;
-}
-
-.session-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.session-actions .primary-button,
-.session-actions .secondary-button {
-  padding: 8px 14px;
-  font-size: 0.85rem;
+::selection {
+  background: rgba(255, 178, 36, 0.28);
+  color: var(--color-ink);
 }
 
-.pager {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 24px;
+/* Shared focus ring — amber, used app-wide on inputs/buttons. */
+:where(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
-.pager-status {
-  color: var(--muted);
-  font-size: 0.85rem;
-  font-weight: 600;
+/* Display headings use the serif; the rest stays on the body sans. */
+.font-display {
+  font-family: var(--font-display);
 }
 
-@media (max-width: 560px) {
-  .session-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .session-actions {
-    justify-content: flex-end;
-  }
+/* react-hot-toast styled for dark so error/success toasts match the canvas. */
+:where([class*="toast"]) {
+  font-family: var(--font-body);
 }

@@ -40,14 +40,14 @@ function openQuestions(state: InterviewState | undefined): InterviewQuestion[] {
 
 /**
  * True when any option in the open batch is grounded in scout findings (spec 6):
- * it carries an effort tier or a recommended marker. Drives the
- * "verify with engineering" note — shown only when there is grounding to verify.
+ * it carries a groundingRef back to a finding. Drives the "verify with engineering"
+ * note — shown only when there is grounding to verify. (Speed tiers and the
+ * recommended pick are present on every option, grounded or not, so they no longer
+ * signal grounding.)
  */
 function hasGroundedOptions(questions: InterviewQuestion[]): boolean {
   return questions.some((question) =>
-    question.options.some(
-      (option) => option.effort !== null || option.recommended === true,
-    ),
+    question.options.some((option) => Boolean(option.groundingRef)),
   );
 }
 
@@ -140,7 +140,7 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
       {isGrounded && (
         <p className="field-hint grounding-note">
           Some options are grounded in a scan of your codebase and tagged with a rough
-          effort tier. These are orientation only — verify with engineering before
+          build-speed tier. These are orientation only — verify with engineering before
           committing.
         </p>
       )}
