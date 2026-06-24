@@ -1,0 +1,105 @@
+{
+  "plan": "plans/06242026-pm-tool-interview-engine",
+  "generatedAt": "2026-06-24",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "ANTHROPIC_API_KEY is read server-side via config; the engine fails fast without it",
+      "surface": "cli",
+      "precondition": "Server .env has ANTHROPIC_API_KEY set; key never reaches the Vite bundle.",
+      "steps": [
+        "1. Confirm requireAnthropicApiKey() in src/config/index.ts reads config.anthropicApiKey and throws a clear error when empty.",
+        "2. Confirm the agent (src/agents/interviewAgent.ts) constructs the SDK only via requireAnthropicApiKey() (server-side).",
+        "3. Grep frontend/src for the key — it must not appear; only VITE_ vars ship (check:conventions §17.3 advisory)."
+      ],
+      "expected": "Key is server-side only; a missing key fails fast with a readable message; no key in the frontend bundle.",
+      "status": "pass",
+      "evidence": "Live run constructed claude-opus-4-8 with the configured key. check:conventions --strict reported 0 violations incl. §17.3 (no process.env / secrets in frontend). Key referenced only in src/config + src/agents.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Batch generation returns <=4 dependency-ordered questions as validated structured output",
+      "surface": "api",
+      "precondition": "A session exists (POST /sessions). Agent SDK mocked for the suite; real model for the live run.",
+      "steps": [
+        "1. POST /sessions/:id/interview/next-batch.",
+        "2. Inspect data.turns[0].questions.questions — each has id, decisionKey, text, options[], allowOther, dependsOn.",
+        "3. Submit an over-long (5-question) batch in a unit test and confirm it is rejected (BATCH_GENERATION_INVALID), not persisted."
+      ],
+      "expected": "A well-formed batch of at most 4 questions is returned and persisted; malformed/over-long model output is rejected at the boundary and never written.",
+      "status": "pass",
+      "evidence": "Live run generated 4 questions (data_scope, export_trigger, access_permissions, format_details). Service tests: 'rejects an over-long batch (>4)' and 'rejects malformed (off-schema) model output' both pass — turns table stays empty.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "Write-through persistence is atomic; resume replays saved state with no regeneration",
+      "surface": "api",
+      "precondition": "A session with one generated batch.",
+      "steps": [
+        "1. POST /sessions/:id/interview/answers with answers for the open batch.",
+        "2. Read interview_turns + decision_record for the session — the turn carries answers and one decision_record row per answered question (source=answer).",
+        "3. GET /sessions/:id/interview again (simulating resume) and confirm it rebuilds from the DB with no new model call."
+      ],
+      "expected": "Turn answers and decision rows are written in one transaction; resume returns the exact persisted turns + decisions; no batch is regenerated.",
+      "status": "pass",
+      "evidence": "Live run persisted turns=1, decisions=4 (source=answer); resume replay returned status=complete turns=1 decisions=4 with turn 0 carrying 4 structured questions. Service test 'resume replays ... with NO new generation' asserts the mock call count is unchanged.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4",
+      "title": "Materiality gate + max-rounds cap + stop-and-generate drive termination",
+      "surface": "api",
+      "precondition": "A session in progress.",
+      "steps": [
+        "1. After answering a batch whose hasOpenMaterialDecisions is false, POST next-batch and confirm the interview terminates (status=complete, isComplete=true) with no new generation.",
+        "2. Confirm the round count never exceeds INTERVIEW_ENGINE.MAX_ROUNDS even when decisions remain open.",
+        "3. Submit answers with stopAndGenerate=true and confirm immediate completion."
+      ],
+      "expected": "The gate generates another batch only when an open decision is material; the hard cap and the global stop both force termination at shared understanding.",
+      "status": "pass",
+      "evidence": "Live run terminated at round 1 (gate reason 'no_material_decisions'). MaterialityGateService tests cover first_batch, open_material_decisions, no_material_decisions, max_rounds_reached, stopped_by_user (6 pass). Service tests cover terminate-via-gate and stop-and-generate.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T5",
+      "title": "Engine endpoints return the {success,data,error} envelope and reject bad input at the boundary",
+      "surface": "api",
+      "precondition": "App running; owner scope set via x-dev-user-id header (never the body).",
+      "steps": [
+        "1. GET /sessions/:id/interview → 200 + {success:true,data,error:null}.",
+        "2. POST .../answers with answers:'not-an-array' → 400 + error.code VALIDATION_ERROR.",
+        "3. GET interview for a missing id → 404 SESSION_NOT_FOUND; for another owner's session → 404 (no leak, §11.7); answer with no open batch → 409 NO_OPEN_BATCH_CONFLICT.",
+        "4. Run a full multi-round interview over HTTP to termination."
+      ],
+      "expected": "Every endpoint returns the canonical envelope; invalid bodies/params are rejected at the boundary; cross-owner reads 404; a full HTTP run drives to status=complete.",
+      "status": "pass",
+      "evidence": "InterviewEngineController.test.ts (7 supertest tests) pass: envelope on GET, 400 VALIDATION_ERROR, 404 SESSION_NOT_FOUND (missing + cross-owner), 409 NO_OPEN_BATCH_CONFLICT, and a full multi-round HTTP run ending status=complete/isComplete=true.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T6",
+      "title": "Frontend question-batch step renders the batch, collects answers (+ other + stop), via the api/ client",
+      "surface": "ui",
+      "precondition": "Frontend built; backend reachable through the Vite /api proxy; a session created in step 1 of the wizard.",
+      "steps": [
+        "1. In InterviewWizard, create a session (step 1), then on step 2 click 'Generate questions'.",
+        "2. The QuestionBatch step renders each question with options; pick an option or the free-text 'other'.",
+        "3. Click 'Submit answers' to advance, or 'Stop and generate now' to end; confirm the wizard reaches the completion step.",
+        "4. Confirm no raw fetch/axios outside api/index.ts (§14.2) and no `any` (§17.2)."
+      ],
+      "expected": "Answering a batch advances to the next batch and finally to termination; all data flows through the api/ client and React Query hooks; errors surface via the shared toast.",
+      "status": "pass",
+      "evidence": "Browser acceptance pass 2026-06-24 (dev server localhost:59436, real model). Resumed a scoped session into the interview step; clicked 'Generate questions' -> POST /sessions/880/interview/next-batch 200 rendered a 4-question batch (survey_channel, timing_config, audience_segmentation, branching_logic), each with radio options + an 'Other (describe)' free-text. Answered all 4 using the free-text 'other' on q2 ('Hybrid: admin sets a base delay...'); 'Submit answers' -> POST .../answers 200 persisted turn0 with 4 answers + 4 decision_record rows (q2 decision correctly stored otherText, not optionId). Clicked 'Generate questions' again -> materiality gate generated a distinct round-2 batch (storage, over-surveying, who-configures, opt-outs). Answered round 2 and clicked 'Stop and generate now' -> POST .../answers (stop) 200 terminated the interview (isComplete=true) and the wizard auto-advanced to the Ticket step. Verified visually via preview screenshot (4-question batch with radios + Other) and via the live POST .../answers response body (turn0 answers + 4 decisions). All data flowed through the api/ client; no console errors.",
+      "notes": "Full two-round interview driven in a real browser to termination via stop-and-generate; write-through persistence (turns + decisions incl. free-text other) confirmed against the live state payload.",
+      "waiver": ""
+    }
+  ]
+}

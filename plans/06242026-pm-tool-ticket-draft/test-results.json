@@ -1,0 +1,92 @@
+{
+  "plan": "plans/06242026-pm-tool-ticket-draft",
+  "generatedAt": "2026-06-24",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Generate a well-formed ticket from a session's decisions",
+      "surface": "api",
+      "precondition": "A session exists with a decision_record (synthetic rows seeded); ANTHROPIC_API_KEY set server-side.",
+      "steps": [
+        "1. Seed a session + a handful of decision_record rows.",
+        "2. POST /sessions/:id/ticket (or call TicketGenerationService.generateForSession) with the real claude-opus-4-8.",
+        "3. Inspect the persisted ticket."
+      ],
+      "expected": "A 201/ticket with user_story in 'As a {role}, I want {capability}, So that {benefit}' form, acceptance_criteria as an array of {given,when,then}, effort as a tier (XS|S|M|L|XL, never hours), and a context summary. A malformed model result is rejected (TICKET_GENERATION_INVALID) and nothing is written.",
+      "status": "pass",
+      "evidence": "LIVE run with claude-opus-4-8 (effort=medium, no fallback): produced 'As a signed-in user, I want to export my own project data as a downloadable CSV file, So that...' with 3 Given/When/Then criteria (incl. not-signed-in + no-projects edge cases), effort 'S'. Boundary-rejection + persist-nothing paths covered by TicketGenerationService.test.ts (5 tests, agent mocked).",
+      "notes": "Generation also unit-tested with the SDK mocked for determinism; the live call confirms the real model honors the structured-output schema.",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Persist + version the ticket; comments in their own table; owner-scoped",
+      "surface": "api",
+      "precondition": "Migration applied (tickets columns finalized + ticket_comments added).",
+      "steps": [
+        "1. Create a ticket; read it back via the owner-scoped path.",
+        "2. Update a field with the expected version; then attempt a stale-version update.",
+        "3. Add comments; list them.",
+        "4. From a different owner, attempt to read the ticket."
+      ],
+      "expected": "Create writes a draft at version 1. A matching-version update bumps to 2; a stale-version update writes nothing. Comments persist in ticket_comments and list oldest-first. A different owner gets null/404 (no leak, §11.7).",
+      "status": "pass",
+      "evidence": "TicketModel.test.ts (6 tests): create+read, cross-owner isolation, version-guarded update, stale-version rejected, finalize bump, list. TicketCommentModel.test.ts (3 tests): create/attribute, oldest-first, FK cascade. Live run: edit bumped v1->v2.",
+      "notes": "Owner scope is enforced via a tickets->interview_sessions join in TicketModel.findByIdForOwner.",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "Ticket API: generate, get, update, comment, finalize — envelope + error paths",
+      "surface": "api",
+      "precondition": "App running (supertest drives createApp()); agent mocked for determinism.",
+      "steps": [
+        "1. POST /sessions/:id/ticket -> 201; GET /tickets/:id -> 200 round-trip.",
+        "2. PATCH /tickets/:id (matching version) -> 200; PATCH (stale version) -> 409.",
+        "3. POST /tickets/:id/comments -> 201; POST /tickets/:id/finalize -> 200.",
+        "4. Missing id -> 404; cross-owner -> 404; bad body/param -> 400."
+      ],
+      "expected": "Every response is the { success, data, error } envelope (§8.1) with correct codes (201/200/400/404/409). A stale-version PATCH returns 409 TICKET_VERSION_CONFLICT; finalize flips status draft->final and bumps version.",
+      "status": "pass",
+      "evidence": "TicketController.test.ts (11 tests): all five endpoints, the 201/200 round-trip, 409 stale-version conflict, 201 comment, finalize draft->final v1->v2, 404 missing, 404 cross-owner (generate + get), 400 no-fields + 400 non-numeric id.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4",
+      "title": "Frontend: ticket view + inline edit + comments + copy-to-clipboard, as the wizard's terminal step",
+      "surface": "ui",
+      "precondition": "Frontend dev server running against the backend; complete an interview to reach the Ticket step.",
+      "steps": [
+        "1. Finish the interview so the wizard advances to step 3 (Ticket).",
+        "2. Click 'Generate ticket'; confirm the story, Given/When/Then list, effort tier + 'verify with engineering' note, and context render.",
+        "3. Click Edit, change a field, Save; confirm it persists and the version bumps.",
+        "4. Add a comment; confirm it appears.",
+        "5. Click 'Copy as Markdown'; confirm the clipboard matches rendered_markdown.",
+        "6. Click Finalize; confirm status flips to final."
+      ],
+      "expected": "The terminal step generates and renders the ticket; inline edit persists via a version-guarded PATCH; comments persist; copy yields rendered_markdown; finalize flips draft->final. Errors surface via the shared toast. No raw fetch/axios outside api/index.ts; no any.",
+      "status": "pass",
+      "evidence": "Browser acceptance pass 2026-06-24 (dev server, real model). Reached the Ticket step from a completed interview; clicked 'Generate ticket' -> POST /sessions/880/ticket 201 created ticket id 185 v1. The TicketView rendered DRAFT·V1, USER STORY in As-a/I-want/So-that form, 4 Given/When/Then acceptance criteria (incl. the high-priority-immediate-send rule derived from my interview free-text), EFFORT 'L' with the fixed 'verify with engineering, not an hour estimate' note, and a CONTEXT summary. Clicked Edit, changed effort L->M, Save -> PATCH /tickets/185 200 and the header flipped to DRAFT·V2 with EFFORT M (version-guarded bump). Added a comment -> POST /tickets/185/comments 201; the comment rendered attributed to 'user 1' with a timestamp. Clicked 'Copy as Markdown' (label flipped to 'Copied!'); a clipboard-write spy captured a 1626-char string starting '## User Story' matching tickets.rendered_markdown verbatim (browser clipboard READ is permission-blocked in the sandbox, so the copied value was captured at writeText). Reloaded the whole app and opened the ticket via the dashboard's 'View ticket': DRAFT·V2, EFFORT M, and the comment all persisted. No console errors.",
+      "notes": "Edit and comment both survive a full page reload (reopened cold from the dashboard via GET /sessions/880/state -> GET /tickets/185). Finalize (draft->final) was not clicked in this pass to keep the session reusable as the dashboard 'View ticket' fixture; the finalize path is proven by T3 contract tests + T5.",
+      "waiver": ""
+    },
+    {
+      "id": "T5",
+      "title": "Markdown render + export; copied string matches rendered_markdown",
+      "surface": "api",
+      "precondition": "A persisted ticket exists.",
+      "steps": [
+        "1. Render a ticket via TicketMarkdownService.",
+        "2. Confirm rendered_markdown is persisted on generate and re-rendered on edit/finalize.",
+        "3. Confirm the copy button yields the same string."
+      ],
+      "expected": "Markdown has a story header, one Given/When/Then block per criterion, the effort tier + fixed note, and the context; it is deterministic; the copy button copies exactly tickets.rendered_markdown.",
+      "status": "pass",
+      "evidence": "TicketMarkdownService.test.ts (3 tests): story/effort/context headers, one G/W/T block per criterion, determinism. Live run: rendered_markdown persisted on generate and re-rendered through finalize (printed, well-formed). CopyTicketButton copies ticket.rendered_markdown verbatim.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

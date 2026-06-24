@@ -1,0 +1,137 @@
+{
+  "plan": "plans/06242026-pm-tool-dashboard",
+  "generatedAt": "2026-06-24",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1-api",
+      "title": "GET /sessions returns the standard pagination envelope, owner-scoped, status-filterable",
+      "surface": "api",
+      "precondition": "Several sessions exist for the caller in mixed statuses (created via POST /sessions, x-dev-user-id header sets owner).",
+      "steps": [
+        "1. GET /sessions?page=1&limit=2 as owner A.",
+        "2. GET /sessions?page=2&limit=2 as owner A.",
+        "3. GET /sessions?status=complete and ?status=draft as owner A.",
+        "4. GET /sessions as owner B (no rows)."
+      ],
+      "expected": "Body is { items, page, limit, total, totalPages } (§11.6); page 2 returns the remainder; status filter narrows to that status; owner B sees total 0 — never owner A's rows (§11.7).",
+      "status": "pass",
+      "evidence": "vitest InterviewSessionController.test.ts (pagination envelope, paginate limit/totalPages, never returns another owner's rows, status narrows, bad status 400) + InterviewSessionModel.test.ts (paginates+counts owner-scoped, filters by status) all green (78/78). Live HTTP probe: page1 limit2 -> {page:1,limit:2,total:3,totalPages:2,items:2}; page2 -> items:1; status=complete total:1 statuses [complete]; cross-owner total:0.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2-api",
+      "title": "GET /sessions/:id/state returns the resume shape (turns + decisions + status + ticketId), owner-scoped",
+      "surface": "api",
+      "precondition": "A fresh session and a session with one generated (unanswered) batch exist for owner A.",
+      "steps": [
+        "1. GET /sessions/:id/state for a fresh session as owner A.",
+        "2. Generate one batch, then GET /sessions/:id/state as owner A.",
+        "3. GET /sessions/:id/state for owner A's session as owner B."
+      ],
+      "expected": "Fresh session: turns [], decisions [], nextTurnIndex 0, ticketId null. After one batch: turns length 1 with answers null and the open batch's questions, status in_progress. Owner B: 404 SESSION_NOT_FOUND (no leak, §11.7).",
+      "status": "pass",
+      "evidence": "vitest InterviewSessionController.test.ts: 'returns the resume shape + null ticketId for a fresh session', 'carries the open turn needed to compute the next step', 'for another owner's session returns 404'. Live HTTP probe STATE -> {turns:0,decisions:0,nextTurnIndex:0,ticketId:null,http:200}.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3-api",
+      "title": "POST /sessions/:id/clone creates a fresh session from original_request, source untouched, owner-scoped",
+      "surface": "api",
+      "precondition": "A source session exists for owner A.",
+      "steps": [
+        "1. POST /sessions/:id/clone as owner A.",
+        "2. GET /sessions/:id (the source) as owner A.",
+        "3. POST /sessions/:id/clone for owner A's session as owner B."
+      ],
+      "expected": "Clone returns 201 with a NEW id, the same original_request, status draft; the source is unchanged; owner B gets 404 SESSION_NOT_FOUND (§11.7).",
+      "status": "pass",
+      "evidence": "vitest InterviewSessionController.test.ts: 'creates a fresh session from original_request (201)' (asserts new id, same request, draft, source untouched) and 'cannot clone another owner's session (404)'. Live HTTP probe CLONE -> {newId:464,sameAsSource:false,original_request:'Integration A',status:'draft',http:201}.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T1-T6-contract",
+      "title": "All new endpoints use the { success, data, error } envelope and correct error paths",
+      "surface": "api",
+      "precondition": "App running against the test DB.",
+      "steps": [
+        "1. Exercise success paths (200/201) and assert success:true, error:null.",
+        "2. Exercise validation failure (bad status, non-numeric id) and assert 400 VALIDATION_ERROR.",
+        "3. Exercise not-found / cross-owner and assert 404 SESSION_NOT_FOUND."
+      ],
+      "expected": "Every response is the canonical envelope (§8.1); validation errors are 400 with code VALIDATION_ERROR (§11.2); missing/foreign sessions are 404 with SESSION_NOT_FOUND (§3.4 no leak).",
+      "status": "pass",
+      "evidence": "vitest: 16 InterviewSessionController tests cover envelope on success, 400 validation (empty body, bad status, non-numeric id), and 404 (missing + cross-owner). Full suite 78/78 green; no regression in foundation/engine/ticket suites.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4-ui",
+      "title": "Dashboard is the landing screen and lists the owner's sessions paginated with a status filter",
+      "surface": "ui",
+      "precondition": "Frontend dev server running; backend reachable; the owner has more than one page of sessions.",
+      "steps": [
+        "1. Load the app — the dashboard renders as the landing screen.",
+        "2. Confirm rows show status, request snippet, and last-updated.",
+        "3. Click a status filter chip and confirm the list narrows.",
+        "4. Use Previous/Next to page when totalPages > 1."
+      ],
+      "expected": "Dashboard is the first screen; rows render with status/snippet/updated; filter chips narrow the list and reset to page 1; pager advances pages.",
+      "status": "pass",
+      "evidence": "Browser acceptance pass 2026-06-24 (dev server localhost:59436). Loading the app rendered the dashboard ('Your sessions') as the landing screen with filter chips All/Draft/In progress/Awaiting input/Complete and a 'New session' button. Rows render status badge + request snippet + 'Updated <timestamp>' (e.g. DRAFT · 'Fix the typo on the login button...' · Updated 6/24/2026 7:42:21 AM; COMPLETE · survey session). Status filter verified against the live API: clicking 'Complete' -> GET /sessions?page=1&limit=10&status=complete 200 -> 1 row (survey); clicking 'Draft' -> ...&status=draft 200 -> 1 row (typo); the clicked chip shows is-active and the request carries page=1 (resets to first page). Pagination verified by seeding owner-1 to 13 sessions (total 13, totalPages 2): the pager rendered 'Page 1 of 2' with Previous disabled / Next enabled and 10 rows; clicking Next -> 'Page 2 of 2' with 3 rows, Next disabled / Previous enabled. No console errors.",
+      "notes": "Pager only renders when totalPages>1 (correctly hidden at 1 page); confirmed both boundary-disable states. Owner scope = dev-default owner 1 (ownerContext middleware default; the browser sends no x-dev-user-id and the Vite proxy injects none).",
+      "waiver": ""
+    },
+    {
+      "id": "T4-T5-resume-ui",
+      "title": "Opening a session routes into the wizard at the correct step (resume)",
+      "surface": "ui",
+      "precondition": "A mid-interview session (one unanswered batch) and a completed session exist.",
+      "steps": [
+        "1. From the dashboard, click Resume on a mid-interview session.",
+        "2. Confirm the wizard opens on the Interview step showing the next unanswered batch.",
+        "3. Click Back to dashboard.",
+        "4. Click 'New session' and confirm the wizard opens on the Request step."
+      ],
+      "expected": "Resume lands on the interview step at the next unanswered batch (replayed from interview_turns + decision_record via QuestionBatch); 'finish' on an awaiting-input session uses the same resume path; New session starts at the Request step.",
+      "status": "pass",
+      "evidence": "Browser acceptance pass 2026-06-24 (dev server). Clicked 'Resume' on a non-complete (draft) session from the dashboard -> the wizard opened on the Interview step (step-rail step 2 active, request echoed in a blockquote, QuestionBatch shown). For that session no batch existed yet so QuestionBatch correctly showed its 'Generate questions' state; clicking it generated and rendered the next batch (replay/advance path, also exercised end-to-end in interview-engine T6). Clicked '← Dashboard' to return, then 'New session' -> the wizard opened on the Request step (step-rail step 1, the 'What do you want to build?' textarea with a disabled 'Start interview' until text is entered). Resume routing: resumeStep() in Dashboard.tsx sends complete->Ticket, otherwise->Interview.",
+      "notes": "The specific 'mid-interview session with one OPEN unanswered batch replays that exact batch on resume' sub-case was exercised within interview-engine T6 (generate batch -> the open batch renders) rather than by resuming a pre-seeded open-batch session here; the resume entry point itself (dashboard Resume -> Interview step) is confirmed in the browser, and the resume-state contract is proven by dashboard T2-api.",
+      "waiver": ""
+    },
+    {
+      "id": "T3-rerun-ui",
+      "title": "Re-run from the dashboard creates a fresh cloned session and opens it",
+      "surface": "ui",
+      "precondition": "At least one session exists.",
+      "steps": [
+        "1. Click Re-run on a row.",
+        "2. Confirm a success toast and that the wizard opens on the Interview step for a NEW session seeded from the same request."
+      ],
+      "expected": "A new session is created (same original_request, draft) and opened; the list invalidates so the new session appears on return.",
+      "status": "pass",
+      "evidence": "PASS — re-verified after the TriageBranch StrictMode fix (dev server localhost:59436, StrictMode ON, 2026-06-24). Clicked 'Re-run' on the 'Change the footer copyright year from 2025 to 2026.' row (source session 987) -> POST /sessions/987/clone 201 created clone session 988, and the wizard opened on the triage step which now auto-triaged: POST /sessions/988/triage 200 and the branch-decision panel 'This looks straightforward' rendered (the cloned request text echoed in the blockquote) with working route buttons — no 'Sizing up your request' hang. From there the route buttons advance to Interview/Ticket exactly as in triage T9/T10. The list invalidated: returning to the dashboard showed the new clone as a fresh DRAFT row at the top.",
+      "notes": "Re-run routes through triage by design (Dashboard opens the clone at WIZARD_STEP.triage); the triage UI hang is fixed (idempotent backend + React Query useQuery trigger in TriageBranch.tsx), so the clone now flows through triage to the branch decision and onward. The clone API itself remains green (dashboard T3-api).",
+      "waiver": ""
+    },
+    {
+      "id": "T6-viewticket-ui",
+      "title": "View ticket opens a completed session's ticket; sessions without a ticket disable/inform",
+      "surface": "ui",
+      "precondition": "A completed session WITH a generated ticket, and a session without a ticket.",
+      "steps": [
+        "1. Click 'View ticket' on a completed session.",
+        "2. Confirm the read-only TicketView opens for that session's ticket.",
+        "3. Confirm sessions that are not complete disable the action."
+      ],
+      "expected": "View ticket resolves the session's latest ticket id via /sessions/:id/state and opens TicketView (spec 3, reused); a session with no ticket shows a 'no ticket yet' toast; non-complete sessions have the action disabled.",
+      "status": "pass",
+      "evidence": "Browser acceptance pass 2026-06-24 (dev server). After completing an interview, the session flipped to COMPLETE on the dashboard and exposed a 'View ticket' action (replacing Resume). Clicking 'View ticket' fired GET /sessions/880/state 200 (resolves state.ticketId) then GET /tickets/185 200, and opened the read-only TicketView (DRAFT·V2 with the persisted edit + comment, '← Dashboard' to return). Non-complete (draft) sessions did NOT expose 'View ticket' — they showed 'Resume' + 'Re-run' instead, so the view-ticket action is correctly gated to complete sessions. No console errors.",
+      "notes": "The action is gated by rendering 'View ticket' only for complete sessions (rather than rendering it disabled). The 'no ticket yet' toast branch (complete session whose ticket id resolves null) was not triggerable here since every completed session in this pass had a generated ticket; that path is covered by the state.ticketId contract in T2-api.",
+      "waiver": ""
+    }
+  ]
+}

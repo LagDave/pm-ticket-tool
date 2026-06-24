@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard Spec</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #ffffff;
+      --ink: #080808;
+      --muted: #5f5f5f;
+      --line: #d8d8d8;
+      --soft: #f5f5f5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    .spec-shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0; }
+    .spec-hero, .spec-card, .task-card { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+    .spec-hero { border-color: var(--ink); padding: 32px; margin-bottom: 20px; }
+    .hero-topline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .spec-card { padding: 28px; margin-top: 16px; }
+    .task-card { padding: 20px; background: var(--soft); margin-top: 14px; }
+    .eyebrow, dt { color: var(--muted); font-size: 0.78rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
+    .eyebrow { margin: 0; }
+    .status-pill { display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 0.78rem; font-weight: 800; letter-spacing: 0; text-transform: uppercase; }
+    .status-card { border-color: var(--ink); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 840px; margin-bottom: 24px; font-size: clamp(2.25rem, 6vw, 5rem); line-height: 0.95; letter-spacing: 0; }
+    h2 { font-size: 1.35rem; letter-spacing: 0; }
+    h3 { font-size: 1rem; letter-spacing: 0; }
+    code { padding: 0.1rem 0.3rem; border: 1px solid var(--line); border-radius: 4px; background: var(--soft); font-size: 0.92em; }
+    .meta-grid, .split-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .meta-grid { margin: 0; }
+    .meta-grid div, .split-grid > div { border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    dd { margin: 4px 0 0; font-weight: 700; }
+    .task-card dl { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 0; }
+    .task-card dd { font-weight: 400; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
+    ul { margin: 0 0 0 0; padding-left: 18px; }
+    li { margin: 4px 0; }
+    @media (max-width: 640px) {
+      .spec-shell { width: min(100% - 20px, 1120px); padding: 24px 0; }
+      .spec-hero, .spec-card { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">PM Tool · Plan Spec · 4 of 8</p>
+        <span class="status-pill status-completed">Completed</span>
+      </div>
+      <h1>Dashboard — list, resume, re-run &amp; open tickets</h1>
+      <dl class="meta-grid">
+        <div class="status-card"><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/06242026-pm-tool-dashboard</dd></div>
+        <div><dt>Size</dt><dd>Medium</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>PMs need a home screen to manage their work. They come back to see past and in-progress interviews and act on them: resume an unfinished one, finish it, re-run it, or open the resulting ticket. Without this, a session that a PM leaves mid-interview is effectively lost — there is no way back into it.</p>
+      <p>This spec is the dashboard: the landing page that turns the persisted sessions from foundation (spec 1) and the resumable engine (spec 2) into something a PM can actually browse and act on.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>A dashboard that lists the owner's interview sessions — each row showing status, a snippet of the original request, and when it was last updated — with four actions: <strong>open/resume</strong> (load the persisted state and route to the correct wizard step), <strong>finish</strong> (resume an awaiting-input session through to completion), <strong>re-run</strong> (clone the <code>original_request</code> into a fresh session — the locked default), and <strong>view ticket</strong>. Lists are paginated and owner-scoped. Resume reconstructs the wizard position by replaying <code>interview_turns</code> + <code>decision_record</code> (spec 2's mechanism), so a PM lands exactly where they left off.</p>
+      <p><strong>Done when:</strong> a PM can list their sessions paginated, resume one mid-interview to exactly where they left off, re-run one as a fresh cloned session, and open a session's ticket. <code>npx tsc --noEmit</code> and <code>npm run check:conventions --strict</code> pass on both trees.</p>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <h3>Relevant Files</h3>
+      <ul>
+        <li><code>src/controllers/interview/InterviewSessionController.ts</code> — extended with list / session-state / clone handlers; thin orchestration, no DB (§6.1, §7.3).</li>
+        <li><code>src/controllers/interview/feature-services/InterviewSessionService.ts</code> — list, resume-state assembly, and clone business logic (§7.1).</li>
+        <li><code>src/models/InterviewSessionModel.ts</code>, <code>InterviewTurnModel.ts</code>, <code>DecisionRecordModel.ts</code>, <code>TicketModel.ts</code> — all DB access, owner-scoped (§7.4, §11.7); paginated list query (§11.6).</li>
+        <li><code>src/routes/interviewSessions.ts</code> — thin routes for <code>GET /sessions</code>, <code>GET /sessions/:id/state</code>, <code>POST /sessions/:id/clone</code> (§7.2).</li>
+        <li><code>frontend/src/pages/Dashboard.tsx</code> — route-level dashboard screen (§12.2).</li>
+        <li><code>frontend/src/components/dashboard/SessionList.tsx</code> + per-row action buttons in a feature folder (§12.2, §12.3, §13.2).</li>
+        <li><code>frontend/src/api/sessions.ts</code> — list / session-state / clone / ticket functions over the one HTTP client (§14.1, §14.2).</li>
+        <li><code>frontend/src/hooks/queries/useInterviewSessionQueries.ts</code> — <code>useSessions</code> / <code>useResume</code> data-fetching (§14.3, §15.1).</li>
+      </ul>
+      <h3>Patterns To Follow</h3>
+      <ul>
+        <li>Backend: list / session-state / clone endpoints mirror foundation's interview controller (§6.1, §7.1, §7.3); all DB in models, owner-scoped (§7.4, §11.7); standard pagination shape <code>{ page, limit, total, totalPages }</code> (§11.6); envelope <code>{ success, data, error }</code> (§8.1) via shared builders (§8.2); validation at the boundary (§11.2).</li>
+        <li>Frontend: triad Component → hook → <code>api/</code> client (§14.1); the client is the only fetch path (§14.2 🔎); server state via React Query, UI state via Context (§15.1, §15.2), no extra state library (§15.4); errors via the one contract (§16.1).</li>
+        <li>Resume routes into the wizard (spec 2), reconstructing state from <code>interview_turns</code> + <code>decision_record</code> — do not re-derive interview logic here.</li>
+      </ul>
+      <p><strong>Reference analog:</strong> mirror foundation's backend triad (<code>src/controllers/interview/</code> per §6.1) and frontend triad (<code>api/</code> + React Query, §12.1), plus spec 2's resume/replay (rebuild wizard position from persisted <code>interview_turns</code> + <code>decision_record</code>).</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Paginate all lists with the standard shape (§11.6).</li>
+            <li>Owner-scope every query in <code>models/</code> by <code>owner_user_id</code> from server context (§11.7, §5.5).</li>
+            <li>Resume reconstructs the wizard position from the persisted <code>interview_turns</code> + <code>decision_record</code> (spec 2's replay).</li>
+            <li>Re-run is a clone: a fresh session seeded from <code>original_request</code> — the locked default.</li>
+            <li>Server state via React Query; UI state via Context (§15.1, §15.2); errors via the one contract (§16.1).</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>Add a new state-management library (§15.4).</li>
+            <li>Mirror server data into <code>useState</code> (§15.1).</li>
+            <li>Reimplement the interview engine or ticket-generation logic — reuse specs 2 and 3.</li>
+            <li>Call <code>fetch</code>/<code>axios</code> outside <code>api/index.ts</code> (§14.2); put DB calls outside <code>models/</code> (§7.4).</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul><li>The interview engine and the ticket generator themselves (specs 2 and 3); any push-to-tracker integration.</li></ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level:</strong> 2 (reads existing tables; no schema change; depends on specs 1–3).</p>
+      <h3>Risks Identified</h3>
+      <ul>
+        <li><strong>Resume correctness depends on the write-through schema from foundation / spec 2.</strong> If <code>interview_turns</code> + <code>decision_record</code> don't fully capture the wizard position, resume lands on the wrong step. <strong>Mitigation:</strong> rely solely on the persisted <code>interview_turns</code> + <code>decision_record</code> as the source of truth, and cover resume with tests that replay a partial session and assert the exact next step (§20.2).</li>
+        <li><strong>Large session lists degrade the dashboard.</strong> <strong>Mitigation:</strong> pagination (§11.6) plus status filters on the list endpoint so a PM narrows by in-progress / completed.</li>
+      </ul>
+      <p><strong>Blast radius:</strong> reads <code>interview_sessions</code>, <code>interview_turns</code>, <code>decision_record</code>, and <code>tickets</code>; extends the existing interview controller/service/model and frontend triad. Depends on specs 1, 2, and 3; no new tables, no migration.</p>
+      <h3>Pushback</h3>
+      <ul>
+        <li><strong>"Finish" and "resume" can be one action.</strong> Finishing an awaiting-input session is just resuming it, then driving it to completion. Recommended: ship a single <strong>resume</strong> action that lands on the next unanswered batch — "finish" is simply resume on a near-complete session, not a separate code path. Two buttons in the UI are fine if they call the same resume route. Flag the simplification rather than building parallel logic.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card">
+        <h3>T1: Sessions list endpoint</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>GET /sessions</code> to the interview controller/service/model (mirror foundation, §6.1, §7.1, §7.3). Paginated with the standard shape <code>{ page, limit, total, totalPages }</code> (§11.6); owner-scoped by <code>owner_user_id</code> from server context (§11.7); optional <code>status</code> filter. Validate query params at the boundary (§11.2); envelope per §8.1.</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/interview/InterviewSessionController.ts</code>, <code>feature-services/InterviewSessionService.ts</code>, <code>src/models/InterviewSessionModel.ts</code>, <code>src/routes/interviewSessions.ts</code>, <code>src/validation/interviewSession.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>none (foundation, spec 1)</dd></div>
+          <div><dt>Verify</dt><dd>Contract + tenant-scope tests (§20.2): one owner's list never returns another's rows; pagination shape correct; status filter narrows results.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T2: Session-state endpoint for resume</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>GET /sessions/:id/state</code> returning enough to rebuild the wizard position — the session row, its <code>interview_turns</code>, and <code>decision_record</code> (spec 2's replay inputs). All DB through models, owner-scoped (§7.4, §11.7); thin controller, logic in the service (§7.3).</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/interview/InterviewSessionController.ts</code>, <code>feature-services/InterviewSessionService.ts</code>, <code>src/models/InterviewTurnModel.ts</code>, <code>DecisionRecordModel.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>For a partially-answered session, the response contains the turns + decisions needed to compute the next unanswered step; 404 on another owner's session.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T3: Re-run (clone) endpoint</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>POST /sessions/:id/clone</code> that creates a fresh session seeded from the source's <code>original_request</code> (the locked default) — new id, status reset, owner from server context, no turns or decisions copied. Returns the new session (201). DB in models (§7.4), owner-scoped (§11.7).</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/interview/InterviewSessionController.ts</code>, <code>feature-services/InterviewSessionService.ts</code>, <code>src/models/InterviewSessionModel.ts</code>, <code>src/routes/interviewSessions.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Clone returns a new session id with the same <code>original_request</code> and a fresh status; the original session is untouched; cannot clone another owner's session.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T4: Dashboard page + session list + action buttons</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Build <code>pages/Dashboard.tsx</code> and <code>components/dashboard/SessionList.tsx</code> in a feature folder (§12.2, §12.3). Add <code>useSessions</code> (paginated list) over <code>api/sessions.ts</code> (§14.1, §14.2, §14.3); render status, request snippet, last-updated, and per-row buttons (resume, re-run, view ticket). Server state via React Query, no <code>useState</code> mirror (§15.1); lean component (§13.2); errors via the one contract (§16.1).</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/Dashboard.tsx</code>, <code>frontend/src/components/dashboard/SessionList.tsx</code>, <code>frontend/src/api/sessions.ts</code>, <code>frontend/src/hooks/queries/useInterviewSessionQueries.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Dashboard lists the owner's sessions paginated; page controls advance pages; no raw fetch outside <code>api/index.ts</code> (§14.2 🔎); no <code>any</code> (§17.2 🔎).</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T5: Resume routing into the wizard</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add a <code>useResume</code> hook that fetches session-state (T2) and a handler that routes to the wizard (spec 2), reconstructing the position from the replayed <code>interview_turns</code> + <code>decision_record</code> so the PM lands on the next unanswered batch. "Finish" reuses the same resume path (per Pushback) — no parallel logic.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/hooks/queries/useInterviewSessionQueries.ts</code>, <code>frontend/src/components/dashboard/SessionList.tsx</code>, <code>frontend/src/pages/Dashboard.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2, T4</dd></div>
+          <div><dt>Verify</dt><dd>Resuming a mid-interview session lands on the exact next step it was left at; resuming an awaiting-input ("finish") session drives it to completion via the same path.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T6: Ticket list + view</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Surface a session's resulting ticket from the dashboard: a "view ticket" action that opens the ticket produced by spec 3 (read-only here). Add the ticket fetch to <code>api/sessions.ts</code> + a query hook (§14.1, §14.3); reuse spec 3's ticket view, do not reimplement ticket logic.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/api/sessions.ts</code>, <code>frontend/src/hooks/queries/useInterviewSessionQueries.ts</code>, <code>frontend/src/components/dashboard/SessionList.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T4 (and spec 3 for the ticket view)</dd></div>
+          <div><dt>Verify</dt><dd>For a completed session, "view ticket" opens its ticket; sessions without a ticket hide or disable the action.</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <article class="revision-entry">
+        <h3>Rev 1 - 2026-06-24</h3>
+        <p><strong>Change:</strong> T6 "view ticket" is served by folding a <code>ticketId: number | null</code> field into the session-state response (T2) rather than adding a separate ticket-by-session endpoint. <code>InterviewState</code> (backend <code>src/types/interview.ts</code> + frontend <code>frontend/src/types/interview.ts</code>) gained <code>ticketId</code>; the engine's <code>InterviewEngineService.getState</code> now sets <code>ticketId: null</code> (it replays interview state only, §2.1) and <code>InterviewSessionService.getSessionState</code> overrides it with the latest ticket via <code>TicketModel.findLatestBySessionForOwner</code> (owner-scoped, §11.7). The dashboard resolves the id with <code>useResume</code> on click, then opens the reused spec-3 <code>TicketView</code> by id.</p>
+        <p><strong>Reason:</strong> Execution deviation: lowest-blast-radius way to surface the ticket while honoring "do not reimplement ticket logic." Touches <code>InterviewEngineService.ts</code> and both <code>types/interview.ts</code> files, which were outside the literal T2/T6 file lists — no new endpoint, no new ticket query path. Conforms to §2.1 (one responsibility), §7.4/§11.7 (owner-scoped model read), §14.1 (component → hook → api/ client).</p>
+      </article>
+      <article class="revision-entry">
+        <h3>Rev 2 - 2026-06-24</h3>
+        <p><strong>Change:</strong> View routing (dashboard ↔ wizard ↔ read-only ticket) is a small UI state machine in <code>App.tsx</code> with no router library; <code>InterviewWizard</code> gained optional <code>initialSessionId</code>/<code>initialStep</code>/<code>onExit</code> props so resume lands on the correct step (interview, or ticket for a completed session) while its standalone new-session flow is unchanged.</p>
+        <p><strong>Reason:</strong> Execution deviation: the repo ships no <code>react-router</code> and a new state/routing dependency is disallowed (§15.4, §4.4). Plain UI state mirrors how the wizard already switches steps and keeps server state in React Query (§15.1, §15.2).</p>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled> List shows the owner's sessions, paginated, and never another owner's rows.</li>
+        <li><input type="checkbox" disabled> Resume lands on the exact next step the session was left at (replayed from <code>interview_turns</code> + <code>decision_record</code>).</li>
+        <li><input type="checkbox" disabled> Re-run creates a fresh cloned session from <code>original_request</code>, leaving the original untouched.</li>
+        <li><input type="checkbox" disabled> "View ticket" opens a completed session's ticket.</li>
+        <li><input type="checkbox" disabled> <code>npx tsc --noEmit</code> — zero errors on both <code>src/</code> and <code>frontend/</code>.</li>
+        <li><input type="checkbox" disabled> <code>npm run check:conventions --strict</code> passes; no raw fetch outside <code>api/index.ts</code> (§14.2); pagination shape correct (§11.6).</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deploy Spec</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #ffffff;
+      --ink: #080808;
+      --muted: #5f5f5f;
+      --line: #d8d8d8;
+      --soft: #f5f5f5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    .spec-shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0; }
+    .spec-hero, .spec-card, .task-card { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+    .spec-hero { border-color: var(--ink); padding: 32px; margin-bottom: 20px; }
+    .hero-topline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .spec-card { padding: 28px; margin-top: 16px; }
+    .task-card { padding: 20px; background: var(--soft); margin-top: 14px; }
+    .eyebrow, dt { color: var(--muted); font-size: 0.78rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
+    .eyebrow { margin: 0; }
+    .status-pill { display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 0.78rem; font-weight: 800; letter-spacing: 0; text-transform: uppercase; }
+    .status-card { border-color: var(--ink); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 840px; margin-bottom: 24px; font-size: clamp(2.25rem, 6vw, 5rem); line-height: 0.95; letter-spacing: 0; }
+    h2 { font-size: 1.35rem; letter-spacing: 0; }
+    h3 { font-size: 1rem; letter-spacing: 0; }
+    code { padding: 0.1rem 0.3rem; border: 1px solid var(--line); border-radius: 4px; background: var(--soft); font-size: 0.92em; }
+    .meta-grid, .split-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .meta-grid { margin: 0; }
+    .meta-grid div, .split-grid > div { border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    dd { margin: 4px 0 0; font-weight: 700; }
+    .task-card dl { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 0; }
+    .task-card dd { font-weight: 400; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
+    ul { margin: 0 0 0 0; padding-left: 18px; }
+    li { margin: 4px 0; }
+    @media (max-width: 640px) {
+      .spec-shell { width: min(100% - 20px, 1120px); padding: 24px 0; }
+      .spec-hero, .spec-card { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">PM Tool · Plan Spec · 8 of 8</p>
+        <span class="status-pill status-pending">In Progress</span>
+      </div>
+      <h1>Deploy — Vercel + Neon production launch</h1>
+      <dl class="meta-grid">
+        <div class="status-card"><dt>Status</dt><dd>In Progress — T3 build/runtime config done; T1/T2/T4/T5/T6 pending browser execution</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/06242026-pm-tool-deploy</dd></div>
+        <div><dt>Size</dt><dd>Medium</dd></div>
+        <div><dt>Risk</dt><dd>Level 4</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Specs 1 through 7 build the whole tool against a local Docker Postgres on host port <code>8765</code>; nothing is live yet. This spec ships it. It is the last plan in the eight-spec sequence and runs only after the other seven are executed, because it depends on the real schema, the real interview engine, and the real code scout existing first.</p>
+      <p>One spec provisions production, wires continuous deployment, runs the existing migrations against Neon, and proves the live app works end to end — so the tool goes from "works on my machine" to "live on a URL, deploying on push" in a single, ordered step.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>Provision a Neon Postgres database for production and capture its pooled, SSL <code>DATABASE_URL</code>. Configure a Vercel project that serves the React 19 + Vite SPA as a static build and the Express API, connected to the GitHub repo so a push to <code>main</code> auto-deploys. Set the production env vars in Vercel — <code>DATABASE_URL</code> (Neon pooled + SSL), <code>ANTHROPIC_API_KEY</code>, and the GitHub repo token the code scout (spec 5) uses — all server-side only, none in the Vite bundle. Run every existing migration (from specs 1, 3, 5, 7) against Neon before any traffic. Decide and document how the TypeScript Agent SDK runtime fits Vercel's serverless model.</p>
+      <p><strong>Done when:</strong> the app is live on a Vercel URL backed by Neon, a push to <code>main</code> auto-deploys, all migrations are applied to Neon, the secrets are set in Vercel and absent from the shipped bundle, and a live end-to-end smoke test passes (health, create a session, run an interview, generate a ticket). No new product features and no new tables — this spec runs the schema that already exists.</p>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Provisioning happens at execution time against the user's own accounts.</strong> Neon, Vercel, and GitHub resources are created during execution, driven through the browser or CLI with the user present. This plan document touches no external account; it is the script the execution follows.</p>
+      <h3>Relevant Files</h3>
+      <ul>
+        <li><code>vercel.json</code> — Vercel build + routing config: the Vite static build for the SPA and the catch-all route to the Express API handler (created in T3).</li>
+        <li><code>src/index.ts</code> — Express entry from foundation; startup config validation must fail fast on a missing or malformed <code>DATABASE_URL</code> / <code>ANTHROPIC_API_KEY</code> in production (§5.6).</li>
+        <li><code>src/config/index.ts</code> — env access from foundation; production reads Vercel-injected env, never a committed file (§5.1).</li>
+        <li><code>src/database/connection.ts</code> — the one central Knex pool from foundation; production must use the Neon <em>pooled</em> connection string with SSL enabled (§10.6).</li>
+        <li><code>knexfile.ts</code> — the migration runner config; its production target reads the same <code>DATABASE_URL</code> so the existing migrations apply unchanged (§10.3).</li>
+        <li><code>src/database/migrations/*</code> — the migrations authored by specs 1, 3, 5 (<code>scout_cache</code>), and 7; this spec runs them against Neon, it does not add to them.</li>
+        <li><code>frontend/.env.production</code> / Vercel project env — only <code>VITE_</code>-prefixed public config (e.g. the API base URL); no secret ever ships here (§17.3).</li>
+        <li><code>plans/06242026-pm-tool-deploy/test.html</code> + <code>test-results.json</code> — the Layer 2 acceptance artifact generated when this plan is executed (§20.5).</li>
+      </ul>
+      <h3>Patterns To Follow</h3>
+      <ul>
+        <li>Neon is serverless Postgres: every serverless caller uses the <em>pooled</em> connection string with SSL, through the one central Knex pool — never a per-request connection (§10.6).</li>
+        <li>Configuration is validated at startup and fails fast with a clear message; a missing or malformed production env var is caught at boot, not at request time (§5.6).</li>
+        <li>Secrets live in Vercel env only and are accessed via config; only <code>VITE_</code> public config is shipped to the browser (§5.1, §17.3).</li>
+        <li>CORS is configured explicitly for the deployed Vercel origin (no wildcard in production) and Helmet stays enabled on the API (§11.4).</li>
+        <li>Schema reaches production only through the existing Knex migrations, run against Neon before first traffic (§10.3).</li>
+      </ul>
+      <p><strong>Reference analog:</strong> there is no deployment analog in the repo — this is the first production cut. It mirrors foundation's connection, config, and security choices: the central Knex pool (§10.6), startup config validation (§5.6), and the explicit CORS + Helmet setup (§11.4) that foundation established. The Agent SDK runtime is server-side TypeScript; its routes live behind the same Express app foundation built.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Keep secrets in Vercel env only, accessed via config (§5.1, §17.3).</li>
+            <li>Use the Neon <em>pooled</em> connection string with SSL from every serverless caller, through the central pool (§10.6).</li>
+            <li>Run all existing migrations against Neon before any production traffic (§10.3).</li>
+            <li>Auto-deploy on push to <code>main</code> via the Vercel + GitHub integration.</li>
+            <li>Validate production config at startup and fail fast on a missing or malformed value (§5.6).</li>
+            <li>Configure CORS explicitly for the deployed origin; keep Helmet enabled (§11.4).</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>Commit any secret — no <code>DATABASE_URL</code>, <code>ANTHROPIC_API_KEY</code>, or repo token in the repo or the bundle (§5.1).</li>
+            <li>Use an unpooled Neon connection from serverless functions (§10.6).</li>
+            <li>Expose <code>ANTHROPIC_API_KEY</code> or the GitHub repo token to the SPA — nothing sensitive behind a <code>VITE_</code> prefix (§17.3).</li>
+            <li>Add tables, alter the schema, or write new migrations — this spec runs the schema specs 1/3/5/7 already defined.</li>
+            <li>Run manual DDL against Neon instead of the migrations (§10.3).</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul><li>Adding product features; the Azure repo provider; push-to-tracker.</li></ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level:</strong> 4 (outward-facing production deployment — it creates real cloud resources, connects the repo, and exposes the app publicly). Recommend explicit user confirmation before executing.</p>
+      <h3>Risks Identified</h3>
+      <ul>
+        <li><strong>Central technical risk (also Level 3): the Express API + Agent SDK long-running loops may exceed Vercel serverless function timeouts.</strong> Interview generation runs bounded model calls; the bounded code scout (spec 5) is the longest-running operation in the whole tool and is the real concern. <strong>Mitigation</strong> — choose at execution against measured durations, options A/B/C:
+          <ul>
+            <li><strong>A.</strong> Run the Agent SDK routes on Vercel with extended function duration / Fluid compute, if the limits cover the bounded operations.</li>
+            <li><strong>B.</strong> Keep the SPA on Vercel but host the Express API + Agent SDK on a long-running Node host (Railway, Render, or Fly), sharing the same Neon database.</li>
+            <li><strong>C.</strong> Offload the scout and any long generations to a background or queued worker so the request handlers stay short.</li>
+          </ul>
+          <strong>Recommended:</strong> (A) for the interview, since its calls are short and bounded; escalate the scout to (C) or (B) if it exceeds Vercel's limits. The decision is finalized at execution against measured run times.</li>
+        <li><strong>Neon serverless connection exhaustion.</strong> <strong>Mitigation:</strong> use the pooled connection string with SSL through the one central Knex pool (§10.6); never open a per-request connection.</li>
+        <li><strong>Secret leakage into the client.</strong> <strong>Mitigation:</strong> keep every secret in Vercel env only; ship only <code>VITE_</code> public config in the bundle (§17.3).</li>
+        <li><strong>Migration drift between dev (Docker) and prod (Neon).</strong> <strong>Mitigation:</strong> run the identical Knex migrations against both environments, and run them against Neon before first traffic (§10.3).</li>
+      </ul>
+      <p><strong>Blast radius:</strong> the whole app plus all of the user's hosting accounts (Neon, Vercel, GitHub). Depends on all of specs 1 through 7 being executed first.</p>
+      <h3>Pushback</h3>
+      <ul>
+        <li>The stated target is "Vercel + Neon," but if the bounded code scout cannot fit Vercel's function limits even with extended duration, option (B) — splitting the API onto a long-running host while the SPA stays on Vercel — is the pragmatic answer, not a failure. This is a real architectural fork; flag it for the user's call at execution rather than forcing the scout into a timeout.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="runtime-decision">
+      <h2>Runtime Decision — Code Scout (resolved ahead of deploy)</h2>
+      <p><strong>Decision:</strong> The central runtime risk above (the scout exceeding Vercel's serverless function timeout) is resolved as <strong>Option C — offload the scout to a queued background worker</strong>, and it is <strong>already built and green</strong> as part of the code-scout plan (see <code>plans/06242026-pm-tool-code-scout</code> Rev 5). The scout no longer runs inline in a request.</p>
+      <h3>How it runs (§21, deploy T3/T7)</h3>
+      <ul>
+        <li><strong>Queue:</strong> a DB-backed <code>scout_jobs</code> table (migration <code>20260624000005_scout_jobs_schema.ts</code>) — status (pending|running|done|failed), bounded <code>attempts</code>, <code>last_error</code> dead-letter detail; reached through an owner-verified session (§11.7). It applies to Neon via the same <code>knex migrate:latest</code> run as every other migration (T5) — no extra deploy step.</li>
+        <li><strong>Enqueue (request path):</strong> <code>POST /sessions/:id/scout</code> enqueues a <code>pending</code> job and returns <strong>202</strong> in ~5ms — the handler is now trivially short and Vercel-compatible. <code>GET /sessions/:id/scout</code> returns <code>{status, findings? when done}</code> for polling.</li>
+        <li><strong>Processor on Vercel:</strong> a guarded internal endpoint <code>POST /internal/scout/process</code> (shared-secret header, §5.4) is triggered by <strong>Vercel Cron</strong> every minute (see <code>vercel.json</code> <code>crons</code>) to drain the queue; the processor function gets a longer <code>maxDuration</code> (default 60s in <code>vercel.json</code> <code>functions</code>; raise toward the plan ceiling at T3/T7 against measured run times) while the request handlers stay short. The scout <code>CodeScoutService</code> is reused, not reimplemented (§21.3).</li>
+        <li><strong>Processor locally:</strong> <code>npm run scout:work</code> runs the same processor in a poll loop — no cron needed in dev.</li>
+        <li><strong>Secret:</strong> set <code>SCOUT_WORKER_SECRET</code> in Vercel env (server-side only, never in the bundle, §5.1/§17.3) and configure Vercel Cron to send the <code>x-scout-worker-secret</code> header; when unset the trigger is fail-closed.</li>
+      </ul>
+      <p><strong>Effect on T3/T7:</strong> the A/B/C fork is settled — interview generation stays on Vercel functions (Option A, short bounded calls); the scout is Option C (Cron-processed DB queue). T7 should record this as the chosen runtime; the rollback path is unchanged (revert the Vercel deployment; Neon and Docker share identical migrations, including <code>scout_jobs</code>). Verified: backend + frontend <code>tsc</code> 0, lint clean, <code>check:conventions --strict</code> 0 backend hard violations, 155 backend + 2 frontend tests green, and one live background run (enqueue ~5ms, scan ~15s out of band, findings cached).</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card">
+        <h3>T1: Provision Neon and capture the pooled, SSL connection string</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Create a Neon Postgres project for production and capture its <em>pooled</em> connection string with SSL required. This is the production <code>DATABASE_URL</code>; record it for T4. Confirm it is the pooler endpoint, not the direct one (§10.6).</dd></div>
+          <div><dt>Files</dt><dd>None committed — the value is captured for Vercel env (T4), never written to the repo (§5.1).</dd></div>
+          <div><dt>Depends on</dt><dd>All of specs 1 through 7 (the schema and app must exist).</dd></div>
+          <div><dt>Verify</dt><dd>A test connection to the pooled URL with SSL succeeds; the string contains the pooler host and SSL parameters.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T2: Create the Vercel project and connect the GitHub repo</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Create the Vercel project and link it to the GitHub repository so the Vercel Git integration deploys automatically on every push to <code>main</code>. Set <code>main</code> as the production branch.</dd></div>
+          <div><dt>Files</dt><dd>None in the repo — Vercel project + GitHub link configured in the dashboards.</dd></div>
+          <div><dt>Depends on</dt><dd>All of specs 1 through 7.</dd></div>
+          <div><dt>Verify</dt><dd>A trivial push to <code>main</code> triggers a Vercel build automatically.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T3: Build and runtime config — SPA static build, API routing, Agent SDK runtime</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>vercel.json</code> wiring the Vite static build for the SPA and the route to the Express API. Choose the Agent SDK runtime per the A/B/C decision: (A) Vercel functions with extended duration for the interview, escalating the scout to (C) a background worker or (B) a separate long-running host if it exceeds limits. Confirm CORS is explicit for the Vercel origin and Helmet is on (§11.4).</dd></div>
+          <div><dt>Files</dt><dd><code>vercel.json</code>; if option B is chosen, the API host config; any catch-all serverless handler that mounts the existing Express app.</dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>The SPA serves statically and an API route responds on the chosen runtime; the interview route completes within its limit, and the scout's chosen path holds for a real run.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T4: Set the production env and secrets in Vercel</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Set <code>DATABASE_URL</code> (the Neon pooled + SSL string from T1), <code>ANTHROPIC_API_KEY</code>, and the GitHub repo token the scout uses as production env vars in Vercel — server-side only. Set only the <code>VITE_</code> public config (e.g. API base URL) for the SPA build. Confirm no secret carries a <code>VITE_</code> prefix (§5.1, §17.3).</dd></div>
+          <div><dt>Files</dt><dd>Vercel project env (server scope); <code>frontend/.env.production</code> or Vercel build env for <code>VITE_</code> public values only.</dd></div>
+          <div><dt>Depends on</dt><dd>T1, T2</dd></div>
+          <div><dt>Verify</dt><dd>The deployed API reads its secrets at boot and config validation passes (§5.6); grepping the built bundle finds no secret value (§17.3).</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T5: Run all existing migrations against Neon</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Point the Knex migration runner at the Neon pooled <code>DATABASE_URL</code> and run <code>knex migrate:latest</code> so the base tables (spec 1), the ticket-draft migration (spec 3), <code>scout_cache</code> (spec 5), and the triage migration (spec 7) all apply to Neon before any traffic. Run the identical migrations already proven against Docker — no manual DDL (§10.3).</dd></div>
+          <div><dt>Files</dt><dd><code>knexfile.ts</code> production target; the existing <code>src/database/migrations/*</code> (run, not modified).</dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd><code>knex migrate:latest</code> reports every migration applied; the Neon schema contains all tables and indexes from specs 1/3/5/7.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T6: Live end-to-end smoke test</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Against the live Vercel URL: hit <code>GET /health</code> and confirm it succeeds only when Neon responds; create an interview session; run an interview through the engine; generate a ticket. This exercises the SPA, the API, the Agent SDK runtime, and Neon together.</dd></div>
+          <div><dt>Files</dt><dd>None — exercised against the live deployment; results recorded in the §20.5 acceptance artifact.</dd></div>
+          <div><dt>Depends on</dt><dd>T3, T4, T5</dd></div>
+          <div><dt>Verify</dt><dd>Health passes; a session persists in Neon; the interview returns questions; a ticket is generated and stored.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T7: Document the runtime decision and the rollback path</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Record which Agent SDK runtime option (A/B/C) was chosen and why, against the measured durations from T3/T6. Document the rollback path: how to revert to the previous Vercel deployment and the fact that Neon prod and Docker dev share identical migrations so the schema can be reproduced.</dd></div>
+          <div><dt>Files</dt><dd><code>plans/06242026-pm-tool-deploy/spec.html</code> (this spec's runtime/rollback notes) or the project deployment notes.</dd></div>
+          <div><dt>Depends on</dt><dd>T3, T6</dd></div>
+          <div><dt>Verify</dt><dd>The chosen option and rollback steps are written down and a reviewer can follow the rollback without further context.</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <article class="task-card">
+        <h3>Rev 1 - 2026-06-24</h3>
+        <p><strong>Change:</strong> T3 build &amp; runtime config implemented as code/config — the Vercel deployment layer. Runtime fork settled as <strong>everything on Vercel</strong>: SPA static + Express API as one serverless function + scout on Vercel Cron (Option A for interview, Option C for scout).</p>
+        <p><strong>Reason:</strong> Execution deviation: T3 was specced as "added at execution," but the serverless adapter, pool sizing, migration-path resolution, and the runbook are committable code/config that must be built and build-tested before the browser-driven steps (T1/T2/T4/T5/T6) can succeed. Built and verified at build level; no external account touched, nothing deployed.</p>
+        <p><strong>What was built:</strong></p>
+        <ul>
+          <li><strong>Serverless adapter</strong> — new <code>api/index.ts</code>: a thin Vercel Node entry that mounts the existing <code>createApp()</code> (src/app.ts already exports the app without <code>listen()</code>; <code>src/index.ts</code> keeps the local listen) under <code>/api</code>, so the SPA and API share one origin. Built once at module scope and reused across warm invocations (one Knex pool per instance, §10.6). No <code>listen()</code>; verified the import binds no port. Added <code>api/**/*.ts</code> to <code>tsconfig.json</code> so it type-checks and compiles.</li>
+          <li><strong>vercel.json</strong> — rewritten: Vite static build (<code>frontend/dist</code>) for the SPA; <code>/api/(.*)</code> rewritten to the <code>api/index.ts</code> function (which strips the <code>/api</code> prefix to reach the root-mounted routes); SPA fallback rewrite for client routing; the scout Cron now hits <code>/api/internal/scout/process</code> (the public path through the function); <code>maxDuration</code> 60s on the API+processor function.</li>
+          <li><strong>Neon pooled + SSL, serverless pool (§10.6)</strong> — <code>connection.ts</code> now selects pool bounds by a new env flag <code>DATABASE_POOL_MODE</code> (<code>serverless</code> → min 0 / max 1 / idle-reap; <code>persistent</code> → the warm min 2 / max 10 default for dev and Node hosts). SSL already env-driven (<code>DATABASE_SSL</code> + reject-unauthorized). Added the constants to <code>config/index.ts</code> and documented the flag in <code>.env.example</code>. No hardcoding — entirely env-driven.</li>
+          <li><strong>Migrations on Neon (§10.3)</strong> — <code>connection.ts</code> resolves the migrations dir relative to <code>__dirname</code> and picks the extension from the runtime (<code>.js</code> compiled / <code>.ts</code> dev), so the runner finds compiled migrations under Vercel. New <code>npm run migrate:deploy</code> (<code>build</code> then <code>knex migrate:latest --knexfile dist/knexfile.js</code>) runs the compiled migrations against a provided <code>DATABASE_URL</code>. Fixed <code>start</code> to the real compiled path <code>dist/src/index.js</code>. Verified against a fresh local DB: <em>Batch 1 run: 5 migrations</em>, all tables + indexes present, names recorded with <code>.js</code>.</li>
+          <li><strong>Frontend base URL (§17.3)</strong> — no code change needed: <code>frontend/src/api/index.ts</code> already defaults to the relative <code>/api</code> base when <code>VITE_API_BASE_URL</code> is unset; the dev Vite proxy strips <code>/api</code> locally. No secret in the bundle (grep of <code>frontend/dist</code> confirms no key/secret value). Do NOT set <code>VITE_API_BASE_URL</code> on Vercel.</li>
+          <li><strong>DEPLOY.md</strong> — new repo-root runbook: exact Vercel env vars (<code>DATABASE_URL</code> Neon pooled+SSL, <code>DATABASE_SSL=true</code>, <code>DATABASE_POOL_MODE=serverless</code>, <code>NODE_ENV</code>, <code>CORS_ORIGINS</code>, <code>ANTHROPIC_API_KEY</code>, <code>SCOUT_WORKER_SECRET</code>, optional <code>GITHUB_TOKEN</code>), deploy steps (import → env → deploy → <code>migrate:deploy</code> → cron drains scout), the scout/cron wiring, and the rollback path.</li>
+        </ul>
+        <p><strong>Build/verify (build level — real Vercel deploy is the later browser step):</strong> backend <code>npm run build</code> ✅ and frontend <code>npm run build</code> ✅; <code>tsc --noEmit</code> both trees ✅ (backend now includes <code>api/</code>); <code>npm run lint</code> ✅ (src + api + frontend); <code>check-conventions --strict</code> ✅ 0 backend hard violations (13 pre-existing advisories — migration <code>.raw()</code> DDL + one model heuristic); 155 backend + 2 frontend tests ✅. Serverless handler imported with no port bound; <code>GET /api/health</code> via supertest → 200 <code>database:up</code>, guarded processor → 401 fail-closed; local <code>npm run dev</code> still boots on <code>:4000</code> against Docker PG.</p>
+        <p><strong>Updated Done criteria:</strong> the build/runtime-config half of "the Neon connection is pooled + SSL through the central pool" and "the Agent SDK runtime decision is documented" are satisfied in code/config + DEPLOY.md. The live-URL, auto-deploy, migrations-applied-to-Neon, secrets-in-Vercel, and smoke-test items remain pending the browser-driven execution (T1/T2/T4/T5/T6).</p>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled> The app is live on a Vercel URL backed by Neon Postgres.</li>
+        <li><input type="checkbox" disabled> A push to <code>main</code> auto-deploys via the Vercel + GitHub integration.</li>
+        <li><input type="checkbox" disabled> All existing migrations (specs 1/3/5/7) are applied to Neon before traffic (§10.3).</li>
+        <li><input type="checkbox" disabled> Env secrets are set in Vercel and absent from the shipped bundle (§5.1, §17.3).</li>
+        <li><input type="checkbox" disabled> The Neon connection is pooled + SSL through the central Knex pool (§10.6).</li>
+        <li><input type="checkbox" disabled> Live smoke test passes: health + create session + interview + ticket.</li>
+        <li><input type="checkbox" disabled> The Agent SDK runtime decision (A/B/C) is documented.</li>
+        <li><input type="checkbox" disabled> The rollback path is documented.</li>
+        <li><input type="checkbox" disabled> The §20.5 acceptance artifact (<code>test.html</code> + <code>test-results.json</code>) is produced on execution.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

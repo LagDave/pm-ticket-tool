@@ -1,0 +1,205 @@
+{
+  "plan": "plans/06242026-pm-tool-foundation",
+  "generatedAt": "2026-06-24",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T2-A",
+      "title": "Docker Postgres is healthy on host port 8765",
+      "surface": "cli",
+      "precondition": "Docker daemon running; docker-compose.yml present.",
+      "steps": [
+        "1. docker compose up -d",
+        "2. docker inspect --format='{{.State.Health.Status}}' pm_tool_postgres",
+        "3. nc -z localhost 8765"
+      ],
+      "expected": "Container health is 'healthy' and TCP port 8765 accepts connections.",
+      "status": "pass",
+      "evidence": "Health 'healthy' on attempt 1; 'Connection to localhost port 8765 succeeded'.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3-A",
+      "title": "Migrations create all four tables with indexes",
+      "surface": "cli",
+      "precondition": "DB healthy; DATABASE_URL points at :8765.",
+      "steps": [
+        "1. npm run migrate",
+        "2. docker exec pm_tool_postgres psql -U pmtool -d pm_tool -c \"\\dt\"",
+        "3. Query pg_indexes for the four tables"
+      ],
+      "expected": "interview_sessions, interview_turns, decision_record, tickets exist; indexes on owner_user_id+status and each session_id; unique(session_id,turn_index).",
+      "status": "pass",
+      "evidence": "6 tables (4 app + 2 knex_*); 9 indexes incl. interview_sessions_owner_user_id_status_index and *_session_id_index on all children.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3-B",
+      "title": "knex migrate:rollback reverses cleanly, then re-applies",
+      "surface": "cli",
+      "precondition": "Migrations applied.",
+      "steps": [
+        "1. npm run migrate:rollback",
+        "2. Confirm only knex_migrations/_lock remain",
+        "3. npm run migrate again",
+        "4. Confirm 4 app tables present"
+      ],
+      "expected": "Rollback drops all four app tables; re-apply restores them.",
+      "status": "pass",
+      "evidence": "After rollback only knex_migrations + knex_migrations_lock remain; re-apply restored 4 app tables.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T6-A",
+      "title": "GET /health returns the success envelope only when the DB responds",
+      "surface": "api",
+      "precondition": "API running on :4000; DB up.",
+      "steps": [
+        "1. curl -s -w '%{http_code}' http://localhost:4000/health"
+      ],
+      "expected": "200 with { success:true, data:{ status:'ok', database:'up' }, error:null }.",
+      "status": "pass",
+      "evidence": "200; body {\"success\":true,\"data\":{\"status\":\"ok\",\"database\":\"up\",\"timestamp\":\"...\"},\"error\":null}. Down-path covered structurally (HealthModel.ping throws -> 503) + HealthController unit test.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4-A",
+      "title": "POST /sessions creates a row and returns 201 + envelope",
+      "surface": "api",
+      "precondition": "API running; owner via x-dev-user-id header (server-side).",
+      "steps": [
+        "1. curl -X POST /sessions -H 'x-dev-user-id: 5001' -d '{\"originalRequest\":\"...\"}'",
+        "2. Inspect status + body",
+        "3. Confirm the row in interview_sessions"
+      ],
+      "expected": "201; { success:true, data:{ id, owner_user_id:5001, status:'draft', original_request } }; row present in DB.",
+      "status": "pass",
+      "evidence": "201; data.id=33, owner_user_id=5001, status=draft; psql confirmed the row.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4-B",
+      "title": "POST then GET /sessions/:id round-trips the persisted row",
+      "surface": "api",
+      "precondition": "A session created by owner 5001.",
+      "steps": [
+        "1. GET /sessions/{id} -H 'x-dev-user-id: 5001'"
+      ],
+      "expected": "200; data.original_request equals what was posted.",
+      "status": "pass",
+      "evidence": "200; body contained 'Integration: add a CSV export button.'",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4-C",
+      "title": "Owner scope: a different owner cannot read the session (§11.7)",
+      "surface": "api",
+      "precondition": "Session #33 owned by 5001.",
+      "steps": [
+        "1. GET /sessions/33 -H 'x-dev-user-id: 5002'"
+      ],
+      "expected": "404 with error.code SESSION_NOT_FOUND — no leak of another owner's row.",
+      "status": "pass",
+      "evidence": "404; error.code SESSION_NOT_FOUND. Also proven by InterviewSessionModel.test.ts isolation test.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4-D",
+      "title": "Validation at the boundary: empty request -> 400, bad id -> 400",
+      "surface": "api",
+      "precondition": "API running.",
+      "steps": [
+        "1. POST /sessions with { originalRequest: '' }",
+        "2. GET /sessions/not-a-number"
+      ],
+      "expected": "Both return 400 with error.code VALIDATION_ERROR.",
+      "status": "pass",
+      "evidence": "Empty body -> 400 (curl + supertest, code VALIDATION_ERROR); non-numeric id -> 400 (supertest).",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "GATE-TSC",
+      "title": "npx tsc --noEmit is clean on both src/ and frontend/",
+      "surface": "cli",
+      "precondition": "Dependencies installed.",
+      "steps": [
+        "1. (root) npx tsc --noEmit",
+        "2. (frontend) npx tsc --noEmit -p tsconfig.app.json && -p tsconfig.node.json"
+      ],
+      "expected": "Zero TypeScript errors on both trees.",
+      "status": "pass",
+      "evidence": "Backend: 'BACKEND TSC CLEAN'. Frontend: app + node projects both clean.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "GATE-CHECK",
+      "title": "npm run check:conventions --strict passes (0 backend violations)",
+      "surface": "cli",
+      "precondition": "scripts/check-conventions.sh executable.",
+      "steps": [
+        "1. npm run check:conventions -- --strict"
+      ],
+      "expected": "Exit 0; 0 backend hard violations, 0 advisory across both trees.",
+      "status": "pass",
+      "evidence": "Exit 0; 'Backend hard violations: 0', 'Advisory findings: 0'. Checker verified to still catch a real db()/axios violation via probe.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "GATE-TESTS",
+      "title": "Automated tests are green (Layer 1, §20.1-§20.2)",
+      "surface": "cli",
+      "precondition": "DB up for backend integration tests.",
+      "steps": [
+        "1. (root) npm run test",
+        "2. (frontend) npm run test"
+      ],
+      "expected": "Backend 13/13 pass (contract, error paths, owner-scope, JSONB round-trip); frontend 2/2 pass (envelope contract).",
+      "status": "pass",
+      "evidence": "Backend: Test Files 4 passed, Tests 13 passed. Frontend: Test Files 1 passed, Tests 2 passed.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "GATE-LINT-BUILD",
+      "title": "Lint clean on both trees; frontend production build succeeds",
+      "surface": "cli",
+      "precondition": "Dependencies installed.",
+      "steps": [
+        "1. (root) npm run lint",
+        "2. (frontend) npm run lint",
+        "3. (frontend) npm run build"
+      ],
+      "expected": "ESLint clean both trees; vite build produces dist/.",
+      "status": "pass",
+      "evidence": "Both lints clean. Build: 137 modules transformed, dist/assets emitted (~97KB gzip JS).",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T5-A",
+      "title": "Wizard step 1 posts to /sessions and advances (manual UI)",
+      "surface": "ui",
+      "precondition": "Backend on :4000 and `cd frontend && npm run dev` on :5173.",
+      "steps": [
+        "1. Open http://localhost:5173",
+        "2. Type a request in the step-1 textarea",
+        "3. Click 'Start interview'"
+      ],
+      "expected": "POST /sessions fires; the wizard advances to step 2 and shows 'Session #N created and saved' echoing the request.",
+      "status": "pass",
+      "evidence": "Driven in a real browser via the preview tool: filled the textarea, clicked 'Start interview'. Network shows POST /api/sessions -> 201 (envelope data.id=43, owner_user_id=1 from server context). UI advanced to step 2 'Interview', rendered 'Session #43 created and saved' and echoed the request text. Screenshots captured both steps.",
+      "notes": "API + Vite dev server launched via .claude/launch.json; proxy /api -> :4000.",
+      "waiver": ""
+    }
+  ]
+}

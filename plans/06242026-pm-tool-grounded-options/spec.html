@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grounded Options Spec</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #ffffff;
+      --ink: #080808;
+      --muted: #5f5f5f;
+      --line: #d8d8d8;
+      --soft: #f5f5f5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    .spec-shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0; }
+    .spec-hero, .spec-card, .task-card { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+    .spec-hero { border-color: var(--ink); padding: 32px; margin-bottom: 20px; }
+    .hero-topline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .spec-card { padding: 28px; margin-top: 16px; }
+    .task-card { padding: 20px; background: var(--soft); margin-top: 14px; }
+    .eyebrow, dt { color: var(--muted); font-size: 0.78rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
+    .eyebrow { margin: 0; }
+    .status-pill { display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 0.78rem; font-weight: 800; letter-spacing: 0; text-transform: uppercase; }
+    .status-card { border-color: var(--ink); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 840px; margin-bottom: 24px; font-size: clamp(2.25rem, 6vw, 5rem); line-height: 0.95; letter-spacing: 0; }
+    h2 { font-size: 1.35rem; letter-spacing: 0; }
+    h3 { font-size: 1rem; letter-spacing: 0; }
+    code { padding: 0.1rem 0.3rem; border: 1px solid var(--line); border-radius: 4px; background: var(--soft); font-size: 0.92em; }
+    .meta-grid, .split-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .meta-grid { margin: 0; }
+    .meta-grid div, .split-grid > div { border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    dd { margin: 4px 0 0; font-weight: 700; }
+    .task-card dl { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 0; }
+    .task-card dd { font-weight: 400; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
+    .revision-entry { border: 1px solid var(--line); border-radius: 8px; padding: 20px; }
+    .revision-entry h3 { margin-bottom: 10px; }
+    .revision-entry p { margin: 0 0 10px; }
+    .revision-entry p:last-child { margin-bottom: 0; }
+    ul { margin: 0 0 0 0; padding-left: 18px; }
+    li { margin: 4px 0; }
+    @media (max-width: 640px) {
+      .spec-shell { width: min(100% - 20px, 1120px); padding: 24px 0; }
+      .spec-hero, .spec-card { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">PM Tool · Plan Spec · 6 of 8</p>
+        <span class="status-pill status-completed">Completed</span>
+      </div>
+      <h1>Grounded options — feed scout findings into question generation</h1>
+      <dl class="meta-grid">
+        <div class="status-card"><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/06242026-pm-tool-grounded-options</dd></div>
+        <div><dt>Size</dt><dd>Medium</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>This makes the interview's options real. In the interview engine spec (2 of 8) the options on each generated question are stubbed — generic brainstorm, not anchored to anything the codebase can actually do. Here we feed the cached scout findings (5 of 8) into question generation so each option is grounded in what is buildable, each carries an effort tier, and one can be flagged as recommended. That recommended pick is the "here's the easier way" payoff the tool exists to deliver.</p>
+      <p>The same findings also let the materiality gate skip questions the code already answers. If the scout already found, say, that auth is handled by an existing provider, the PM should not be asked to choose one. Asking the codebase first instead of the human is the discipline that keeps the interview short and honest.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>Extend the interview engine spec's batch-generation service to read the session's <code>scout_cache</code> findings and, for each question it emits, produce options that derive from those findings — each tagged with an effort tier and an optional recommended flag — and to skip questions whose answer the findings already determine. The option shape gains <code>effort</code> and <code>recommended</code> fields <strong>inside the existing</strong> <code>interview_turns.questions</code> jsonb; there is no schema change and the scout is not re-run (read the cache only). When a session has no findings (no repo, or the scout was skipped), generation falls back to ungrounded options cleanly rather than failing.</p>
+      <p><strong>Done when:</strong> for a session with cached findings, generated batches carry grounded options with effort tags and a recommended pick, questions the findings already answer are skipped, no-findings sessions still generate ungrounded options, no migration is added, and <code>npm run check:conventions --strict</code> plus <code>npx tsc --noEmit</code> pass on both trees with no <code>any</code> (§17.2).</p>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <h3>Relevant Files</h3>
+      <ul>
+        <li><code>src/controllers/interview/feature-services/QuestionBatchService.ts</code> — the batch-generation service from the interview engine spec (2 of 8); extended here to consume findings and emit <code>effort</code> + <code>recommended</code> per option. Mirrors <code>gbp-automation/</code> service shape (§6.1).</li>
+        <li><code>src/controllers/interview/feature-services/MaterialityGateService.ts</code> — the gate from spec 2; extended here to skip questions the findings already answer (codebase-first). Business logic only, never touches the DB (§7.1).</li>
+        <li><code>src/models/ScoutCacheModel.ts</code> — the scout cache reader from the code scout spec (5 of 8); the only DB access path for findings (§7.4), owner-scoped (§11.7). Read-only here — generation never writes it.</li>
+        <li><code>src/controllers/interview/feature-utils/questionSchema.ts</code> — the structured-output schema for a question batch; gains optional <code>effort</code> (a tier enum) and <code>recommended</code> (boolean) on the option type, parsed at the boundary so the model's output is validated, not trusted (§11.2). No <code>any</code> (§17.2).</li>
+        <li><code>frontend/src/components/interview/QuestionBatch.tsx</code> — the question-batch step component from spec 2; renders the effort tag and recommended marker on each option (§12.3, §13.2). Renders only — no fetch, no logic.</li>
+        <li><code>frontend/src/types/interview.ts</code> — shared option type gains <code>effort</code> + <code>recommended</code> so the component is typed end to end (§17.2).</li>
+      </ul>
+      <h3>Patterns To Follow</h3>
+      <ul>
+        <li>Backend layering Routes → Controllers → Services → Models (§7.1); findings are read through <code>ScoutCacheModel</code> only, never an inline query (§7.4 🔎).</li>
+        <li>Reuse the persisted <code>interview_turns.questions</code> jsonb established in foundation — the new option fields live inside it; no migration.</li>
+        <li>Frontend triad Component → hook → <code>api/</code> client (§14.1); the question-batch hooks are unchanged (§14.3, §15.1) — this spec only enriches the rendered option shape.</li>
+        <li>Errors surface through the one contract end to end (§16.1); no <code>any</code> on either tree (§17.2 🔎); secrets stay server-side — the Agent SDK call runs in the service, not the bundle (§17.3).</li>
+      </ul>
+      <p><strong>Reference analog:</strong> backend mirrors foundation's <code>src/controllers/interview/</code> generation service (built to <code>gbp-automation/</code>, §6.1, Constitution Part VI) consuming the code scout spec's <code>ScoutCacheModel</code> (§7.4); frontend mirrors foundation's <code>frontend/src/api/</code> + React Query triad (§12.1). <strong>Note:</strong> the generation service and the cache come from specs 2 and 5 — this spec extends them, it does not create them.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Conform to the Constitution; cite <code>§N.M</code> on any deviation.</li>
+            <li>Options derive from the cached findings, not generic brainstorm — each option points back to what a finding supports.</li>
+            <li>Effort is a tier (a small fixed enum, e.g. low / medium / high), not free text or an hour estimate.</li>
+            <li>Exactly one option per question may carry the recommended flag; it is optional, not forced.</li>
+            <li>Skip a question when the findings already determine its answer (the materiality gate, codebase-first).</li>
+            <li>Read findings through <code>ScoutCacheModel</code> only (§7.4); validate the model's structured output at the boundary (§11.2); no <code>any</code> (§17.2).</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>Change the persistence schema — reuse <code>interview_turns.questions</code> jsonb; no migration in this plan.</li>
+            <li>Re-run the scout or call any repo provider — read the cache only.</li>
+            <li>Present grounded claims as certain — options carry a "verify with engineering" tone, never a guarantee.</li>
+            <li>Reimplement the interview loop or batch persistence — those are the interview engine spec (2 of 8).</li>
+            <li>Add a second state library on the frontend (§15.4) or a raw fetch outside the api client (§14.2).</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul><li>The code scout itself and any repo provider (5 of 8); the interview loop mechanics, turn persistence, and answer capture (2 of 8); triage routing and push-to-tracker (7 of 8).</li></ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level:</strong> 2 (enriches an existing generation path; reuses the jsonb; no schema or consumer break).</p>
+      <h3>Risks Identified</h3>
+      <ul>
+        <li><strong>Wrong grounding misleads the PM into a false sense of certainty.</strong> <strong>Mitigation:</strong> keep options to what the findings actually support, and frame every grounded claim with a "verify with engineering" tone in both the generated copy and the rendered option — the tool advises, it does not certify.</li>
+        <li><strong>Option quality drifts over time (grounded output regresses toward generic brainstorm).</strong> <strong>Mitigation:</strong> a structured option schema (effort enum + recommended boolean, validated at the boundary) plus tests that compare grounded output against ungrounded output for the same prompt and assert the grounded set references findings (§20.2).</li>
+        <li><strong>Over-eager skipping hides a question the PM still needs to answer.</strong> <strong>Mitigation:</strong> the gate skips only when a finding fully determines the answer; record the skip reason so it is auditable, and cover the threshold with a test (§20.2).</li>
+      </ul>
+      <p><strong>Blast radius:</strong> changes how the interview engine spec (2 of 8) generates options and how it reads the code scout spec's <code>scout_cache</code> (5 of 8) — it depends on specs 2 and 5 and must land after both. The reused <code>interview_turns.questions</code> jsonb is unchanged in shape at the DB level, so foundation's migrations and models are untouched.</p>
+      <h3>Pushback</h3>
+      <ul>
+        <li><strong>No-findings fallback must be explicit, not incidental.</strong> If a session has no repo connected or the scout was skipped, <code>ScoutCacheModel</code> returns nothing and generation must produce ungrounded options on a clean, named path rather than erroring or emitting empty option lists. Recommended: branch on "findings present" once in <code>QuestionBatchService</code> and route to a grounded or ungrounded generation path, both returning the same option shape (effort/recommended simply absent when ungrounded). Flag if you would rather block generation until a scout has run — that couples specs 2 and 5 harder than the rest of the plan assumes.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card">
+        <h3>T1: Ground the generation prompt and option schema in findings</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Extend <code>QuestionBatchService</code> to read the session's findings via <code>ScoutCacheModel</code> (§7.4) and pass them into the Agent SDK generation call so each emitted option derives from a finding and carries an <code>effort</code> tier plus an optional <code>recommended</code> flag. Extend <code>questionSchema.ts</code> with the optional <code>effort</code> enum + <code>recommended</code> boolean on the option type and validate the structured output at the boundary (§11.2). Branch once on "findings present" so the no-findings path returns ungrounded options in the same shape (see Pushback). Keep the "verify with engineering" framing in the generated copy.</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/interview/feature-services/QuestionBatchService.ts</code>, <code>src/controllers/interview/feature-utils/questionSchema.ts</code>, <code>src/models/ScoutCacheModel.ts</code> (read path)</dd></div>
+          <div><dt>Depends on</dt><dd>none (extends specs 2 and 5)</dd></div>
+          <div><dt>Verify</dt><dd><code>npx tsc --noEmit</code> clean; for a session with cached findings the generated batch carries grounded options with effort tags and at most one recommended pick; a no-findings session returns ungrounded options without error.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T2: Skip questions the findings already answer</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Extend <code>MaterialityGateService</code> so it consults the findings (passed in by <code>QuestionBatchService</code>, never queried inline — §7.1) and drops a candidate question when a finding fully determines its answer, recording the skip reason for audit. Skip only on a full determination, not a partial hint (see Risk). Business logic stays in the service; no DB access here.</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/interview/feature-services/MaterialityGateService.ts</code>, <code>src/controllers/interview/feature-services/QuestionBatchService.ts</code> (wires findings into the gate)</dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Given a finding that determines a question's answer, that question is absent from the batch with a recorded reason; given only a partial hint, the question is still asked.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T3: Render effort tags and the recommended marker</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Extend the shared option type in <code>types/interview.ts</code> with <code>effort</code> + <code>recommended</code> (§17.2), then update <code>QuestionBatch.tsx</code> to render the effort tier as a tag and mark the recommended option, including the "verify with engineering" tone in the surrounding copy. Component renders only — the existing question-batch hooks and api client are unchanged (§14.1, §14.3, §15.1); no raw fetch (§14.2).</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/interview/QuestionBatch.tsx</code>, <code>frontend/src/types/interview.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>A batch with grounded options shows effort tags and a single recommended marker; an ungrounded batch renders cleanly with neither; no <code>any</code> (§17.2 🔎); no fetch outside the api client (§14.2 🔎).</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T4: Tests — grounded vs ungrounded output and the no-findings fallback</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add tests mirroring the units (§20.1) that: (a) for a session with seeded findings, assert generated options reference findings and carry effort + at most one recommended pick; (b) for a session with no findings, assert generation falls back to ungrounded options without error and emits no effort/recommended fields; (c) assert the gate skips a fully-determined question (with a reason) but keeps a partially-hinted one. Cover the structured-output contract and the failure/fallback paths, not only the happy path (§20.2). Test data is synthetic seeds (§20.4).</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/interview/feature-services/__tests__/QuestionBatchService.test.ts</code>, <code>src/controllers/interview/feature-services/__tests__/MaterialityGateService.test.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1, T2</dd></div>
+          <div><dt>Verify</dt><dd><code>vitest</code> passes; the grounded-vs-ungrounded and no-findings-fallback cases are present and green.</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" checked disabled> For a session with cached findings, generated batches carry grounded options, an effort tag per option, and at most one recommended pick.</li>
+        <li><input type="checkbox" checked disabled> Questions whose answer a finding fully determines are skipped, with a recorded reason; partially-hinted questions are still asked.</li>
+        <li><input type="checkbox" checked disabled> A no-findings session (no repo / scout skipped) falls back to ungrounded options on a clean path — no error, no empty option lists.</li>
+        <li><input type="checkbox" checked disabled> No schema change: the new option fields live inside the existing <code>interview_turns.questions</code> jsonb; no migration in this plan.</li>
+        <li><input type="checkbox" checked disabled> Findings are read through <code>ScoutCacheModel</code> only (§7.4); the scout is not re-run.</li>
+        <li><input type="checkbox" checked disabled> <code>npx tsc --noEmit</code> — zero errors on both <code>src/</code> and <code>frontend/</code>; no <code>any</code> (§17.2).</li>
+        <li><input type="checkbox" checked disabled> <code>npm run check:conventions --strict</code> passes (backend); grounded-vs-ungrounded and no-findings-fallback tests are green (§20.1, §20.2).</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <article class="revision-entry">
+        <h3>Rev 1 - 2026-06-24</h3>
+        <p><strong>Change:</strong> Executed the spec. Four deviations from the spec text, all recorded below; the contract (grounded options with effort + a recommended pick, codebase-first skip with audit, clean no-findings fallback, no migration) is met as written.</p>
+        <p><strong>Reason — Execution deviation (file paths, §6.1):</strong> The spec named <code>QuestionBatchService.ts</code>, <code>feature-utils/questionSchema.ts</code>, and <code>QuestionBatch.tsx</code>. None exist — they were placeholder names from before the interview engine (spec 2) landed. The real generation path is <code>src/agents/interviewAgent.ts</code> (the only place the SDK is constructed, §6.2) orchestrated by <code>InterviewEngineService.ts</code>, with the structured-output schema in <code>src/validation/interviewQuestions.ts</code>. Per §6.1 (mirror the reference implementation) the work extended those real files. The option grounding fields were already stubbed there for exactly this spec ("filled by a later grounding step").</p>
+        <p><strong>Reason — Execution deviation (skip location, §2.1):</strong> T2 asked <code>MaterialityGateService</code> to filter individual questions. That service is round-level pure logic ("generate another batch or terminate"); per-question filtering is a different responsibility (§2.1). There is also no structured link between a question's <code>decisionKey</code> and a finding's <code>area</code>, so code-side matching would be a fuzzy-string heuristic — exactly the over-eager-skip risk the spec flags. Instead the model performs the skip in the grounded prompt (it has both the findings and the questions), gated on a finding's <code>feasibility === "clear"</code>, and returns a structured <code>skipped[]</code> array. <code>InterviewEngineService</code> wires the findings in and logs the skips; the array persists inside the <code>interview_turns.questions</code> jsonb (auditable, replays on resume). <code>MaterialityGateService</code> is untouched.</p>
+        <p><strong>Reason — Execution deviation (effort field, §4.3):</strong> The option shape gained a new <code>effort</code> enum (<code>XS|S|M|L|XL</code>) and a <code>recommended</code> boolean; the pre-existing <code>groundingRef</code> stub was kept and filled. The stub <code>effortTag: string|null</code> was dropped in favour of the typed <code>effort</code> tier. The enum reuses <code>EFFORT_HINTS</code> from <code>validation/codeScout.ts</code> (its declared source of truth) rather than re-declaring the literal (§4.3), so a grounded option speaks the same tier vocabulary as the finding's <code>roughSize</code>. The "at most one recommended per question" rule is enforced by a refine on the boundary schema, mirroring the existing question-cap refine (§11.2).</p>
+        <p><strong>Reason — Execution deviation (test location, §20.1):</strong> T4 listed the skip test under <code>MaterialityGateService.test.ts</code>. Because the skip moved out of that service, the grounded / ungrounded / skip / over-recommended tests live in <code>InterviewEngineService.test.ts</code> (mirroring the unit they cover, §20.1). <code>MaterialityGateService.test.ts</code> is unchanged.</p>
+        <p><strong>Verification:</strong> backend + frontend <code>tsc --noEmit</code> clean; both lints clean; <code>check:conventions --strict</code> passes (0 backend hard violations); <code>npm run test</code> 138/138 green (engine suite 11 → 16). One LIVE run against <code>claude-opus-4-8</code>: grounded batch returned 13 options all carrying an effort tier, 10 with a finding <code>groundingRef</code>, exactly one recommended per question, "verify with engineering" framing, and a skipped <code>login_mechanism</code> (Authentication finding was "clear") — while "likely" Notifications questions were still asked; the no-findings batch returned ungrounded options with all grounding fields null and <code>skipped: null</code>. Frontend render verified in a real browser (effort tags + one RECOMMENDED marker on grounded options, none on ungrounded). Acceptance artifact (<code>test.html</code> + <code>test-results.json</code>) rolls up to Passed.</p>
+        <p><strong>Updated Done criteria:</strong> all seven Done items checked and verified.</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

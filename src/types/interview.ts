@@ -1,0 +1,290 @@
+/**
+ * Shared backend domain types for the interview/ticket schema. Rows mirror the
+ * migration columns. JSON columns are typed as structured values, never `any`
+ * (§4.5).
+ */
+
+export type SessionStatus =
+  | "draft"
+  | "in_progress"
+  | "awaiting_input"
+  | "complete"
+  | "archived";
+
+/**
+ * The two-speed triage label (spec 7). `simple` routes straight to a draft
+ * ticket (spec 3); `scoped` enters the full interview loop (spec 2). The
+ * classifier defaults to `scoped` whenever unsure, so the failure mode is "too
+ * much interview", never a thin ticket from scoped work (spec Risk).
+ */
+export type TriageResult = "simple" | "scoped";
+
+/**
+ * Which path the wizard should take after triage (spec T2). `simple` → the
+ * ticket-draft path; `scoped` → the interview loop. Mirrors TriageResult but
+ * names the routing concern distinctly so the override can force a route that
+ * disagrees with the stored label.
+ */
+export type TriageRoute = "ticket" | "interview";
+
+/** A row of interview_sessions. */
+export interface IInterviewSession {
+  id: number;
+  owner_user_id: number;
+  organization_id: number | null;
+  status: SessionStatus;
+  original_request: string;
+  /** The two-speed triage label, or null until the classifier has run (spec 7). */
+  triage_result: TriageResult | null;
+  /** When the classification ran, or null until triaged (spec 7). */
+  triaged_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+/** A row of interview_turns. JSON columns kept open-shaped for the engine spec. */
+export interface IInterviewTurn {
+  id: number;
+  session_id: number;
+  turn_index: number;
+  questions: unknown;
+  answers: unknown | null;
+  created_at: Date;
+}
+
+export type DecisionSource = "answer" | "scout" | "default";
+
+/** A row of decision_record. */
+export interface IDecisionRecord {
+  id: number;
+  session_id: number;
+  key: string;
+  value: unknown;
+  source: DecisionSource;
+  created_at: Date;
+}
+
+export type TicketStatus = "draft" | "final";
+
+/**
+ * Effort is a complexity TIER, never a count of hours (spec Constraints): LLM
+ * hour estimates are unreliable, so the model only commits to a coarse tier and
+ * the UI shows a "verify with engineering" note next to it. Mirrors the
+ * tickets_effort_check constraint.
+ */
+export type EffortTier = "XS" | "S" | "M" | "L" | "XL";
+
+/**
+ * One acceptance-criterion block in Given/When/Then form. Stored as a JSONB
+ * array on tickets.acceptance_criteria; structured, never `any` (§4.5).
+ */
+export interface AcceptanceCriterion {
+  given: string;
+  when: string;
+  then: string;
+}
+
+/** A row of tickets. JSON column typed as the structured criterion array. */
+export interface ITicket {
+  id: number;
+  session_id: number;
+  user_story: string | null;
+  acceptance_criteria: AcceptanceCriterion[] | null;
+  effort: EffortTier | null;
+  status: TicketStatus;
+  version: number;
+  rendered_markdown: string | null;
+  context_summary: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+/** A row of ticket_comments — one PM comment on a ticket (spec Pushback: child table). */
+export interface ITicketComment {
+  id: number;
+  ticket_id: number;
+  author_user_id: number;
+  body: string;
+  created_at: Date;
+}
+
+/**
+ * The four fields the generator produces from a session's decision_record +
+ * original_request (spec T1). `contextSummary` is the short hand-off summary;
+ * `effort` is a tier (above). Validated at the boundary before persisting (§11.2).
+ */
+export interface GeneratedTicket {
+  user_story: string;
+  acceptance_criteria: AcceptanceCriterion[];
+  effort: EffortTier;
+  context_summary: string;
+}
+
+/** Server-derived caller context — owner scope is never trusted from the client (§5.5, §11.7). */
+export interface OwnerContext {
+  ownerUserId: number;
+  organizationId: number | null;
+}
+
+/**
+ * The standard paginated list envelope every list endpoint returns (§11.6).
+ * `items` carries the page of rows; the rest is the page metadata so the client
+ * can render page controls without a second call.
+ */
+export interface PaginatedResult<T> {
+  items: T[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+/* ---------------------------------------------------------------------------
+ * Interview engine (spec 2) + grounded options (spec 6). The generated question
+ * batch, its options, and the answer-submission shapes. JSON columns stay
+ * structured, never `any` (§4.5). Option grounding + effort tiers are filled by
+ * the grounding step (spec 6) when the session has cached scout findings, and
+ * left null on the no-findings fallback.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * One answer option for a question (spec 6 — grounded options). When the session
+ * has cached scout findings, `groundingRef` points the option back to the finding
+ * that supports it, `effort` carries a coarse complexity tier, and one option per
+ * question may carry `recommended` — the "here's the easier way" pick. On the
+ * no-findings fallback all three are null (ungrounded options, as before).
+ */
+export interface QuestionOption {
+  /** Stable id within the question, e.g. "opt_a". */
+  id: string;
+  /** Human-readable choice text. */
+  label: string;
+  /** A reference into the codebase (a scout finding) backing this option; null when ungrounded. */
+  groundingRef: string | null;
+  /** Coarse effort TIER for this option (never hours); null when ungrounded. */
+  effort: EffortTier | null;
+  /** True on the single recommended (easier) pick; null/false otherwise. At most one per question. */
+  recommended: boolean | null;
+}
+
+/**
+ * A single generated question. `decisionKey` is the stable key the answer is
+ * recorded under in decision_record. `dependsOn` lists earlier question ids it
+ * depends on, so the batch is dependency-ordered (spec What).
+ */
+export interface InterviewQuestion {
+  id: string;
+  /** Stable decision key, e.g. "auth_method" — the decision_record key. */
+  decisionKey: string;
+  text: string;
+  /** Choice options; the PM may also answer free-text via "other". */
+  options: QuestionOption[];
+  /** Whether a free-text "other" answer is allowed for this question. */
+  allowOther: boolean;
+  /** Earlier question ids this one depends on (dependency ordering). */
+  dependsOn: string[];
+}
+
+/**
+ * One question the grounding step dropped because a cached finding already
+ * determines its answer (spec 6 T2 — codebase-first skip). `reason` is recorded
+ * for audit and replays with the turn, so a skip is never silent (spec Risk).
+ */
+export interface SkippedQuestion {
+  /** The decision key of the question that was not asked. */
+  decisionKey: string;
+  /** Short, auditable reason: which finding determined the answer. */
+  reason: string;
+}
+
+/** A generated batch: up to MAX_QUESTIONS_PER_BATCH dependency-ordered questions. */
+export interface QuestionBatch {
+  questions: InterviewQuestion[];
+}
+
+/**
+ * The model's raw structured output for a batch generation. Whether more
+ * material decisions remain open drives the materiality gate (spec What).
+ * `skipped` lists questions a cached finding already answered (spec 6); null on
+ * the ungrounded path.
+ */
+export interface GeneratedBatch {
+  questions: InterviewQuestion[];
+  /** Model's signal that an open decision still materially changes the ticket. */
+  hasOpenMaterialDecisions: boolean;
+  /** Questions skipped because findings determined them, with reasons (spec 6); null when ungrounded. */
+  skipped: SkippedQuestion[] | null;
+}
+
+/** One submitted answer to a question in the current batch. */
+export interface SubmittedAnswer {
+  /** The question id being answered (matches a question in the open turn). */
+  questionId: string;
+  /** The chosen option id, or null when answering free-text via `otherText`. */
+  optionId: string | null;
+  /** Free-text answer when the PM picks "other"; null otherwise. */
+  otherText: string | null;
+}
+
+/** The body of a submit-answers request (validated at the boundary, §11.2). */
+export interface SubmitAnswersPayload {
+  answers: SubmittedAnswer[];
+  /** Global "stop and generate now" — ends the interview immediately (spec What). */
+  stopAndGenerate?: boolean;
+}
+
+/* ---------------------------------------------------------------------------
+ * Triage (spec 7). The model's classification of the original request, and the
+ * outcome the controller returns to the wizard. JSON stays structured, never
+ * `any` (§4.5). The classifier defaults to `scoped` when unsure (spec Risk).
+ * ------------------------------------------------------------------------- */
+
+/**
+ * The classifier's structured output (spec T1): the two-speed label plus a
+ * short reason for logging/debugging. Re-validated at the boundary before it is
+ * trusted; an unparsable result defaults to `scoped` (spec Risk).
+ */
+export interface TriageClassification {
+  result: TriageResult;
+  /** One short sentence: why the request was labelled this way (for logs). */
+  reason: string;
+}
+
+/**
+ * The triage endpoint's result (spec T2): the persisted label and the route the
+ * wizard should take. When the PM overrode the classification, `overridden` is
+ * true and `route` is the forced route — which may disagree with `result`.
+ */
+export interface TriageOutcome {
+  sessionId: number;
+  /** The classifier's label, persisted on the session (null only if it could not run). */
+  result: TriageResult;
+  /** The path to take: `simple` → ticket, `scoped` → interview, unless overridden. */
+  route: TriageRoute;
+  /** True when the PM forced the route via the override flag (spec What). */
+  overridden: boolean;
+}
+
+/**
+ * The full engine state for a session: the original request, every persisted
+ * turn, the decision record, the rolled-up status, and whether the interview
+ * is complete. Returned by GET .../interview and rebuilt on resume by replaying
+ * persisted rows — no batch is ever regenerated (spec What).
+ */
+export interface InterviewState {
+  sessionId: number;
+  originalRequest: string;
+  status: SessionStatus;
+  turns: IInterviewTurn[];
+  decisions: IDecisionRecord[];
+  /** Index of the next turn to generate (= turns.length). */
+  nextTurnIndex: number;
+  /** True once the session reached shared understanding or was stopped. */
+  isComplete: boolean;
+  /**
+   * The id of the latest ticket generated for this session, or null when none
+   * exists yet (dashboard "view ticket", spec 4 T6). Owner-scoped at the model;
+   * lets the dashboard route straight to the ticket view without a second lookup.
+   */
+  ticketId: number | null;
+}

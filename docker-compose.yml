@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: pm_tool_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pmtool
+      POSTGRES_PASSWORD: pmtool_dev
+      POSTGRES_DB: pm_tool
+    ports:
+      # Host 8765 -> container 5432 (avoids clashing with a local Postgres).
+      - "8765:5432"
+    volumes:
+      - pm_tool_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pmtool -d pm_tool"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pm_tool_pgdata:

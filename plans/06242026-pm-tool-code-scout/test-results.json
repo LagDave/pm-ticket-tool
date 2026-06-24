@@ -1,0 +1,149 @@
+{
+  "plan": "plans/06242026-pm-tool-code-scout",
+  "generatedAt": "2026-06-24",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Migrations apply and roll back cleanly (scout_cache + scout_jobs)",
+      "surface": "cli",
+      "precondition": "Docker Postgres up on :8765; prior migrations applied.",
+      "steps": [
+        "1. npm run migrate",
+        "2. Inspect \\d scout_cache — columns id, session_id (FK→interview_sessions ON DELETE CASCADE), provider, repo_ref, findings jsonb, created_at timestamptz; index on session_id; CHECK provider IN (github,azure).",
+        "3. Inspect \\d scout_jobs — columns id, session_id (FK→interview_sessions ON DELETE CASCADE), provider, repo_ref, status, attempts, last_error, created_at/updated_at timestamptz; indexes on (status) and (session_id); CHECK status IN (pending,running,done,failed) and provider IN (github,azure).",
+        "4. npm run migrate:rollback — scout_jobs + its constraints dropped (Batch 5).",
+        "5. npm run migrate — scout_jobs restored."
+      ],
+      "expected": "Both tables exist with their FKs (ON DELETE CASCADE), filter indexes (§10.4), and CHECK constraints; the scout_jobs migration rolls back and re-applies cleanly.",
+      "status": "pass",
+      "evidence": "Batch 5 run: 1 migration (scout_jobs). \\d scout_jobs showed all 9 columns + scout_jobs_status_index + scout_jobs_session_id_index + scout_jobs_status_check (pending/running/done/failed) + scout_jobs_provider_check (github/azure) + FK ON DELETE CASCADE. migrate:rollback: Batch 5 rolled back; to_regclass('public.scout_jobs') => null. migrate: Batch 5 run again; scout_jobs restored, 0 rows. scout_cache unchanged from spec 5.",
+      "notes": "Postgres-only by design; no mssql.sql (mirrors foundation). New migration: 20260624000005_scout_jobs_schema.ts.",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "ScoutJobModel: enqueue, race-safe claim, mark done, bounded-retry → dead-letter (§21)",
+      "surface": "cli",
+      "precondition": "Unit suite against the real test DB (vitest globalSetup runs migrations).",
+      "steps": [
+        "1. npx vitest run src/models/ScoutJobModel.test.ts",
+        "2. Assert enqueue creates a pending row with attempts 0; findLatestBySession returns the newest job.",
+        "3. Assert claimNextPending marks the job running and burns one attempt at claim time.",
+        "4. Assert two CONCURRENT claims of one pending job hand it to exactly one (FOR UPDATE SKIP LOCKED) — the other gets null; the job advances exactly once.",
+        "5. Assert recordFailure re-queues below SCOUT_JOB.MAX_ATTEMPTS, then dead-letters (status failed) at the cap."
+      ],
+      "expected": "The queue is durable and race-safe; a job is never double-claimed; bounded retries end in a dead-letter terminal state, never a silent drop (§21.1, §21.2).",
+      "status": "pass",
+      "evidence": "7 tests passed in ScoutJobModel.test.ts, including the concurrent-claim test (exactly one claim of the job, one null; attempts==1 after) and the re-queue-then-dead-letter test (pending below cap, failed at cap).",
+      "notes": "Race-safety uses SELECT … FOR UPDATE SKIP LOCKED inside a transaction (BaseModel.runTransaction).",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "ScoutJobProcessor: claim → run via CodeScoutService → cache + mark done; idempotent; failure path (§21.3/§21.1/§21.2)",
+      "surface": "cli",
+      "precondition": "Unit suite; CodeScoutAgent.run mocked (no live provider/model); real DB/models/cache.",
+      "steps": [
+        "1. npx vitest run src/services/scoutJobs/ScoutJobProcessor.test.ts",
+        "2. Assert processNext claims a pending job, runs the scan through CodeScoutService.runScout, writes scout_cache, and marks the job done.",
+        "3. Assert idempotency: a job whose session is ALREADY cached marks done WITHOUT re-running the agent (read-through short-circuit, §21.1).",
+        "4. Assert an empty queue is a clean no-op; drain processes every pending job.",
+        "5. Assert the failure path increments attempts and re-queues, then dead-letters at SCOUT_JOB.MAX_ATTEMPTS; processNext never throws to the caller (a bad job doesn't crash the loop); last_error stores the typed code, not a stack (§3.4)."
+      ],
+      "expected": "The processor orchestrates and reuses the service (§21.3 — no scan logic of its own); a repeat run is safe (§21.1); failures are bounded and dead-lettered with context (§21.2, §21.4).",
+      "status": "pass",
+      "evidence": "6 tests passed in ScoutJobProcessor.test.ts: claim→cache→done; idempotent no-rescan when cache present; empty-queue no-op; failure re-queue→dead-letter across MAX_ATTEMPTS with attempts==3 and status failed; processNext resolves (does not reject) on failure; drain clears 2 jobs.",
+      "notes": "The processor reconstructs the session owner via InterviewSessionModel.findByIdSystem (trusted-processor path) so runScout still owner-verifies (§11.7).",
+      "waiver": ""
+    },
+    {
+      "id": "T4",
+      "title": "Scan endpoint: POST ENQUEUES (202, no inline scan) + GET status returns findings once done; idempotent re-POST; error/owner paths",
+      "surface": "api",
+      "precondition": "App over supertest; CodeScoutAgent.run mocked; owner via x-dev-user-id header.",
+      "steps": [
+        "1. npx vitest run src/controllers/codeScout/CodeScoutController.test.ts",
+        "2. POST /sessions/:id/scout {provider,repoRef} → 202 envelope with jobId, status pending, alreadyComplete false, and the AGENT NOT CALLED (no inline scan).",
+        "3. GET /sessions/:id/scout → status pending + no findings before processing; run ScoutJobProcessor.drain; GET again → status done + findings (verifyWithEngineering true); agent called exactly once (by the worker).",
+        "4. Re-POST after completion → 202, alreadyComplete true, jobId null, agent STILL called once (idempotent short-circuit, §21.1).",
+        "5. Missing/unknown provider/repoRef → 400 VALIDATION_ERROR (no job enqueued); missing/other-owner session on POST and GET → 404 SESSION_NOT_FOUND."
+      ],
+      "expected": "{success,data,error} envelope on every path (§8.1); the request enqueues and returns 202 WITHOUT scanning (the scan runs only in the processor); validation at the boundary; owner isolation on both enqueue and status (§11.7).",
+      "status": "pass",
+      "evidence": "9 tests passed in CodeScoutController.test.ts, including the 202-no-inline-scan assertion (mockRun not called on POST), the pending→done status transition after drain, the idempotent re-POST (mockRun still once), and the 400/404 boundary + owner paths on both endpoints.",
+      "notes": "Replaces the spec-5 inline-scan controller tests; the read-through guarantee is now proven across enqueue → process → status.",
+      "waiver": ""
+    },
+    {
+      "id": "T5",
+      "title": "Guarded internal processor trigger for Vercel Cron (§5.4, §21)",
+      "surface": "api",
+      "precondition": "App over supertest; CodeScoutAgent.run mocked; SCOUT_WORKER_SECRET set by vitest config.",
+      "steps": [
+        "1. npx vitest run src/controllers/codeScout/InternalScoutController.test.ts",
+        "2. POST /internal/scout/process with NO secret header → 401 SCOUT_TRIGGER_AUTH_FAILED (fail-closed).",
+        "3. POST with the WRONG secret → 401.",
+        "4. POST with the CORRECT secret and a pending job → 200, data.processed==1, job marked done.",
+        "5. POST with the correct secret and an empty queue → 200, data.processed==0."
+      ],
+      "expected": "The trigger is machine-to-machine and guarded by a shared secret (§5.4); it refuses unauthenticated callers fail-closed; with the secret it drains the queue and reports the count, in the {success,data,error} envelope.",
+      "status": "pass",
+      "evidence": "4 tests passed in InternalScoutController.test.ts: no-secret 401, wrong-secret 401, correct-secret drains 1 job (done), correct-secret empty queue processed 0.",
+      "notes": "Endpoint POST /internal/scout/process; header x-scout-worker-secret. Local driver `npm run scout:work` exercises the same processor in-process without the HTTP path; verified it boots and polls.",
+      "waiver": ""
+    },
+    {
+      "id": "T6",
+      "title": "Spec 6 (grounded options): grounded path AND no-findings fallback both still work with backgrounding",
+      "surface": "cli",
+      "precondition": "Unit suite; interview agent mocked; scout_cache seeded directly for the grounded case.",
+      "steps": [
+        "1. npx vitest run src/controllers/interview/feature-services/InterviewEngineService.test.ts",
+        "2. Assert the no-findings fallback: with no scout_cache row, generation forwards findings=undefined and persists ungrounded options (the path taken while a background scan is still pending).",
+        "3. Assert the grounded path: with a scout_cache row present, generation forwards the cached findings and persists grounded options + skips.",
+        "4. Confirm the engine reads scout_cache via the model (unchanged by backgrounding) — the job populates the cache the engine already reads."
+      ],
+      "expected": "Generation is grounded when findings are cached and falls back to ungrounded when they are absent; backgrounding only changes WHEN the cache is populated (out of band), not how spec 6 reads it.",
+      "status": "pass",
+      "evidence": "16 tests passed in InterviewEngineService.test.ts, including the no-findings fallback (params.findings undefined → ungrounded options) and the grounded path (params.findings defined → grounded options + skips). The live run confirmed status is `pending` with no findings before processing (fallback window) and `done` with findings after (grounded thereafter).",
+      "notes": "No change to InterviewEngineService.findCachedFindings; it reads ScoutCacheModel directly, which the processor writes.",
+      "waiver": ""
+    },
+    {
+      "id": "T7",
+      "title": "LIVE background run against a small public repo: enqueue fast → process out of band → cached",
+      "surface": "cli",
+      "precondition": "ANTHROPIC_API_KEY set server-side; network access; no GITHUB_TOKEN (public repo).",
+      "steps": [
+        "1. Seed a session with the request 'Add support for configuring allowed CORS origins from a database at runtime.'",
+        "2. CodeScoutService.enqueueScan against expressjs/cors — confirm it returns FAST with a job id (no inline scan).",
+        "3. Confirm status is `pending` with no findings before the processor runs.",
+        "4. Run ScoutJobProcessor.drain once — the REAL Git Trees/Contents API + real claude-opus-4-8 scan happens here, within the caps.",
+        "5. Confirm scout_cache written, job status=done (attempts 1, no error), and the status endpoint returns done + findings tagged verify."
+      ],
+      "expected": "Enqueue returns in milliseconds (the request no longer carries the scan); the bounded scan runs out of band in the processor; one scout_cache row persists; the job completes; the status endpoint reports done with coarse, verify-tagged findings.",
+      "status": "pass",
+      "evidence": "Repo expressjs/cors (public). enqueue returned in 5ms, jobId 37, status pending, alreadyComplete false. Status before processing: pending, findings absent. drain processed 1 job in 15166ms; logs showed searches:6 (=cap), filesRead:8 (=cap, from 11 paths). Job 37: status done, attempts 1, last_error null. Status endpoint: done, findings present, verifyWithEngineering true, 3 coarse areas (Origin resolution/middleware engine S/clear, Documentation XS/clear, Database integration M/uncertain); the model noted the dynamic-origin-function already exists and the README documents the pattern. enqueue 5ms << scan 15166ms confirms the scan is no longer on the request path. Synthetic rows cleaned via ON DELETE CASCADE; harness scripts/live-scout-job.ts removed after the run.",
+      "notes": "This is the backgrounding proof: the ~15s scan that previously risked a Vercel function timeout now runs in the Cron-processed worker, not the request.",
+      "waiver": ""
+    },
+    {
+      "id": "GATES",
+      "title": "Toolchain gates: tsc (BE+FE), lint (BE+FE), check:conventions --strict, full test suite",
+      "surface": "cli",
+      "precondition": "Final state of the branch.",
+      "steps": [
+        "1. npx tsc --noEmit (backend) and (cd frontend && npx tsc --noEmit)",
+        "2. npm run lint (backend) and (cd frontend && npm run lint)",
+        "3. bash scripts/check-conventions.sh --strict",
+        "4. npm run test (backend) and (cd frontend && npm run test)"
+      ],
+      "expected": "tsc zero errors both trees; lint clean both trees; 0 backend hard violations; all suites green (no regressions) + the new job/processor/trigger tests.",
+      "status": "pass",
+      "evidence": "Backend tsc: 0. Frontend tsc: 0. Backend lint: clean. Frontend lint: clean. check:strict: 0 backend hard violations (13 advisory: pre-existing FE/TicketComment + the standard migration .raw §10.2 advisory, now incl. scout_jobs' CHECK DDL — same allowed pattern as scout_cache). Backend test: 22 files, 155 tests passed (138 baseline + 17 new: 7 ScoutJobModel + 6 ScoutJobProcessor + 4 InternalScoutController; CodeScoutController rewritten to the background flow). Frontend test: 2 passed. No regressions; spec 6's 16 engine tests green.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

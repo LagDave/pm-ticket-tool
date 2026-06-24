@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ticket Draft Spec</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #ffffff;
+      --ink: #080808;
+      --muted: #5f5f5f;
+      --line: #d8d8d8;
+      --soft: #f5f5f5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    .spec-shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0; }
+    .spec-hero, .spec-card, .task-card { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+    .spec-hero { border-color: var(--ink); padding: 32px; margin-bottom: 20px; }
+    .hero-topline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .spec-card { padding: 28px; margin-top: 16px; }
+    .task-card { padding: 20px; background: var(--soft); margin-top: 14px; }
+    .eyebrow, dt { color: var(--muted); font-size: 0.78rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
+    .eyebrow { margin: 0; }
+    .status-pill { display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 0.78rem; font-weight: 800; letter-spacing: 0; text-transform: uppercase; }
+    .status-card { border-color: var(--ink); }
+    .revision-entry { border-top: 1px solid var(--line); padding-top: 14px; }
+    .revision-entry h3 { margin-bottom: 8px; }
+    .revision-entry p { margin: 0 0 10px; font-size: 0.95rem; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 840px; margin-bottom: 24px; font-size: clamp(2.25rem, 6vw, 5rem); line-height: 0.95; letter-spacing: 0; }
+    h2 { font-size: 1.35rem; letter-spacing: 0; }
+    h3 { font-size: 1rem; letter-spacing: 0; }
+    code { padding: 0.1rem 0.3rem; border: 1px solid var(--line); border-radius: 4px; background: var(--soft); font-size: 0.92em; }
+    .meta-grid, .split-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .meta-grid { margin: 0; }
+    .meta-grid div, .split-grid > div { border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    dd { margin: 4px 0 0; font-weight: 700; }
+    .task-card dl { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 0; }
+    .task-card dd { font-weight: 400; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
+    ul { margin: 0 0 0 0; padding-left: 18px; }
+    li { margin: 4px 0; }
+    @media (max-width: 640px) {
+      .spec-shell { width: min(100% - 20px, 1120px); padding: 24px 0; }
+      .spec-hero, .spec-card { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">PM Tool · Plan Spec · 3 of 8</p>
+        <span class="status-pill status-completed">Completed</span>
+      </div>
+      <h1>Ticket draft — generate, edit &amp; finalize the durable ticket</h1>
+      <dl class="meta-grid">
+        <div class="status-card"><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/06242026-pm-tool-ticket-draft</dd></div>
+        <div><dt>Size</dt><dd>Medium</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>This produces the durable artifact — a consistent ticket built from the interview's <code>decision_record</code>. The ticket format is the real product value: every ticket comes out in the same shape (As a <em>role</em>, I want <em>capability</em>, So that <em>benefit</em>) with Given/When/Then acceptance criteria, an effort tier, and a short context summary.</p>
+      <p>The interview engine (spec 2) turns a vague request into structured decisions, but those decisions are not a deliverable on their own. A PM needs something they can read, refine, and hand off. This spec is the step that turns saved decisions into that hand-off artifact and lets the PM own it — edit it, comment on it, and mark it final.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>A generator built on an Agent SDK structured-output call. It takes a session's <code>decision_record</code> plus the <code>original_request</code> and produces four fields: <code>user_story</code> (the As a / I want / So that line), <code>acceptance_criteria</code> (an array of Given/When/Then blocks), <code>effort</code> (a complexity <strong>tier</strong>, not hours), and a context summary. The result persists to foundation's <code>tickets</code> table. The PM can then edit the ticket inline, add comments, and mark it final — which flips <code>status</code> from <code>draft</code> to <code>final</code> and bumps <code>version</code>. The v1 output format is copy-paste Markdown.</p>
+      <p><strong>Done when:</strong> a completed (or stopped) session yields a persisted, editable ticket in the standard format; inline edits and comments persist; finalize bumps the version; the PM can copy the ticket as Markdown; and <code>npx tsc --noEmit</code> plus <code>npm run check:conventions --strict</code> pass.</p>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <h3>Relevant Files</h3>
+      <ul>
+        <li><code>src/controllers/ticket/TicketController.ts</code> — thin controller (§7.3); orchestrates, never touches the DB.</li>
+        <li><code>src/controllers/ticket/feature-services/TicketGenerationService.ts</code> — the structured-output generation call: <code>decision_record</code> + <code>original_request</code> → ticket fields (§7.1).</li>
+        <li><code>src/controllers/ticket/feature-services/TicketMarkdownService.ts</code> — renders the persisted ticket to copy-paste Markdown (§7.1).</li>
+        <li><code>src/controllers/ticket/feature-utils/controllerResponses.ts</code> — <code>ok()</code> / <code>fail()</code> / <code>handleTicketError()</code> (§8.1, §8.2).</li>
+        <li><code>src/controllers/ticket/feature-utils/TicketError.ts</code> — typed domain error carrying a machine code (§8.3).</li>
+        <li><code>src/models/TicketModel.ts</code> — all ticket DB access (§7.4); owner-scoped via the session's owner.</li>
+        <li><code>src/models/TicketCommentModel.ts</code> — all comment DB access (§7.4).</li>
+        <li><code>src/database/migrations/*</code> — finalize <code>tickets</code> columns; add <code>ticket_comments</code> (§10.3).</li>
+        <li><code>src/validation/ticket.ts</code> — boundary validation for generate / update / comment / finalize (§11.2).</li>
+        <li><code>src/routes/tickets.ts</code> — thin route + middleware (§7.2).</li>
+        <li><code>frontend/src/api/tickets.ts</code> — thin typed functions over the one HTTP client (§14.1, §14.2).</li>
+        <li><code>frontend/src/hooks/queries/useTicketQueries.ts</code> — React Query data-fetching + mutations (§14.3, §15.1).</li>
+        <li><code>frontend/src/components/ticket/</code> — ticket view, inline edit, comments, copy-to-clipboard, in a feature folder (§12.3).</li>
+        <li><code>frontend/src/types/ticket.ts</code> — shared ticket + comment types, no <code>any</code> (§17.2).</li>
+      </ul>
+      <h3>Patterns To Follow</h3>
+      <ul>
+        <li>Backend layering Routes → Controllers → Services → Models (§7.1); thin routes (§7.2); controllers never touch the DB (§7.3); all queries in <code>models/</code> (§7.4 🔎).</li>
+        <li>Response envelope <code>{ success, data, error }</code> (§8.1) via shared builders (§8.2) + typed <code>TicketError</code> with one status mapper (§8.3); correct status codes (§8.4).</li>
+        <li>Frontend triad Component → hook → <code>api/</code> client (§14.1); the client is the only fetch path (§14.2 🔎); server state is React Query (§15.1); errors via shared toast (§16.1, §16.3).</li>
+        <li>No <code>any</code> on either tree (§17.2 🔎); schema changes only via migrations (§10.3); index <code>session_id</code> and <code>ticket_id</code> (§10.4).</li>
+      </ul>
+      <p><strong>Reference analog:</strong> mirror foundation — the backend controller/model triad foundation established from <code>src/controllers/gbp-automation/</code> (§6.1, Constitution Part VI), and the frontend <code>frontend/src/api/</code> + React Query triad foundation built (§12.1). The interview-engine spec (2) is the sibling consumer of <code>decision_record</code>; match its service shape. Mirror foundation's <code>InterviewSessionController</code> / <code>TicketModel</code> shell exactly.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Match the story format: As a <em>role</em>, I want <em>capability</em>, So that <em>benefit</em>, plus Given/When/Then acceptance criteria.</li>
+            <li>Treat <code>effort</code> as a complexity tier (for example XS / S / M / L / XL), never a count of hours — LLM hour estimates are unreliable, so be honest about it.</li>
+            <li>Version the ticket (<code>tickets.version</code>); keep it editable and persisted; store comments in their own table.</li>
+            <li>Validate the structured-output payload at the boundary before persisting (§11.2); on a malformed shape, fail with a typed error (§8.3).</li>
+            <li>Read the Agent SDK key server-side only; the SPA never sees it (§5.1).</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>Push to Jira, Azure DevOps, or GitHub Issues — that is a later, post-v1 feature.</li>
+            <li>Fabricate hour estimates or any numeric time prediction.</li>
+            <li>Put DB calls outside <code>models/</code> (§7.4); add a second state library (§15.4); call <code>fetch</code>/<code>axios</code> outside the api client (§14.2).</li>
+            <li>Build the dashboard, the interview itself, or any tracker integration here.</li>
+            <li>Ship an <code>mssql.sql</code> migration — this app is Postgres-only.</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul><li>Tracker push/sync (Jira/Azure/GitHub), the dashboard, the interview engine, and triage routing — each owned by its own spec.</li></ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level:</strong> 2 (reads an upstream table, writes a foundation shell; no existing consumers in production yet).</p>
+      <h3>Risks Identified</h3>
+      <ul>
+        <li><strong>Malformed Gherkin / acceptance criteria from the model.</strong> <strong>Mitigation:</strong> request a strict structured-output schema (an array of <code>{ given, when, then }</code> objects) and validate it at the boundary (§11.2) before persisting; reject and surface a typed <code>TicketError</code> (§8.3) on a bad shape rather than writing junk.</li>
+        <li><strong>Effort overconfidence — the model sounds certain about complexity.</strong> <strong>Mitigation:</strong> constrain <code>effort</code> to a small enum of tiers and render a fixed "verify with engineering" note next to it; never expose or store hours.</li>
+        <li><strong>Concurrent edits — two saves race and one silently overwrites the other.</strong> <strong>Mitigation:</strong> guard updates with the <code>version</code> field (optimistic concurrency) — an update carries the version it read; a mismatch is rejected so the PM re-reads before saving.</li>
+        <li><strong>Re-running generation clobbers PM edits.</strong> <strong>Mitigation:</strong> generation writes the draft; once a PM has edited or finalized, re-generation is an explicit action that bumps <code>version</code>, not a silent overwrite. Flag the exact behavior during execution.</li>
+      </ul>
+      <p><strong>Blast radius:</strong> reads <code>decision_record</code> (produced by spec 2, interview-engine); writes <code>tickets</code> (the foundation shell) and the new <code>ticket_comments</code> table. Downstream consumers: the dashboard (spec 4) lists and opens these tickets, and triage's simple path (spec 7) reads the generated ticket. No code consumers exist yet — both are later specs.</p>
+      <h3>Pushback</h3>
+      <ul>
+        <li><strong>Comments storage — child table vs <code>jsonb</code> column.</strong> A <code>jsonb</code> array on <code>tickets</code> is fewer moving parts, but it is hard to query, paginate, or attribute per author, and every comment write rewrites the whole ticket row (a concurrency hazard against the <code>version</code> guard above). <strong>Recommended:</strong> a small child table <code>ticket_comments</code> (one row per comment, FK to <code>tickets</code>, indexed on <code>ticket_id</code>) — queryable, attributable, and it keeps comment writes off the ticket row. Flag your call; if you expect comments to stay tiny and never queried, the <code>jsonb</code> column is the cheaper path.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card">
+        <h3>T1: Ticket generation service</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Build <code>TicketGenerationService</code> in <code>feature-services/</code> (§7.1): read a session's <code>decision_record</code> + <code>original_request</code> through models, call the Agent SDK with a strict structured-output schema, and return the four fields — <code>user_story</code>, <code>acceptance_criteria</code> (array of <code>{ given, when, then }</code>), <code>effort</code> (tier enum), and a context summary. Validate the payload shape before returning; raise a typed <code>TicketError</code> (§8.3) on a malformed result. Key read server-side only (§5.1).</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/ticket/feature-services/TicketGenerationService.ts</code>, <code>src/controllers/ticket/feature-utils/TicketError.ts</code>, <code>src/validation/ticket.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2 (TicketModel + DecisionRecordModel read path)</dd></div>
+          <div><dt>Verify</dt><dd>Unit test (§20.1): a fixture <code>decision_record</code> yields a valid story + Given/When/Then array + tier; a malformed model response throws <code>TicketError</code>, not a write.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T2: Finalize tickets columns + ticket_comments + models</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Migration (§10.3): finalize <code>tickets</code> columns (<code>user_story</code> text, <code>acceptance_criteria</code> jsonb, <code>effort</code> text, <code>status</code> draft|final, <code>version</code> int, <code>rendered_markdown</code> text) and add <code>ticket_comments</code> (<code>id</code>, <code>ticket_id</code> FK, <code>author_user_id</code>, <code>body</code>, <code>created_at</code>; index <code>ticket_id</code>). Index <code>tickets.session_id</code> (§10.4). <code>TicketModel</code> and <code>TicketCommentModel</code> hold all DB access (§7.4), owner-scoped through the session owner.</dd></div>
+          <div><dt>Files</dt><dd><code>src/database/migrations/*</code> (mirrors <code>plans/06242026-pm-tool-ticket-draft/migrations/</code>), <code>src/models/TicketModel.ts</code>, <code>src/models/TicketCommentModel.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>none (foundation shell exists)</dd></div>
+          <div><dt>Verify</dt><dd><code>knex migrate:latest</code> adds the columns + <code>ticket_comments</code> + indexes; <code>migrate:rollback</code> reverses cleanly; model unit tests pass (§20.1).</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T3: Ticket API — generate, get, update, comment, finalize</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Thin <code>TicketController</code> (§7.3) + thin route (§7.2): <code>POST /sessions/:id/ticket</code> (generate) → 201; <code>GET /tickets/:id</code> → 200; <code>PATCH /tickets/:id</code> (inline edit, version-guarded) → 200; <code>POST /tickets/:id/comments</code> (add comment) → 201; <code>POST /tickets/:id/finalize</code> (status draft→final, version bump) → 200. Envelope §8.1 via builders (§8.2); validation at the boundary (§11.2); correct codes (§8.4); a version mismatch returns a typed conflict error.</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/ticket/TicketController.ts</code>, <code>src/controllers/ticket/feature-utils/controllerResponses.ts</code>, <code>src/routes/tickets.ts</code>, <code>src/validation/ticket.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1, T2</dd></div>
+          <div><dt>Verify</dt><dd>Contract + error-path tests (§20.2): generate→get round-trips; a stale-version PATCH is rejected; finalize bumps <code>version</code> and flips <code>status</code>.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T4: Frontend ticket view + inline edit + comments + copy</h3>
+        <dl>
+          <div><dt>Do</dt><dd>In <code>components/ticket/</code> (§12.3): a ticket view rendering the story, Given/When/Then list, effort tier (+ the "verify with engineering" note), and context; inline edit wired to a PATCH mutation; a comments panel (list + add); a copy-to-clipboard button for the Markdown. Data-fetching in <code>useTicketQueries</code> hooks (§14.3, §15.1) over <code>api/tickets.ts</code> (§14.1, §14.2); errors via the shared toast (§16.1, §16.3); typed throughout, no <code>any</code> (§17.2).</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ticket/TicketView.tsx</code>, <code>TicketEditFields.tsx</code>, <code>TicketComments.tsx</code>, <code>CopyTicketButton.tsx</code>, <code>frontend/src/hooks/queries/useTicketQueries.ts</code>, <code>frontend/src/api/tickets.ts</code>, <code>frontend/src/types/ticket.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T3</dd></div>
+          <div><dt>Verify</dt><dd>Manual: open a generated ticket, edit a field and see it persist, add a comment and see it persist, copy the Markdown; no raw fetch/axios outside <code>api/index.ts</code> (§14.2 🔎); no <code>any</code> (§17.2 🔎).</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T5: Markdown render &amp; export</h3>
+        <dl>
+          <div><dt>Do</dt><dd><code>TicketMarkdownService</code> (§7.1) renders the persisted ticket — story, Given/When/Then, effort tier + note, context — into stable copy-paste Markdown; persist it to <code>tickets.rendered_markdown</code> on generate and on finalize so the copy action and any later consumer read one canonical string. Expose it through the get/finalize responses.</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/ticket/feature-services/TicketMarkdownService.ts</code>, <code>src/models/TicketModel.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2, T3</dd></div>
+          <div><dt>Verify</dt><dd>Unit test (§20.1): a persisted ticket renders to Markdown with the story header, a Given/When/Then block per criterion, and the effort tier; the copy button (T4) yields the same string.</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled> A completed or stopped session produces a persisted ticket in the standard format (As a / I want / So that + Given/When/Then + effort tier + context).</li>
+        <li><input type="checkbox" disabled> Inline edits and comments persist; finalize flips <code>status</code> draft→final and bumps <code>version</code>; a stale-version edit is rejected.</li>
+        <li><input type="checkbox" disabled> The PM can copy the ticket as Markdown, and the copied string matches <code>rendered_markdown</code>.</li>
+        <li><input type="checkbox" disabled> Migration adds the finalized <code>tickets</code> columns + <code>ticket_comments</code> + indexes; <code>knex migrate:rollback</code> reverses cleanly.</li>
+        <li><input type="checkbox" disabled> <code>npx tsc --noEmit</code> — zero errors on both <code>src/</code> and <code>frontend/</code>.</li>
+        <li><input type="checkbox" disabled> <code>npm run check:conventions --strict</code> passes; no <code>any</code> (§17.2); no DB access outside <code>models/</code> (§7.4); api client is the only fetch path (§14.2).</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <article class="revision-entry">
+        <h3>Rev 1 - 2026-06-24</h3>
+        <p><strong>Change:</strong> Execution complete. Migration <code>20260624000002_ticket_draft_schema.ts</code> (rendered_markdown + context_summary columns, status/effort CHECK constraints, <code>ticket_comments</code> table + index); backend agent/services/controller/routes/models/validation; frontend api/hooks/components wired as the wizard's terminal step; tests + acceptance artifact.</p>
+        <p><strong>Reason — Execution deviation 1 (§10.3, §10.4):</strong> The migration scaffold's TODO to <code>CREATE INDEX ON tickets (session_id)</code> was stale — foundation's migration already created <code>tickets_session_id_index</code>. Re-adding it would conflict on re-apply, so it was NOT re-added. Verified the index exists; no change needed (§10.4 already satisfied).</p>
+        <p><strong>Reason — Execution deviation 2 (§10.3):</strong> Added a <code>context_summary</code> column to <code>tickets</code>, which is additive to the spec's T2 column list. The generator produces a context summary (spec What/T1); persisting it as its own column (not only folding it into <code>rendered_markdown</code>) lets an inline edit re-render Markdown without losing it. Nullable, reversed cleanly by the migration's <code>down()</code>.</p>
+        <p><strong>Reason — Execution deviation 3 (§2.1, §7.1):</strong> Split the orchestration the spec sketched as one <code>TicketController</code>+services into two single-responsibility feature-services: <code>TicketGenerationService</code> (the spec-named generation service) and a sibling <code>TicketService</code> (get/update/comment/finalize). Keeps each service to one responsibility (§2.1); the controller stays thin (§7.3).</p>
+        <p><strong>Reason — Effort policy (§4.2, spec Constraints):</strong> Generation uses MEDIUM reasoning effort (vs the engine's LOW), named in <code>config</code> as <code>TICKET_GENERATION.EFFORT</code> — synthesis into a coherent story + Given/When/Then is more demanding than emitting questions. Model <code>claude-opus-4-8</code> accepted the structured-output call; no fallback needed.</p>
+        <p><strong>Advisory findings (not violations):</strong> <code>check:conventions --strict</code> = 0 backend hard violations. Two advisories, both correct by design: (a) §10.2 — the migration uses <code>knex.raw()</code> for the CHECK-constraint DDL (parameter-free constant SQL, no Knex builder for CHECK; the right place per §10.3); (b) §11.7 — the heuristic flags <code>TicketCommentModel</code> for lacking an owner column, but comments are owner-scoped through the ticket→session join (same pattern as <code>InterviewTurnModel</code>); proven by the model + contract owner-scope tests.</p>
+        <p><strong>Verification:</strong> migrate apply+rollback+re-apply clean · backend <code>tsc</code> 0 · frontend <code>tsc</code> 0 · backend lint 0 · frontend lint 0 · <code>npm run test</code> 66/66 (38 foundation/engine — no regressions — + 28 new) · <code>check:conventions --strict</code> pass · ONE live generation with <code>claude-opus-4-8</code> persisted a well-formed ticket end-to-end (story + 3 Given/When/Then incl. edge cases + tier <code>S</code>; edit v1→v2; comment; finalize v2→v3; Markdown rendered).</p>
+        <p><strong>Updated Done criteria:</strong> Backend + automated-test criteria met. The acceptance artifact (<code>test-results.json</code>) rolls up to <strong>In Progress</strong>: T1/T2/T3/T5 pass; T4 (the browser UI click-path) is pending a human/computer-use pass — built and statically verified (tsc/lint/conventions clean, backing API proven by the live run + contract tests) but not driven in a browser this execution. <code>-d</code> remains gated until T4 is run or waived (§20.5).</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

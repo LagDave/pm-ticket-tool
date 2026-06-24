@@ -1,0 +1,86 @@
+{
+  "plan": "plans/06242026-pm-tool-grounded-options",
+  "generatedAt": "2026-06-24",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Grounded generation: options derive from findings, carry an effort tier and one recommended pick",
+      "surface": "api",
+      "precondition": "A session with a seeded scout_cache findings row; ANTHROPIC_API_KEY set; claude-opus-4-8 reachable.",
+      "steps": [
+        "1. Pass synthetic ScoutFindings (Authentication=clear, Notifications=likely) into generateBatch via the grounded path.",
+        "2. Re-validate the returned batch against generatedBatchSchema (boundary).",
+        "3. Inspect the options for groundingRef, effort, and recommended."
+      ],
+      "expected": "Batch parses; options reference findings via groundingRef, every option carries an effort tier, and exactly one option per question is recommended; grounded labels carry 'verify with engineering' framing.",
+      "status": "pass",
+      "evidence": "LIVE run vs claude-opus-4-8: 4 questions / 13 options, 13 with an effort tier, 10 with a groundingRef (Notifications/Authentication), recommendedPerQuestion=[1,1,1,1]. Sample grounded label: 'Email via existing email service (likely reuses email-sending service; verify with engineering)'.",
+      "notes": "Boundary refine enforces at most one recommended option per question.",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Skip a question the findings fully determine (clear), keep partially-hinted ones (likely/uncertain), with a recorded reason",
+      "surface": "api",
+      "precondition": "Findings with one 'clear' area (Authentication) and one 'likely' area (Notifications).",
+      "steps": [
+        "1. Generate the grounded batch with the findings above.",
+        "2. Inspect the skipped[] array and the emitted questions."
+      ],
+      "expected": "The question the 'clear' finding determines appears in skipped[] with a reason naming the finding; questions tied to 'likely' findings are still asked; the skip persists in the batch jsonb (auditable).",
+      "status": "pass",
+      "evidence": "LIVE run: skipped=[{decisionKey:'login_mechanism', reason:\"Authentication finding is 'clear' — an existing session-based login with a User model is reused, so no new login mechanism decision is needed.\"}]. Notification questions (from the 'likely' area) were still asked. The skip is persisted inside interview_turns.questions jsonb and round-trips on replay.",
+      "notes": "Skip lives at the prompt/agent boundary and is recorded in the persisted batch (schema field skipped), not logger-only.",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "No-findings fallback: a session with no scout_cache generates ungrounded options without error",
+      "surface": "api",
+      "precondition": "A session with NO scout_cache row (no repo scanned / scout skipped).",
+      "steps": [
+        "1. Call generateBatch with findings undefined (the service routes here on a cache miss).",
+        "2. Re-validate against generatedBatchSchema.",
+        "3. Inspect options for groundingRef/effort/recommended and the skipped field."
+      ],
+      "expected": "Batch parses; every option's groundingRef, effort, and recommended are null; skipped is null; no error.",
+      "status": "pass",
+      "evidence": "LIVE run vs claude-opus-4-8: 4 questions / 14 options, 0 with groundingRef, 0 with effort, 0 recommended, skipped=null. Unit test 'no-findings fallback' asserts the service forwards no findings and persists ungrounded options.",
+      "notes": "The ungrounded prompt is byte-identical to the pre-spec-6 prompt — existing sessions are unaffected.",
+      "waiver": ""
+    },
+    {
+      "id": "T4",
+      "title": "Boundary contract: off-schema / over-recommended batches are rejected and never persisted ({success,data,error})",
+      "surface": "api",
+      "precondition": "A session (with or without findings); the agent mocked to return a batch with two recommended options on one question.",
+      "steps": [
+        "1. Mock generateBatch to return a question carrying two recommended:true options.",
+        "2. Call InterviewEngineService.advanceNextBatch.",
+        "3. Assert it throws BATCH_GENERATION_INVALID and persists nothing."
+      ],
+      "expected": "The service raises a typed error (mapped to the {success:false,data:null,error} envelope by the controller); no turn is written.",
+      "status": "pass",
+      "evidence": "Unit test 'rejects a batch with more than one recommended option per question' passes; InterviewTurnModel.listBySession returns 0 rows. The companion test confirms a grounded batch with no recommended pick is accepted (recommended is optional). Full suite: 138/138 green.",
+      "notes": "Mirrors the existing over-long-batch and malformed-output rejection tests.",
+      "waiver": ""
+    },
+    {
+      "id": "T5",
+      "title": "Frontend render: effort tag + recommended marker on grounded options; nothing on ungrounded options",
+      "surface": "ui",
+      "precondition": "QuestionField mounted with one grounded question (3 options: effort M/M/XL, one recommended) and one ungrounded question (no grounding).",
+      "steps": [
+        "1. Render the grounded and ungrounded questions in the browser.",
+        "2. Confirm the grounded options show an effort tag and the recommended option shows a marker.",
+        "3. Confirm the ungrounded options show neither, and the 'verify with engineering' note is present."
+      ],
+      "expected": "Grounded options show 'Effort <tier>' tags and a single 'RECOMMENDED' marker; ungrounded options render cleanly with no tags; the grounding note carries the verify-with-engineering copy.",
+      "status": "pass",
+      "evidence": "Browser pass (Vite dev server): 3 .option-effort tags ('Effort M','Effort M','Effort XL'), 1 .option-recommended marker on the correct option, grounding note contains 'verify with engineering'. 4 of 7 option rows (the ungrounded question's options + 'other' rows) carry no tags. Recommended pill computed style is inverted ink-on-paper (bg rgb(10,10,10), color rgb(252,252,251)), weight 800, uppercase. Screenshot captured during the execution acceptance pass.",
+      "notes": "Verified by mounting the real QuestionField component with synthetic grounded/ungrounded data; harness removed after capture.",
+      "waiver": ""
+    }
+  ]
+}
