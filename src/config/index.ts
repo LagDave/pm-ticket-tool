@@ -36,6 +36,12 @@ export const APP_CONSTANTS = {
   DB_POOL_IDLE_TIMEOUT_MS: 10_000,
   /** Acquire-connection timeout (ms) so a dead DB fails fast rather than hanging. */
   DB_ACQUIRE_TIMEOUT_MS: 10_000,
+  /**
+   * Bind host for the HTTP server. 0.0.0.0 so a container platform (Railway)
+   * can route external traffic to the process; localhost-only binding would make
+   * the service unreachable behind Railway's proxy. Named, not magic (§4.2).
+   */
+  BIND_HOST: "0.0.0.0",
 } as const;
 
 /**
@@ -181,6 +187,35 @@ const envSchema = z.object({
    */
   DATABASE_POOL_MODE: z.enum(["serverless", "persistent"]).default("persistent"),
   /**
+   * Serve the built SPA (frontend/dist) from Express as static assets with a
+   * client-routing catch-all (deploy spec Rev 2, Railway single service). On a
+   * single Railway service one Express process serves the API AND the SPA from
+   * one origin; in local dev the Vite dev server owns the SPA, so this stays off.
+   * Defaults to ON in production and OFF otherwise (env-driven, never hardcoded
+   * per environment) and can be forced either way with "true"/"false".
+   */
+  SERVE_STATIC: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((value) =>
+      value === undefined ? undefined : value === "true",
+    ),
+  /**
+   * Run the scout queue worker IN-PROCESS on server startup (deploy spec Rev 2,
+   * Railway single service, §21). On Railway there is no cron, so the long-running
+   * web process drains the scout_jobs queue itself via ScoutJobProcessor — the
+   * same processor the Vercel cron path used, called directly, not over HTTP. A
+   * scout failure can never bring down the web server (the processor never throws
+   * to its caller, §21.4). Defaults to ON in production and OFF otherwise; force
+   * with "true"/"false". Local dev keeps using `npm run scout:work` instead.
+   */
+  RUN_SCOUT_WORKER: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((value) =>
+      value === undefined ? undefined : value === "true",
+    ),
+  /**
    * Verify the DB server certificate (§5.4). Defaults to "true" — never weaken
    * TLS silently. Set to "false" ONLY when a provider serves a cert the default
    * CA bundle can't chain (some managed Postgres poolers) and you accept the
@@ -228,6 +263,8 @@ export type AppConfig = {
   databaseSsl: boolean;
   databaseSslRejectUnauthorized: boolean;
   databasePoolMode: "serverless" | "persistent";
+  serveStatic: boolean;
+  runScoutWorker: boolean;
   corsOrigins: string[];
   logLevel: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
   anthropicApiKey: string;
@@ -252,6 +289,9 @@ function loadConfig(): AppConfig {
   }
 
   const env = parsed.data;
+  // Both Railway-runtime flags default ON in production and OFF elsewhere, but an
+  // explicit env value always wins (env-driven, never hardcoded per environment).
+  const isProduction = env.NODE_ENV === "production";
   return {
     nodeEnv: env.NODE_ENV,
     port: env.PORT,
@@ -259,6 +299,8 @@ function loadConfig(): AppConfig {
     databaseSsl: env.DATABASE_SSL,
     databaseSslRejectUnauthorized: env.DATABASE_SSL_REJECT_UNAUTHORIZED,
     databasePoolMode: env.DATABASE_POOL_MODE,
+    serveStatic: env.SERVE_STATIC ?? isProduction,
+    runScoutWorker: env.RUN_SCOUT_WORKER ?? isProduction,
     corsOrigins: env.CORS_ORIGINS.split(",")
       .map((origin) => origin.trim())
       .filter((origin) => origin.length > 0),

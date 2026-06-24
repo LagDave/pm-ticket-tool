@@ -1,0 +1,123 @@
+{
+  "plan": "plans/06242026-pm-tool-deploy",
+  "generatedAt": "2026-06-24",
+  "status": "In Progress",
+  "notes": "Rev 2 — single Railway service. Layer 2 behavioral validation run against the COMPILED server (node dist/src/index.js) in NODE_ENV=production against the local Docker Postgres (:8765, DATABASE_SSL=false), PORT=4010, SERVE_STATIC=true, RUN_SCOUT_WORKER=true. The live Railway URL items (T7-T9) remain pending the browser-driven provisioning and are listed as such; they do not gate this local-prod artifact because no Railway project exists yet (the orchestrator provisions).",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Compiled prod server boots: binds 0.0.0.0:$PORT, serves SPA, starts in-process worker",
+      "surface": "cli",
+      "precondition": "npm run build done (frontend/dist + dist/ present); local Docker Postgres up on :8765 with the schema migrated",
+      "steps": [
+        "1. NODE_ENV=production DATABASE_URL=<local docker> DATABASE_SSL=false DATABASE_POOL_MODE=persistent PORT=4010 SERVE_STATIC=true RUN_SCOUT_WORKER=true node dist/src/index.js",
+        "2. Read the startup log"
+      ],
+      "expected": "Logs: 'Serving SPA static build', 'Starting in-process scout worker', and 'PM Tool API listening on 0.0.0.0:4010' with serveStatic:true, runScoutWorker:true",
+      "status": "pass",
+      "evidence": "Log showed spaDir=/.../frontend/dist; 'Scout worker started (local poll loop)'; 'PM Tool API listening on 0.0.0.0:4010' env=production serveStatic=true runScoutWorker=true",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "GET /health (root alias) returns the success envelope",
+      "surface": "api",
+      "precondition": "T1 server running",
+      "steps": ["1. curl http://localhost:4010/health"],
+      "expected": "HTTP 200, application/json, { success:true, data:{ status:'ok', database:'up', timestamp }, error:null }",
+      "status": "pass",
+      "evidence": "HTTP 200 application/json; {\"success\":true,\"data\":{\"status\":\"ok\",\"database\":\"up\",\"timestamp\":\"2026-06-24T12:49:00.516Z\"},\"error\":null}",
+      "notes": "Root /health alias is what Railway's healthcheckPath pings.",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "GET /api/health (SPA same-origin API path) returns the success envelope",
+      "surface": "api",
+      "precondition": "T1 server running",
+      "steps": ["1. curl http://localhost:4010/api/health"],
+      "expected": "HTTP 200, application/json, success envelope with database:'up'",
+      "status": "pass",
+      "evidence": "HTTP 200 application/json; success envelope database:'up' — confirms the API is reachable under /api same-origin",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4",
+      "title": "GET / and a deep route return the SPA index.html (client routing)",
+      "surface": "ui",
+      "precondition": "T1 server running",
+      "steps": ["1. curl http://localhost:4010/", "2. curl http://localhost:4010/dashboard/123", "3. curl -I http://localhost:4010/assets/<hashed>.js"],
+      "expected": "/ and /dashboard/123 → HTTP 200 text/html (the SPA shell); the hashed asset → 200 application/javascript",
+      "status": "pass",
+      "evidence": "GET / → 200 HTML (<!doctype html> ... <title>PM Ticket Tool</title>); GET /dashboard/123 → 200 HTML; GET /assets/index-BTrRNmrU.js → 200 application/javascript",
+      "notes": "Client-routing catch-all serves index.html for non-API GETs.",
+      "waiver": ""
+    },
+    {
+      "id": "T5",
+      "title": "Unknown API path returns the 404 JSON envelope, NOT the SPA HTML",
+      "surface": "api",
+      "precondition": "T1 server running",
+      "steps": ["1. curl http://localhost:4010/api/nope"],
+      "expected": "HTTP 404, application/json, { success:false, error:{ code:'NOT_FOUND', ... } } — never index.html",
+      "status": "pass",
+      "evidence": "HTTP 404 application/json; {\"success\":false,\"data\":null,\"error\":{\"code\":\"NOT_FOUND\",\"message\":\"Route not found: GET /nope\",\"details\":null}}",
+      "notes": "Proves the catch-all correctly excludes /api so API 404s stay JSON (§8.1).",
+      "waiver": ""
+    },
+    {
+      "id": "T6",
+      "title": "In-process scout worker claims and drains an enqueued job (no cron / no HTTP trigger)",
+      "surface": "cli",
+      "precondition": "T1 server running with RUN_SCOUT_WORKER=true; a scout_jobs 'pending' row inserted directly in the DB (session_id valid, provider=github, repo_ref=expressjs/cors)",
+      "steps": [
+        "1. INSERT a session + a pending scout_jobs row directly via psql",
+        "2. Poll scout_jobs.status for that job id for ~20s",
+        "3. Check scout_cache for a row for the session"
+      ],
+      "expected": "Within ~15s the job moves pending→running→done (attempts=1, no error) and a scout_cache row with findings is written — driven by the in-process worker, not the internal HTTP endpoint",
+      "status": "pass",
+      "evidence": "Job id 92 (session 2565): claimed within the first poll, reached status 'done' at t=17s, attempts=1, last_error null; scout_cache row id 150 written with real findings for expressjs/cors. Worker logs: 'Scout job claimed; running bounded scan' then 'Scout job completed; findings cached' (§21.4). Graceful SIGTERM then logged 'Scout worker stopped'.",
+      "notes": "Used a real bounded scan of the public expressjs/cors repo. ~17s is dominated by the model/scan call; the claim itself was immediate (race-safe FOR UPDATE SKIP LOCKED, §21.1).",
+      "waiver": ""
+    },
+    {
+      "id": "T7",
+      "title": "LIVE Railway: app reachable on the deployment URL backed by Railway Postgres",
+      "surface": "ui",
+      "precondition": "Railway project provisioned, GitHub connected, env vars set, deployed (browser-driven; orchestrator provisions)",
+      "steps": ["1. Open https://<your-app>.up.railway.app/", "2. GET https://<your-app>.up.railway.app/health"],
+      "expected": "The SPA loads; /health returns the success envelope backed by Railway Postgres",
+      "status": "pending",
+      "evidence": "",
+      "notes": "Pending live provisioning — no Railway account is touched by this code task.",
+      "waiver": ""
+    },
+    {
+      "id": "T8",
+      "title": "LIVE Railway: push to main auto-deploys; migrations applied to Railway Postgres",
+      "surface": "cli",
+      "precondition": "T7",
+      "steps": ["1. Push a trivial commit to main", "2. Watch Railway build + deploy", "3. Confirm start:prod ran knex migrate:latest before the server bound"],
+      "expected": "A push to main triggers a Railway build/deploy; the pre-start migrate applies all migrations to Railway Postgres before traffic",
+      "status": "pending",
+      "evidence": "",
+      "notes": "Pending live provisioning.",
+      "waiver": ""
+    },
+    {
+      "id": "T9",
+      "title": "LIVE Railway: end-to-end smoke (session → interview → ticket) + scout drains in-process",
+      "surface": "ui",
+      "precondition": "T7, T8; ANTHROPIC_API_KEY set in Railway",
+      "steps": ["1. Create a session in the live SPA", "2. Run the interview", "3. Generate a ticket", "4. Trigger a scout and poll until done"],
+      "expected": "Session persists in Railway Postgres; the interview returns questions; a ticket is generated and stored; the scout job is drained by the in-process worker (no cron)",
+      "status": "pending",
+      "evidence": "",
+      "notes": "Pending live provisioning.",
+      "waiver": ""
+    }
+  ]
+}

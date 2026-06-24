@@ -1,9 +1,11 @@
 /**
  * Central Knex connection — the ONE place a pool is created (§10.6). Reads a
- * generic DATABASE_URL so the same code targets local Docker Postgres and
- * Neon's pooled, SSL connection string in prod (foundation spec Rev 1). Never
- * open/close connections per query; import `db` everywhere a query runs (which
- * is only `models/`, §7.4).
+ * generic DATABASE_URL so the same code targets local Docker Postgres and a
+ * managed Postgres in prod (Railway-provided, deploy spec Rev 2; previously Neon).
+ * SSL and pool sizing are env-driven (DATABASE_SSL, DATABASE_POOL_MODE) so the
+ * same code serves a long-running Railway server (persistent pool, no SSL on the
+ * internal network) and the old serverless path. Never open/close connections per
+ * query; import `db` everywhere a query runs (which is only `models/`, §7.4).
  */
 import path from "path";
 import knex, { Knex } from "knex";
@@ -23,8 +25,9 @@ pg.types.setTypeParser(PG_BIGINT_OID, (value: string) => parseInt(value, 10));
  * True when running from the compiled build (dist/…/*.js) rather than from
  * source via tsx (src/…/*.ts). `__filename` is set by both the CJS runtime and
  * tsx, so its extension tells us which migration files exist on disk: `.js`
- * after `npm run build`, `.ts` in dev. This is what lets `migrate:deploy` find
- * the compiled migrations in the Vercel/production context (deploy spec §10.3).
+ * after `npm run build`, `.ts` in dev. This is what lets the prod migrate step
+ * find the compiled migrations in the deployed context (Railway pre-start runs
+ * `knex migrate:latest` against dist/, deploy spec §10.3).
  */
 const isCompiled = __filename.endsWith(".js");
 
