@@ -100,6 +100,25 @@ export const TRIAGE = {
 } as const;
 
 /**
+ * Title generation constants (User QA: auto-generated session title). One cheap,
+ * low-effort structured-output call turns either the original request (at session
+ * create) or the finalized ticket (after finalize) into a concise display title.
+ * No magic values in the title logic (§4.2). LOW effort (like triage, vs the
+ * ticket generator's MEDIUM): a title is a short label, not synthesis, so it gets
+ * the least reasoning budget — keeping session create fast and the call cheap. A
+ * tight MAX_TOKENS keeps the single call short-lived; a title is a few words.
+ */
+export const TITLE_GENERATION = {
+  /** Primary model; falls back to FALLBACK_MODEL if the key rejects it. */
+  MODEL: "claude-opus-4-8",
+  FALLBACK_MODEL: "claude-sonnet-4-6",
+  /** Lowest reasoning effort — a title is a cheap label, not synthesis (spec: low effort). */
+  EFFORT: "low",
+  /** Small bounded output: the model returns a single short title string. */
+  MAX_TOKENS: 256,
+} as const;
+
+/**
  * Code scout constants (spec 5). The scout is the longest operation in the app
  * (a bounded loop over an external repo), so the caps here are what keep it from
  * running away under a serverless timeout (spec Risk). No magic values in the

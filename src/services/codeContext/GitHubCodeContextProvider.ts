@@ -221,7 +221,7 @@ export class GitHubCodeContextProvider implements CodeContextProvider {
     if (status === 401 || status === 403) {
       return new CodeScoutError(
         "PROVIDER_AUTH_FAILED",
-        "GitHub rejected the request — the repo may be private or the token invalid.",
+        "GitHub rejected the request. The repo may be private or the token invalid.",
         { provider: this.id, repoRef: repo.repoRef },
       );
     }

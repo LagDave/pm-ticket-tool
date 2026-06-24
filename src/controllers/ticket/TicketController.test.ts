@@ -11,15 +11,24 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../../agents/ticketAgent", () => ({
   generateTicket: vi.fn(),
 }));
+// Session create (POST /sessions) and ticket finalize both generate a title via
+// the title agent; mock its seam so the suite stays deterministic and free —
+// no live model call (§20.4). A finalize returns a refined title.
+vi.mock("../../agents/titleAgent", () => ({
+  generateTitle: vi.fn(async () => ({ title: "Refined ticket title" })),
+  sanitizeTitle: (raw: string) => raw.trim() || null,
+}));
 
 import request from "supertest";
 import { generateTicket } from "../../agents/ticketAgent";
+import { generateTitle } from "../../agents/titleAgent";
 import { createApp } from "../../app";
 import { db } from "../../database/connection";
 import { makeGeneratedTicket } from "../../test/factories";
 
 const app = createApp();
 const mockGenerate = vi.mocked(generateTicket);
+const mockTitle = vi.mocked(generateTitle);
 
 // Synthetic owner ids for this suite (> 1000 so cleanup is scoped).
 const OWNER_A = "3001";
@@ -46,6 +55,10 @@ async function generateTicketFor(sessionId: number, owner = OWNER_A) {
 describe("Ticket endpoints", () => {
   beforeEach(() => {
     mockGenerate.mockReset();
+    // Reset the title mock to its happy-path default each test (create + finalize
+    // both call it); individual tests override it as needed.
+    mockTitle.mockReset();
+    mockTitle.mockResolvedValue({ title: "Refined ticket title" });
   });
 
   afterAll(async () => {
@@ -154,6 +167,53 @@ describe("Ticket endpoints", () => {
     expect(res.status).toBe(200);
     expect(res.body.data.ticket.status).toBe("final");
     expect(res.body.data.ticket.version).toBe(2);
+  });
+
+  it("finalize regenerates and replaces the session title from the finalized ticket (User QA)", async () => {
+    const sessionId = await createSession();
+    const gen = await generateTicketFor(sessionId);
+    const ticketId = gen.body.data.id as number;
+
+    // The create-time title (from the request mock default) is on the session.
+    const before = await request(app)
+      .get(`/sessions/${sessionId}`)
+      .set("x-dev-user-id", OWNER_A);
+    expect(before.body.data.title).toBe("Refined ticket title");
+
+    // Finalize regenerates from the ticket; here the mock returns a distinct title.
+    mockTitle.mockResolvedValueOnce({ title: "Add magic-link login" });
+    const fin = await request(app)
+      .post(`/tickets/${ticketId}/finalize`)
+      .set("x-dev-user-id", OWNER_A)
+      .send({ expectedVersion: 1 });
+    expect(fin.status).toBe(200);
+
+    // The session title is now the refined one from the finalized ticket.
+    const after = await request(app)
+      .get(`/sessions/${sessionId}`)
+      .set("x-dev-user-id", OWNER_A);
+    expect(after.body.data.title).toBe("Add magic-link login");
+  });
+
+  it("finalize still succeeds and keeps the prior title when title regeneration fails", async () => {
+    const sessionId = await createSession(); // create-time title persisted
+    const gen = await generateTicketFor(sessionId);
+    const ticketId = gen.body.data.id as number;
+
+    // Title regeneration fails on both models during finalize — the finalize must
+    // still succeed, and the create-time title must be left untouched (not blanked).
+    mockTitle.mockRejectedValue(new Error("model down"));
+    const fin = await request(app)
+      .post(`/tickets/${ticketId}/finalize`)
+      .set("x-dev-user-id", OWNER_A)
+      .send({ expectedVersion: 1 });
+
+    expect(fin.status).toBe(200);
+    expect(fin.body.data.ticket.status).toBe("final");
+    const after = await request(app)
+      .get(`/sessions/${sessionId}`)
+      .set("x-dev-user-id", OWNER_A);
+    expect(after.body.data.title).toBe("Refined ticket title"); // prior title kept
   });
 
   it("PATCH with no editable fields returns 400 (boundary validation)", async () => {

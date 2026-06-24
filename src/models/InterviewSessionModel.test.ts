@@ -93,6 +93,55 @@ describe("InterviewSessionModel", () => {
     expect(await InterviewSessionModel.countForOwner(ownerB)).toBe(1);
   });
 
+  it("persists a generated title on create and reads it back (User QA)", async () => {
+    const owner = makeOwner();
+    const created = await InterviewSessionModel.create(owner, {
+      originalRequest: makeRequestText("titled"),
+      title: "Add magic-link login",
+    });
+    expect(created.title).toBe("Add magic-link login");
+
+    const fetched = await InterviewSessionModel.findByIdForOwner(created.id, owner);
+    expect(fetched?.title).toBe("Add magic-link login");
+  });
+
+  it("defaults title to null when none is provided on create", async () => {
+    const owner = makeOwner();
+    const created = await InterviewSessionModel.create(owner, {
+      originalRequest: makeRequestText("untitled"),
+    });
+    expect(created.title).toBeNull();
+  });
+
+  it("updates the title owner-scoped, and will not touch another owner's row (§11.7)", async () => {
+    const ownerA = makeOwner();
+    const ownerB = makeOwner();
+    const created = await InterviewSessionModel.create(ownerA, {
+      originalRequest: makeRequestText("retitle"),
+      title: "Create-time title",
+    });
+
+    // Owner B cannot update owner A's title — no row matches, returns null.
+    const leaked = await InterviewSessionModel.updateTitleForOwner(
+      created.id,
+      ownerB,
+      "Hijacked title",
+    );
+    expect(leaked).toBeNull();
+
+    // Owner A replaces the title successfully.
+    const updated = await InterviewSessionModel.updateTitleForOwner(
+      created.id,
+      ownerA,
+      "Refined title",
+    );
+    expect(updated?.title).toBe("Refined title");
+
+    // The hijack attempt never landed.
+    const reread = await InterviewSessionModel.findByIdForOwner(created.id, ownerA);
+    expect(reread?.title).toBe("Refined title");
+  });
+
   it("filters the page and count by status (§11.6 filter)", async () => {
     const owner = makeOwner();
     await InterviewSessionModel.create(owner, { originalRequest: makeRequestText("d1") });

@@ -70,6 +70,8 @@ const BASE_RULES = [
   "- Set hasOpenMaterialDecisions false when, after this batch is answered, you expect",
   "  no further material decisions remain — i.e. the interview can terminate.",
   "- You are near the hard round cap; prefer fewer, higher-value questions and wind down.",
+  "- Never use em-dashes (—) or en-dashes (–) in any output. Use commas, periods,",
+  "  parentheses, or hyphens instead.",
 ];
 
 /**

@@ -50,7 +50,10 @@ export default function App() {
         <main className="wizard">
           <header className="wizard-header">
             <div className="wizard-topline">
-              <h1 className="wizard-title">PM Ticket Tool</h1>
+              <div className="wizard-brand">
+                <img className="wizard-logo" src="/logo.png" alt="" aria-hidden width={32} height={32} />
+                <h1 className="wizard-title">PM Ticket Tool</h1>
+              </div>
               <button type="button" className="link-button" onClick={goDashboard}>
                 ← Dashboard
               </button>

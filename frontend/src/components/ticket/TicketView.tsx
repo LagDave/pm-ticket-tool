@@ -19,7 +19,7 @@ interface TicketViewProps {
 }
 
 /** The fixed note that keeps the effort tier honest (spec Risk: effort overconfidence). */
-const EFFORT_NOTE = "Complexity tier — verify with engineering, not an hour estimate.";
+const EFFORT_NOTE = "Complexity tier, verify with engineering, not an hour estimate.";
 
 export function TicketView({ ticketId }: TicketViewProps) {
   const { data, isLoading, error } = useTicket(ticketId);

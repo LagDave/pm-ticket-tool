@@ -213,6 +213,22 @@ body::before {
   color: var(--ink);
 }
 
+/* Brand lockup in the header: the logo mark beside the wordmark. */
+.wizard-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.wizard-logo {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
 /* The quiet back-to-dashboard link in the topline. */
 .link-button {
   appearance: none;
@@ -557,11 +573,18 @@ textarea.request-input {
  * primary action, and the active/selected indicator.
  * ------------------------------------------------------------------------- */
 
-/* The drag/slide stage. Clips the off-screen question during the slide and
- * gives the absolutely-positioned slides a height to animate within. */
+/* The drag/slide stage. With AnimatePresence mode="wait" only one slide is ever
+ * mounted, so the stage itself does not need to clip a sibling — the parent
+ * .step-panel (overflow:hidden, 30px padding) catches any slide overshoot. The
+ * stage stays overflow:visible with a little horizontal padding (matched by a
+ * negative margin so the visual width is unchanged) so an option card's
+ * hover/select scale + tilt — and the build-speed meter at its right edge — are
+ * never clipped (Item 7: options + meter must render fully within the slide). */
 .carousel-stage {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  padding: 8px 14px;
+  margin: -8px -14px;
 }
 
 /* The pager row beneath the question: prev arrow · dots · next arrow. */
@@ -698,6 +721,75 @@ textarea.request-input {
   color: var(--faint);
 }
 
+/* ---------------------------------------------------------------------------
+ * Triage loader ("Sizing up your request"): an animated gauge of bars that
+ * rise/fall like a meter being read, resolving into a GREEN check when the
+ * classification lands. The bars use the accent (it is a genuine progress
+ * indicator); the completion check is green to echo COMPLETE.
+ * ------------------------------------------------------------------------- */
+.triage-thinking {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.triage-gauge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.triage-bar {
+  width: 5px;
+  height: 100%;
+  transform-origin: center bottom;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--accent-soft), var(--accent));
+}
+
+.triage-check {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #3ddc97 18%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, #3ddc97 50%, var(--line-2));
+  color: #6ee7b0;
+}
+
+.triage-thinking-copy {
+  min-width: 0;
+}
+.triage-thinking-label {
+  margin: 0;
+}
+
+/* Inline "Loading…" indicator: a neutral spinning ring + a label. Replaces bare
+ * loading text so a load/resume reads as actively in progress (Item 4). */
+.loading-line {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--muted);
+  font-size: 0.96rem;
+}
+.loading-line-spinner {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 2px solid var(--line-2);
+  border-top-color: var(--accent);
+}
+.loading-line-label {
+  line-height: 1.4;
+}
+
 /* ===========================================================================
  * Dashboard — filter bar, session list, pager
  * ======================================================================== */
@@ -768,10 +860,21 @@ textarea.request-input {
   gap: 7px;
 }
 
-.session-snippet {
+/* The primary row label: the generated title (or the request when none). */
+.session-title {
   margin: 0;
   color: var(--ink);
-  font-size: 0.98rem;
+  font-family: var(--font-display);
+  font-size: 1.04rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* The muted subtitle beneath the title: the raw request text. */
+.session-snippet {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
   line-height: 1.45;
 }
 
@@ -799,11 +902,14 @@ textarea.request-input {
   background: var(--surface-2);
   color: var(--muted);
 }
+/* In-progress / awaiting input: a quiet translucent-white treatment (NOT the
+ * accent) so the dashboard reads mostly neutral. The orange is reserved for the
+ * active filter pill and the in-app recommended/selected/primary states. */
 .session-status-in_progress,
 .session-status-awaiting_input {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--line-2));
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface-2));
-  color: var(--accent-soft);
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
 }
 .session-status-complete {
   border-color: color-mix(in srgb, #3ddc97 40%, var(--line-2));

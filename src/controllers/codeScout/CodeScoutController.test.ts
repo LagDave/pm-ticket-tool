@@ -19,6 +19,12 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../../agents/codeScout/CodeScoutAgent", () => ({
   CodeScoutAgent: { run: vi.fn() },
 }));
+// Session create generates a title via the title agent; mock its seam so the
+// POST /sessions calls in this suite stay deterministic and free (§20.4).
+vi.mock("../../agents/titleAgent", () => ({
+  generateTitle: vi.fn(async () => ({ title: "Generated session title" })),
+  sanitizeTitle: (raw: string) => raw.trim() || null,
+}));
 
 import request from "supertest";
 import { CodeScoutAgent } from "../../agents/codeScout/CodeScoutAgent";

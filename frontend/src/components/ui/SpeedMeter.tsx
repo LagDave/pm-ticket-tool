@@ -42,7 +42,7 @@ export function SpeedMeter({ speed, muted = false }: SpeedMeterProps) {
         aria-valuemin={1}
         aria-valuemax={SPEED_SEGMENTS}
         aria-valuenow={filled}
-        aria-label={`Build speed: ${speedLabel(speed)} — ${speedHint(speed)}`}
+        aria-label={`Build speed: ${speedLabel(speed)} (${speedHint(speed)})`}
       >
         {segments.map((isFilled, i) => (
           <motion.span

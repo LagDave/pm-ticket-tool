@@ -34,7 +34,7 @@ export function RequestEntry({ onCreated }: RequestEntryProps) {
       </label>
       <p className="field-hint">
         Describe the feature or change in plain language. We&apos;ll turn it into
-        a structured ticket through a short interview.
+        a structured ticket through a short feature scope.
       </p>
       <textarea
         id="request"
@@ -47,7 +47,7 @@ export function RequestEntry({ onCreated }: RequestEntryProps) {
       />
       <div className="step-actions">
         <button type="submit" className="primary-button" disabled={!canSubmit}>
-          {createSession.isPending ? "Starting…" : "Start interview"}
+          {createSession.isPending ? "Starting…" : "Start feature scoping"}
         </button>
       </div>
     </form>

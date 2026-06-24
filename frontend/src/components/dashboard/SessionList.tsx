@@ -3,8 +3,9 @@
  * actions (spec 4 T4, §12.3). A component renders + delegates: the page passes
  * the current page of sessions (from useSessions, §15.1) and the action handlers;
  * this file owns no fetching and no business logic (§14.1). Each row shows status,
- * a request snippet, and last-updated, plus the resume / re-run / view-ticket
- * actions. Typed, no any (§17.2).
+ * the generated title as the primary label (the request snippet when no title
+ * yet) with the raw request as a muted subtitle, last-updated, plus the resume /
+ * re-run / view-ticket actions (all neutral, no accent). Typed, no any (§17.2).
  */
 import type { InterviewSession, SessionStatus } from "../../types/interview";
 
@@ -20,6 +21,9 @@ interface SessionListProps {
 /** How many characters of the original request to show in a row. Named, not magic. */
 const SNIPPET_LENGTH = 90;
 
+/** How many characters of the title to show as the primary label. Named, not magic. */
+const TITLE_LENGTH = 90;
+
 /** Human-readable labels for each status (the row badge). */
 const STATUS_LABEL: Record<SessionStatus, string> = {
   draft: "Draft",
@@ -34,11 +38,29 @@ function isResumable(status: SessionStatus): boolean {
   return status !== "complete" && status !== "archived";
 }
 
-function snippet(text: string): string {
+/** Truncate a string to a max length with an ellipsis. */
+function truncate(text: string, max: number): string {
   const trimmed = text.trim();
-  return trimmed.length > SNIPPET_LENGTH
-    ? `${trimmed.slice(0, SNIPPET_LENGTH)}…`
-    : trimmed;
+  return trimmed.length > max ? `${trimmed.slice(0, max)}…` : trimmed;
+}
+
+/**
+ * The primary label for a row: the generated title when present, else the
+ * request snippet (title is null until generated, or if generation failed).
+ */
+function primaryLabel(session: InterviewSession): string {
+  const title = session.title?.trim();
+  return title ? truncate(title, TITLE_LENGTH) : truncate(session.original_request, SNIPPET_LENGTH);
+}
+
+/**
+ * The muted subtitle: the raw request, shown only when a distinct title is the
+ * primary label (so we don't echo the same text twice).
+ */
+function subtitle(session: InterviewSession): string | null {
+  const title = session.title?.trim();
+  if (!title) return null;
+  return truncate(session.original_request, SNIPPET_LENGTH);
 }
 
 export function SessionList({
@@ -60,7 +82,10 @@ export function SessionList({
             <span className={`session-status session-status-${session.status}`}>
               {STATUS_LABEL[session.status]}
             </span>
-            <p className="session-snippet">{snippet(session.original_request)}</p>
+            <p className="session-title">{primaryLabel(session)}</p>
+            {subtitle(session) && (
+              <p className="session-snippet">{subtitle(session)}</p>
+            )}
             <span className="session-meta">
               Updated {new Date(session.updated_at).toLocaleString()}
             </span>
@@ -69,7 +94,7 @@ export function SessionList({
             {isResumable(session.status) ? (
               <button
                 type="button"
-                className="primary-button"
+                className="secondary-button"
                 onClick={() => onResume(session)}
               >
                 {session.status === "awaiting_input" ? "Finish" : "Resume"}

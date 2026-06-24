@@ -47,7 +47,7 @@ export function OptionCard({
       }}
       transition={SPRING_SOFT}
       className={
-        "group relative flex w-full flex-col gap-4 overflow-hidden rounded-2xl border p-5 text-left " +
+        "group relative flex w-full min-w-0 flex-col gap-4 overflow-hidden rounded-2xl border p-5 text-left " +
         "transition-colors cursor-pointer disabled:cursor-not-allowed " +
         (isSelected
           ? "border-accent bg-accent/[0.08] shadow-[0_18px_50px_-20px_rgba(255,117,31,0.55)]"

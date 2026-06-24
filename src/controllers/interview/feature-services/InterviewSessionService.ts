@@ -17,14 +17,23 @@ import type {
 import type { ListSessionsQuery } from "../../../validation/interviewSession";
 import { InterviewError } from "../feature-utils/InterviewError";
 import { InterviewEngineService } from "./InterviewEngineService";
+import { TitleService } from "./TitleService";
 
 export class InterviewSessionService {
-  /** Create a session from the PM's initial request text. */
+  /**
+   * Create a session from the PM's initial request text, with a concise
+   * generated display title (User QA: auto-generated session title). The title
+   * comes from one cheap LOW-effort call (TitleService) before insert, so it is
+   * the session's label immediately. Title generation degrades to null on any
+   * failure (never throws), so a model blip can never fail the create — the
+   * session is still created, just without a title until finalize.
+   */
   static async createSession(
     owner: OwnerContext,
     originalRequest: string,
   ): Promise<IInterviewSession> {
-    return InterviewSessionModel.create(owner, { originalRequest });
+    const title = await TitleService.generate({ kind: "request", originalRequest });
+    return InterviewSessionModel.create(owner, { originalRequest, title });
   }
 
   /**
@@ -99,9 +108,16 @@ export class InterviewSessionService {
   ): Promise<IInterviewSession> {
     const source = await this.getSessionForOwner(sourceId, owner);
     const RESET_STATUS: SessionStatus = "draft";
+    // A clone re-runs from the same request, so it gets its own create-time title
+    // the same way a fresh session does (User QA). Degrades to null on failure.
+    const title = await TitleService.generate({
+      kind: "request",
+      originalRequest: source.original_request,
+    });
     return InterviewSessionModel.create(owner, {
       originalRequest: source.original_request,
       status: RESET_STATUS,
+      title,
     });
   }
 }

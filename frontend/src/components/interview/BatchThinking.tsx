@@ -1,11 +1,11 @@
 /**
  * BatchThinking — the labeled, animated "figuring out the questions" indicator
  * shown while a batch generates (spec 2 UX). It replaces a bare "Generating…":
- * an animated dual-ring orb plus a primary label that rotates through a few
- * phases ("Reading your answers…" → "Grounding in your request…" → "Drafting
- * the next questions…") so the wait feels intentional and clearly in progress.
- * Presentational + motion only; no fetch, no business logic (§14.1). Typed,
- * no `any` (§17.2).
+ * an animated dual-ring orb plus a primary label that rotates through a mix of
+ * functional phases ("Reading your answers…", "Grounding in your request…") and
+ * playful asides about Dave the engineer, so the wait feels intentional and has
+ * a little personality (Item 5). Presentational + motion only; no fetch, no
+ * business logic (§14.1). Typed, no `any` (§17.2).
  */
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -15,12 +15,26 @@ interface BatchThinkingProps {
   batchNumber: number;
 }
 
-/** The rotating phase labels. Named, not magic (§4.2). */
+/**
+ * The rotating phase labels (§4.2). A mix of the functional "what we're doing"
+ * lines and playful asides about Dave, our hard-working engineer, so the wait
+ * has some personality (Item 5). Kept tasteful and short.
+ */
 const PHASES: readonly string[] = [
   "Figuring out the right questions…",
+  "Asking Dave to put down his coffee…",
   "Reading your answers so far…",
+  "Dave is grepping the codebase…",
   "Grounding in your request…",
+  "Dave renamed a variable for the third time…",
   "Drafting the next questions…",
+  "Waiting on Dave's hot reload…",
+  "Dave is arguing with the linter…",
+  "Cross-referencing the decisions so far…",
+  "Dave found a TODO from 2019…",
+  "Dave is rebasing, please hold…",
+  "Tidying up the next batch…",
+  "Dave swears it worked on his machine…",
 ];
 
 /** How long each phase shows before rotating, in ms. Named, not magic. */

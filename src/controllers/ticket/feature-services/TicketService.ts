@@ -6,9 +6,12 @@
  * (§11.7). Never touches req/res. Generation lives in its sibling
  * TicketGenerationService. Mirrors InterviewEngineService (§6.1).
  */
+import { logger } from "../../../config/logger";
 import { BaseModel } from "../../../models/BaseModel";
+import { InterviewSessionModel } from "../../../models/InterviewSessionModel";
 import { TicketCommentModel } from "../../../models/TicketCommentModel";
 import { TicketModel } from "../../../models/TicketModel";
+import { TitleService } from "../../interview/feature-services/TitleService";
 import { TicketMarkdownService } from "./TicketMarkdownService";
 import type {
   ITicket,
@@ -125,11 +128,54 @@ export class TicketService {
     });
     if (!finalized) throw this.versionConflict(ticketId, expectedVersion);
 
+    // Refine the session's display title from the now-finalized ticket (User QA:
+    // auto-generated session title). Best-effort and AFTER the atomic finalize —
+    // a title is never a hard gate, so a model blip or a slow call can never fail
+    // a finalize that already succeeded. Degrades to leaving the create-time title.
+    await this.refreshSessionTitle(finalized, owner);
+
     const comments = await TicketCommentModel.listByTicket(ticketId);
     return { ticket: finalized, comments };
   }
 
   /* ----------------------------- private helpers ------------------------- */
+
+  /**
+   * Regenerate the parent session's title from the finalized ticket and persist
+   * it owner-scoped (User QA). TitleService never throws (degrades to null), and
+   * this only REPLACES an existing title when generation produced a usable one —
+   * a null result leaves the create-time title in place rather than blanking a
+   * good label. Any unexpected error is swallowed-with-a-log (§3.2): the finalize
+   * has already succeeded and must not be undone by a cosmetic title step.
+   */
+  private static async refreshSessionTitle(
+    ticket: ITicket,
+    owner: OwnerContext,
+  ): Promise<void> {
+    try {
+      const title = await TitleService.generate(
+        {
+          kind: "ticket",
+          userStory: ticket.user_story ?? "",
+          contextSummary: ticket.context_summary ?? "",
+          acceptanceCriteria: ticket.acceptance_criteria ?? [],
+          effort: ticket.effort ?? "M",
+        },
+        { sessionId: ticket.session_id },
+      );
+      if (title === null) return; // keep the create-time title; don't blank it.
+      await InterviewSessionModel.updateTitleForOwner(
+        ticket.session_id,
+        owner,
+        title,
+      );
+    } catch (error) {
+      logger.warn(
+        { err: error, ticketId: ticket.id, sessionId: ticket.session_id },
+        "Failed to refresh session title after finalize; keeping prior title",
+      );
+    }
+  }
 
   /** Owner-verify a ticket or throw NOT_FOUND (§11.7). */
   private static async requireTicket(

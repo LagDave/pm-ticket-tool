@@ -49,5 +49,5 @@ function nextBatchNumber(state: InterviewState | undefined): number {
  */
 export function generateButtonLabel(state: InterviewState | undefined): string {
   const next = nextBatchNumber(state);
-  return next === 1 ? "Start the interview" : `Ready for batch ${next}`;
+  return next === 1 ? "Start feature scoping" : `Ready for batch ${next}`;
 }

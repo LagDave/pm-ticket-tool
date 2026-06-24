@@ -36,6 +36,7 @@ import {
   generateButtonLabel,
   hasOpenBatch,
 } from "../../utils/batchProgress";
+import { LoadingLine } from "../ui/LoadingLine";
 import { BatchThinking } from "./BatchThinking";
 import { OTHER_OPTION } from "./OptionDeck";
 import { QuestionCarousel } from "./QuestionCarousel";
@@ -95,14 +96,24 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
   const batchNumber = currentBatchNumber(state);
   const isOpen = hasOpenBatch(state);
 
+  // Selection is mutually exclusive (Item 8): picking a real option clears any
+  // custom free-text, and typing custom text selects the custom card (clearing
+  // any picked option). Clearing the custom input back to empty reverts to no
+  // selection, rather than leaving the empty custom card falsely selected.
   const setOption = (questionId: string, optionId: string): void => {
     setDrafts((prev) => ({
       ...prev,
-      [questionId]: { optionId, otherText: prev[questionId]?.otherText ?? "" },
+      [questionId]: { optionId, otherText: "" },
     }));
   };
   const setOther = (questionId: string, otherText: string): void => {
-    setDrafts((prev) => ({ ...prev, [questionId]: { optionId: OTHER_OPTION, otherText } }));
+    setDrafts((prev) => ({
+      ...prev,
+      [questionId]: {
+        optionId: otherText.trim().length > 0 ? OTHER_OPTION : null,
+        otherText,
+      },
+    }));
   };
 
   const toAnswers = (): SubmittedAnswer[] =>
@@ -152,7 +163,7 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
     });
   };
 
-  if (isLoading) return <p className="field-hint">Loading interview…</p>;
+  if (isLoading) return <LoadingLine label="Loading feature scope…" />;
 
   // Generating a batch — show the labeled, animated thinking indicator. Rendered
   // directly (no wrapping AnimatePresence): BatchThinking owns its own internal
@@ -310,7 +321,7 @@ function BatchProgress({
     <div>
       <div className="batch-bar">
         <p className="batch-eyebrow">
-          Interview
+          Feature Scope
           {current !== null && (
             <>
               {" · "}
@@ -373,7 +384,7 @@ function GenerateBatchPanel({
       <p className="field-hint">
         {answered === 0
           ? "We'll ask a few dependency-ordered questions at a time, grounded in your request, and stop once there's enough to draft a good ticket."
-          : "Nice — those are saved. Generate the next batch, or stop here and draft the ticket from what we have."}
+          : "Nice, those are saved. Generate the next batch, or stop here and draft the ticket from what we have."}
       </p>
       <div className="step-actions">
         <button

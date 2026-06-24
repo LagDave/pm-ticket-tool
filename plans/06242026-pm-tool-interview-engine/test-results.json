@@ -100,6 +100,162 @@
       "evidence": "Browser acceptance pass 2026-06-24 (dev server localhost:59436, real model). Resumed a scoped session into the interview step; clicked 'Generate questions' -> POST /sessions/880/interview/next-batch 200 rendered a 4-question batch (survey_channel, timing_config, audience_segmentation, branching_logic), each with radio options + an 'Other (describe)' free-text. Answered all 4 using the free-text 'other' on q2 ('Hybrid: admin sets a base delay...'); 'Submit answers' -> POST .../answers 200 persisted turn0 with 4 answers + 4 decision_record rows (q2 decision correctly stored otherText, not optionId). Clicked 'Generate questions' again -> materiality gate generated a distinct round-2 batch (storage, over-surveying, who-configures, opt-outs). Answered round 2 and clicked 'Stop and generate now' -> POST .../answers (stop) 200 terminated the interview (isComplete=true) and the wizard auto-advanced to the Ticket step. Verified visually via preview screenshot (4-question batch with radios + Other) and via the live POST .../answers response body (turn0 answers + 4 decisions). All data flowed through the api/ client; no console errors.",
       "notes": "Full two-round interview driven in a real browser to termination via stop-and-generate; write-through persistence (turns + decisions incl. free-text other) confirmed against the live state payload.",
       "waiver": ""
+    },
+    {
+      "id": "T-R4-1",
+      "title": "Rev 4: Dashboard reads neutral — all action buttons white/neutral, only the active filter pill is accent",
+      "surface": "ui",
+      "precondition": "Frontend built; backend reachable via the Vite /api proxy; dashboard has sessions.",
+      "steps": [
+        "1. Load the dashboard.",
+        "2. Read computed background-color of New session, Resume/Finish, View ticket, Re-run buttons.",
+        "3. Read the active 'All' filter pill background.",
+        "4. Read the IN PROGRESS and COMPLETE status badge backgrounds."
+      ],
+      "expected": "Every dashboard action button bg = surface rgb(18,20,28) with white ink, none = accent rgb(255,117,31). Active 'All' pill = accent. IN PROGRESS badge = translucent white rgba(255,255,255,0.08). COMPLETE badge stays green.",
+      "status": "pass",
+      "evidence": "preview_inspect computed styles (2026-06-25, localhost web dev server): all action buttons bg rgb(18,20,28), color rgb(244,245,248), isAccentBg=false. Filter pills: only active 'All' = rgb(255,117,31); others neutral. Badges: in_progress bg rgba(255,255,255,0.08) color rgb(244,245,248); complete color rgb(110,231,176) green. Built CSS rule: session-status-in_progress{color:var(--ink);background:#ffffff14;border-color:#ffffff2e} — no accent.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T-R4-2",
+      "title": "Rev 4: Session row shows the title as primary label; raw request is a muted subtitle (request fallback when title null)",
+      "surface": "ui",
+      "precondition": "Dashboard list loaded.",
+      "steps": [
+        "1. Inspect .session-title (primary) and .session-snippet (subtitle) in each row.",
+        "2. Confirm title is white display font weight 600; subtitle is muted.",
+        "3. With title null, confirm the request shows as the primary label and no duplicate subtitle is rendered."
+      ],
+      "expected": "Title is the primary label (ink, Fraunces, 600); request is a muted subtitle when a title exists; when title is null the request becomes the primary label with no echoed subtitle.",
+      "status": "pass",
+      "evidence": "preview_eval: .session-title color rgb(244,245,248), font Fraunces, weight 600. Live sessions have title=null (backend title feature newly added) so they correctly fall back to the request as primary with subtitle hidden (verified live). .session-snippet CSS rule = color var(--muted), 0.9rem (the subtitle styling for the title-present branch). primaryLabel/subtitle logic in SessionList.tsx.",
+      "notes": "No live session currently has a non-null title, so the title-present subtitle branch was verified via CSS rule + code, not a populated row.",
+      "waiver": ""
+    },
+    {
+      "id": "T-R4-3",
+      "title": "Rev 4: Logo in the app header + favicon",
+      "surface": "ui",
+      "precondition": "Frontend built; /logo.png served from public/.",
+      "steps": [
+        "1. Confirm <link rel=icon href=/logo.png> in index.html.",
+        "2. Inspect .wizard-brand .wizard-logo on dashboard, wizard, and ticket headers."
+      ],
+      "expected": "Favicon href is /logo.png; the logo renders 32x32 beside the PM Ticket Tool wordmark in the header.",
+      "status": "pass",
+      "evidence": "preview_eval: faviconHref=/logo.png; .wizard-brand .wizard-logo src=/logo.png, 32x32, visible on dashboard and wizard headers. index.html has the icon link.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T-R4-4",
+      "title": "Rev 4: Triage loader is an animated gauge that resolves to a GREEN check before routing onward",
+      "surface": "ui",
+      "precondition": "A request submitted; triage running.",
+      "steps": [
+        "1. Submit a request and observe the 'Sizing up your request' panel.",
+        "2. Confirm the loader shows animated bars (accent gradient, scaleY animation) and a rotating phase line.",
+        "3. On completion confirm a green check shows briefly (SETTLE_HOLD_MS ~950ms) before the result panel reveals."
+      ],
+      "expected": "Animated gauge while classifying; a green check (COMPLETE green) on completion with a short hold; then the result reveals (no snap).",
+      "status": "pass",
+      "evidence": "preview_eval probe of the loader DOM: .triage-bar backgroundImage = linear-gradient(rgb(255,143,71),rgb(255,117,31)) (accent), 5px wide, framer scaleY keyframes; .triage-check color rgb(110,231,176) (green), green-tinted bg + border, isGreenish=true. TriageBranch holds on the check for SETTLE_HOLD_MS=950ms before revealing the result (the result heading appears after a delay). The transient is sub-second so it was verified by deterministic DOM/CSS probe + the settle-gate code rather than a frame capture.",
+      "notes": "Triage resolves faster than discrete polling could catch the check frame; verified structurally.",
+      "waiver": ""
+    },
+    {
+      "id": "T-R4-5",
+      "title": "Rev 4: No-spinner loading states now use an animated indicator",
+      "surface": "ui",
+      "precondition": "A state that loads interview/session data.",
+      "steps": [
+        "1. Trigger the interview-state load (QuestionBatch) and the dashboard sessions load.",
+        "2. Confirm a LoadingLine (spinning ring + label) renders instead of bare text."
+      ],
+      "expected": "Loading states render an animated spinning ring + label ('Loading feature scope…', 'Loading sessions…'), not static text.",
+      "status": "pass",
+      "evidence": "LoadingLine component (components/ui/LoadingLine.tsx) renders a framer-motion rotating ring + label; wired into QuestionBatch (Loading feature scope…) and Dashboard (Loading sessions…). CSS .loading-line-spinner present in built bundle. Bare strings 'Loading interview…' removed (0 occurrences in built JS).",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T-R4-6",
+      "title": "Rev 4: Batch loader includes playful Dave phrases mixed with functional ones",
+      "surface": "ui",
+      "precondition": "A batch generating.",
+      "steps": [
+        "1. Click generate and watch the BatchThinking loader label rotate.",
+        "2. Confirm Dave-themed phrases appear among the functional ones."
+      ],
+      "expected": "The loader rotates through a mix of functional lines and Dave/engineer asides.",
+      "status": "pass",
+      "evidence": "Live capture (preview_eval on a fresh dev server): batch loader label showed 'Dave is grepping the codebase…' during generation. Built JS bundle contains all Dave phrases (Dave put down coffee, grepping, renamed a variable, arguing with the linter, found a TODO from 2019, rebasing, worked on his machine).",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T-R4-7",
+      "title": "Rev 4: Carousel option cards + build-speed meter fit within the slide; nothing is clipped (incl. hover/select)",
+      "surface": "ui",
+      "precondition": "An open batch rendered in the carousel.",
+      "steps": [
+        "1. At a wide viewport (2-column grid) measure each option card and its [role=meter] right edge against the carousel stage and viewport.",
+        "2. Select the right-column card (scale 1.03) and re-measure.",
+        "3. Confirm every meter renders all 5 segments and stays within the stage."
+      ],
+      "expected": "No card or meter overflows the stage/viewport at any breakpoint; all 5-segment meters render fully, including when a card is hovered/selected.",
+      "status": "pass",
+      "evidence": "preview_eval bounding-box measurements at 1100px and 1024px (2-column): anyCardOverflowsStage=false, anyCardOverflowsViewport=false, all meters segs=5 withinStage=true. Right-column selected card (aria-pressed=true, scale 1.03) right=954 < stage 968 < viewport — not clipped; its meter right=933 fully rendered. At 369px single-column, same (no clipping). Fix: .carousel-stage overflow:visible + 8px/14px padding (parent .step-panel clips overshoot); cards given min-w-0.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T-R4-8",
+      "title": "Rev 4: Custom-answer selection is mutually exclusive (typing custom selects it + de-selects the option; clearing reverts to none)",
+      "surface": "ui",
+      "precondition": "An open batch with options + an 'Something else' free-text card.",
+      "steps": [
+        "1. Select an option; confirm it gets the full selected treatment and others recede.",
+        "2. Type into the custom free-text; confirm the custom card gets the full selected treatment (accent border + check + shadow) AND the previously-selected option de-highlights.",
+        "3. Clear the custom input; confirm selection reverts to none."
+      ],
+      "expected": "Selection is exclusive: option vs custom never both selected; typing custom takes the selection with full visual treatment and clears the option; clearing custom reverts to no selection.",
+      "status": "pass",
+      "evidence": "preview_eval sequence on a fresh dev server (clean CSS, 2026-06-25): (A) select option[1] -> pressed=true, accentBorder=true, opacity 1; others + custom opacity 0.45. (B) type into custom -> custom card accentBorder=true, accentShadow=true, opacity 1; ALL options pressed=false, opacity 0.45 (prior option de-highlighted). (C) clear custom -> custom accentBorder=false opacity 1, all options pressed=false opacity ~1 (no selection). Also verified the recommended card when selected paints full accent (rgb(255,117,31)), not the /55 recommended border. Logic in QuestionBatch.setOption/setOther; visual treatment in OptionDeck.OtherCard.",
+      "notes": "An initial measurement on a stale pre-edit dev server showed correct className/aria-pressed but stale CSS paint; restarting the dev server (fresh Tailwind generation) confirmed the paint, matching the verified production bundle.",
+      "waiver": ""
+    },
+    {
+      "id": "T-R4-9",
+      "title": "Rev 4: 'Interview' renamed to 'Feature Scope' in all user-facing copy",
+      "surface": "ui",
+      "precondition": "Wizard reachable.",
+      "steps": [
+        "1. Read the stepper labels, the request-entry submit button + hint, the triage result copy + buttons, and the batch eyebrow.",
+        "2. Confirm no user-facing 'interview' string remains; backend/internal identifiers may keep 'interview'."
+      ],
+      "expected": "Stepper shows 'Feature Scope'; buttons read 'Start feature scoping'; batch eyebrow reads 'Feature Scope'; triage/hint copy say 'feature scope'. No visible 'interview'.",
+      "status": "pass",
+      "evidence": "preview_eval live: step rail = [Request, Feature Scope, Ticket]; request submit = 'Start feature scoping'; request hint = '...through a short feature scope.'; triage hint = '...walk through a short feature scope...'; triage primary button = 'Start feature scoping'; batch eyebrow = 'Feature Scope'; GenerateBatchPanel button = 'Start feature scoping'. Built JS: 'Feature Scope' x2, 'Start feature scoping' present; old 'Start interview'/'Start the interview'/'Loading interview' = 0 occurrences.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T-R4-10",
+      "title": "Rev 4: No em-dashes (or en-dashes) remain in shipped user-facing strings",
+      "surface": "ui",
+      "precondition": "Frontend source + built bundle.",
+      "steps": [
+        "1. Scan all .ts/.tsx string literals and JSX text for em/en dashes (excluding code comments).",
+        "2. Fix any found in rendered copy."
+      ],
+      "expected": "Zero em/en dashes in any shipped string or JSX text; comments may retain them (stripped from the bundle).",
+      "status": "pass",
+      "evidence": "grep of all string literals + JSX text nodes across frontend/src returned zero em/en dashes after fixes. Three genuine string-literal dashes were fixed: SpeedMeter aria-label, QuestionBatch 'Nice, those are saved...', TicketView EFFORT_NOTE. All remaining dashes are in JSDoc/inline/CSS comments (allowed, and stripped from the production bundle).",
+      "notes": "",
+      "waiver": ""
     }
   ]
 }

@@ -26,7 +26,7 @@ import type { InterviewSession, TriageRoute } from "../types/interview";
 
 /** The rail labels — the durable destinations a session lands on. Triage is a
  *  transient routing interstitial between Request and these, not a rail dot. */
-const STEPS = ["Request", "Interview", "Ticket"] as const;
+const STEPS = ["Request", "Feature Scope", "Ticket"] as const;
 
 /**
  * The wizard step indices, named so resume routing reads clearly (spec 4 T5).
@@ -97,7 +97,10 @@ export function InterviewWizard({
     <main className="wizard">
       <header className="wizard-header">
         <div className="wizard-topline">
-          <h1 className="wizard-title">PM Ticket Tool</h1>
+          <div className="wizard-brand">
+            <img className="wizard-logo" src="/logo.png" alt="" aria-hidden width={32} height={32} />
+            <h1 className="wizard-title">PM Ticket Tool</h1>
+          </div>
           {onExit && (
             <button type="button" className="link-button" onClick={onExit}>
               ← Dashboard

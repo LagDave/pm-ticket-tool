@@ -20,7 +20,7 @@ export interface RenderableTicket {
  * The model commits to a coarse complexity tier, never hours — this makes the
  * uncertainty explicit in the artifact itself.
  */
-const EFFORT_NOTE = "complexity tier — verify with engineering, not an hour estimate";
+const EFFORT_NOTE = "complexity tier, verify with engineering, not an hour estimate";
 
 export class TicketMarkdownService {
   /**

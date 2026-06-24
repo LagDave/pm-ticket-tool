@@ -9,6 +9,7 @@
  */
 import { useEffect, useState } from "react";
 import { SessionList } from "../components/dashboard/SessionList";
+import { LoadingLine } from "../components/ui/LoadingLine";
 import {
   useCloneSession,
   useResume,
@@ -91,10 +92,13 @@ export function Dashboard({ onOpenSession, onViewTicket }: DashboardProps) {
   return (
     <main className="dashboard">
       <header className="dashboard-header">
-        <h1 className="wizard-title">Your sessions</h1>
+        <div className="wizard-brand">
+          <img className="wizard-logo" src="/logo.png" alt="" aria-hidden width={32} height={32} />
+          <h1 className="wizard-title">Your sessions</h1>
+        </div>
         <button
           type="button"
-          className="primary-button"
+          className="secondary-button"
           onClick={() => onOpenSession(null, WIZARD_STEP.request)}
         >
           New session
@@ -116,7 +120,7 @@ export function Dashboard({ onOpenSession, onViewTicket }: DashboardProps) {
         ))}
       </div>
 
-      {isLoading && <p className="field-hint">Loading sessions…</p>}
+      {isLoading && <LoadingLine label="Loading sessions…" />}
       {error && (
         <p className="field-hint">Could not load your sessions. Try again.</p>
       )}

@@ -15,6 +15,12 @@ import type {
 export interface CreateInterviewSessionInput {
   originalRequest: string;
   status?: SessionStatus;
+  /**
+   * Concise generated display title (User QA: auto-generated session title).
+   * Generated from the request before insert; null when generation failed —
+   * the column is nullable and the UI falls back to the request snippet.
+   */
+  title?: string | null;
 }
 
 export class InterviewSessionModel extends BaseModel {
@@ -32,6 +38,8 @@ export class InterviewSessionModel extends BaseModel {
         organization_id: owner.organizationId,
         original_request: input.originalRequest,
         status: input.status ?? "draft",
+        // Persist the generated title when present; nullable otherwise (User QA).
+        title: input.title ?? null,
       })
       .returning("*");
     return row as IInterviewSession;
@@ -134,6 +142,27 @@ export class InterviewSessionModel extends BaseModel {
     const [row] = await this.table(trx)
       .where({ id, owner_user_id: owner.ownerUserId })
       .update({ status, updated_at: new Date() })
+      .returning("*");
+    return (row as IInterviewSession | undefined) ?? null;
+  }
+
+  /**
+   * Replace a session's generated display title, scoped to the owner (User QA:
+   * auto-generated session title, §11.7). Used after the ticket is finalized to
+   * swap the create-time title (from the request) for the refined one (from the
+   * finalized ticket). Returns the updated row, or null when no row matches
+   * (missing or another owner's) — the caller cannot tell the difference, which
+   * is the point. A null title is a valid write (generation may have failed).
+   */
+  static async updateTitleForOwner(
+    id: number,
+    owner: OwnerContext,
+    title: string | null,
+    trx?: QueryContext,
+  ): Promise<IInterviewSession | null> {
+    const [row] = await this.table(trx)
+      .where({ id, owner_user_id: owner.ownerUserId })
+      .update({ title, updated_at: new Date() })
       .returning("*");
     return (row as IInterviewSession | undefined) ?? null;
   }

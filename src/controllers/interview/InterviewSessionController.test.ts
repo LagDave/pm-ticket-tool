@@ -12,15 +12,23 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../../agents/interviewAgent", () => ({
   generateBatch: vi.fn(),
 }));
+// Session create now generates a title via the title agent; mock its seam so
+// POST /sessions stays deterministic and free — no live model call (§20.4).
+vi.mock("../../agents/titleAgent", () => ({
+  generateTitle: vi.fn(async () => ({ title: "Generated session title" })),
+  sanitizeTitle: (raw: string) => raw.trim() || null,
+}));
 
 import request from "supertest";
 import { generateBatch } from "../../agents/interviewAgent";
+import { generateTitle } from "../../agents/titleAgent";
 import { createApp } from "../../app";
 import { db } from "../../database/connection";
 import { makeBatch } from "../../test/factories";
 
 const app = createApp();
 const mockGenerate = vi.mocked(generateBatch);
+const mockTitle = vi.mocked(generateTitle);
 
 // Synthetic owner ids for this suite (> 1000 so cleanup is scoped).
 const OWNER_A = "2001";
@@ -41,6 +49,10 @@ async function createSessionFor(
 describe("Sessions endpoints", () => {
   beforeEach(() => {
     mockGenerate.mockReset();
+    // Reset the title mock back to its happy-path default each test; individual
+    // tests override it (e.g. to a rejection) as needed.
+    mockTitle.mockReset();
+    mockTitle.mockResolvedValue({ title: "Generated session title" });
   });
 
   afterAll(async () => {
@@ -60,6 +72,25 @@ describe("Sessions endpoints", () => {
     expect(res.body.data.id).toBeGreaterThan(0);
     expect(res.body.data.original_request).toBe("Build a magic link login.");
     expect(res.body.data.status).toBe("draft");
+    // The generated title is persisted at create and exposed in the response
+    // (User QA: auto-generated session title).
+    expect(res.body.data.title).toBe("Generated session title");
+    expect(mockTitle).toHaveBeenCalledTimes(1);
+  });
+
+  it("POST /sessions still succeeds with a null title when title generation fails (degrade, never block)", async () => {
+    // The title agent failing on both models must NOT fail the create — the
+    // session persists with title null and the UI falls back to the snippet.
+    mockTitle.mockRejectedValue(new Error("model down")); // primary + fallback
+
+    const res = await request(app)
+      .post("/sessions")
+      .set("x-dev-user-id", OWNER_A)
+      .send({ originalRequest: "Title generation will fail here." });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.title).toBeNull();
   });
 
   it("POST then GET round-trips the persisted row (200 + envelope)", async () => {

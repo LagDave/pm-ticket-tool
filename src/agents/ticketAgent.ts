@@ -60,6 +60,8 @@ const SYSTEM_PROMPT = [
   "  invent requirements that were not decided; prefer the decisions over the vague",
   "  original request where they conflict.",
   "- context_summary is 1-3 sentences a developer reads first: what this is and why.",
+  "- Never use em-dashes (—) or en-dashes (–) in any output. Use commas, periods,",
+  "  parentheses, or hyphens instead.",
   "",
   EFFORT_TIER_GUIDANCE,
 ].join("\n");

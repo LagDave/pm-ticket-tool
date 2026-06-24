@@ -50,6 +50,8 @@ const SYSTEM_PROMPT = [
   "- Judge the WORK the request implies, not its wording length. A short sentence",
   "  can still describe a large, ambiguous feature.",
   "- reason is one short sentence explaining the call.",
+  "- Never use em-dashes (—) or en-dashes (–) in any output. Use commas, periods,",
+  "  parentheses, or hyphens instead.",
 ].join("\n");
 
 function buildUserPrompt(params: ClassifyRequestParams): string {
