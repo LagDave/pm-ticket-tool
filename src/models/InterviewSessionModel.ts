@@ -14,6 +14,8 @@ import type {
 
 export interface CreateInterviewSessionInput {
   originalRequest: string;
+  /** Optional project to ground the session against (project bits); null when ungrounded. */
+  projectId?: number | null;
   status?: SessionStatus;
   /**
    * Concise generated display title (User QA: auto-generated session title).
@@ -37,6 +39,7 @@ export class InterviewSessionModel extends BaseModel {
         owner_user_id: owner.ownerUserId,
         organization_id: owner.organizationId,
         original_request: input.originalRequest,
+        project_id: input.projectId ?? null,
         status: input.status ?? "draft",
         // Persist the generated title when present; nullable otherwise (User QA).
         title: input.title ?? null,

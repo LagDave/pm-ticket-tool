@@ -6,6 +6,7 @@
  * req/res. Mirrors GbpReviewReplyService (§6.1).
  */
 import { InterviewSessionModel } from "../../../models/InterviewSessionModel";
+import { ProjectModel } from "../../../models/ProjectModel";
 import { TicketModel } from "../../../models/TicketModel";
 import type {
   IInterviewSession,
@@ -31,9 +32,22 @@ export class InterviewSessionService {
   static async createSession(
     owner: OwnerContext,
     originalRequest: string,
+    projectId?: number,
   ): Promise<IInterviewSession> {
+    // Owner-verify the project before attaching it, so a session can only ground
+    // against a project the caller owns (§11.7). Absent → an ungrounded session.
+    if (projectId !== undefined) {
+      const project = await ProjectModel.findByIdForOwner(projectId, owner);
+      if (!project) {
+        throw new InterviewError(
+          "PROJECT_NOT_FOUND",
+          `Project ${projectId} was not found.`,
+          { projectId },
+        );
+      }
+    }
     const title = await TitleService.generate({ kind: "request", originalRequest });
-    return InterviewSessionModel.create(owner, { originalRequest, title });
+    return InterviewSessionModel.create(owner, { originalRequest, title, projectId });
   }
 
   /**

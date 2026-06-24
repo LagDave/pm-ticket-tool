@@ -15,12 +15,16 @@ import { TicketView } from "./components/ticket/TicketView";
 import { queryClient } from "./lib/queryClient";
 import { Dashboard } from "./pages/Dashboard";
 import { InterviewWizard, type WizardStep } from "./pages/InterviewWizard";
+import { ProjectDetail } from "./pages/ProjectDetail";
+import { ProjectsManager } from "./pages/ProjectsManager";
 
 /** Which top-level screen is showing. UI state only (§15.2). */
 type View =
   | { name: "dashboard" }
   | { name: "wizard"; sessionId: number | null; step: WizardStep }
-  | { name: "ticket"; ticketId: number };
+  | { name: "ticket"; ticketId: number }
+  | { name: "projects" }
+  | { name: "projectDetail"; projectId: number };
 
 export default function App() {
   const [view, setView] = useState<View>({ name: "dashboard" });
@@ -35,6 +39,21 @@ export default function App() {
             setView({ name: "wizard", sessionId, step })
           }
           onViewTicket={(ticketId) => setView({ name: "ticket", ticketId })}
+          onOpenProjects={() => setView({ name: "projects" })}
+        />
+      )}
+
+      {view.name === "projects" && (
+        <ProjectsManager
+          onOpenProject={(projectId) => setView({ name: "projectDetail", projectId })}
+          onExit={goDashboard}
+        />
+      )}
+
+      {view.name === "projectDetail" && (
+        <ProjectDetail
+          projectId={view.projectId}
+          onBack={() => setView({ name: "projects" })}
         />
       )}
 

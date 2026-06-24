@@ -29,6 +29,8 @@ export const createSessionSchema = z.object({
     .trim()
     .min(REQUEST_MIN_LENGTH, "originalRequest is required.")
     .max(REQUEST_MAX_LENGTH, "originalRequest is too long."),
+  /** Optional project to ground the interview against (project bits). */
+  projectId: z.coerce.number().int().positive().optional(),
 });
 
 export type CreateSessionBody = z.infer<typeof createSessionSchema>;

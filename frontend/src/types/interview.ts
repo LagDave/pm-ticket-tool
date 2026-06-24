@@ -44,6 +44,12 @@ export interface InterviewSession {
 /** POST /sessions request body. */
 export interface CreateSessionInput {
   originalRequest: string;
+  /**
+   * Optional project to attach the session to (project context grounding). When
+   * set, the engine grounds the interview in that project's bits; omitted leaves
+   * the session ungrounded.
+   */
+  projectId?: number;
 }
 
 /**

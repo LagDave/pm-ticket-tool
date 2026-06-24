@@ -13,7 +13,10 @@ import type {
   TriageRequestInput,
 } from "../types/interview";
 
-/** POST /sessions - create a session from the request text. */
+/**
+ * POST /sessions - create a session from the request text, optionally attached to
+ * a project (input.projectId) so the interview is grounded in that project's bits.
+ */
 export async function createSession(
   input: CreateSessionInput,
 ): Promise<InterviewSession> {

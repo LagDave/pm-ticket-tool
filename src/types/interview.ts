@@ -34,6 +34,8 @@ export interface IInterviewSession {
   organization_id: number | null;
   status: SessionStatus;
   original_request: string;
+  /** The project this session is grounded against (project bits), or null when ungrounded. */
+  project_id: number | null;
   /**
    * Concise generated display title for the dashboard (User QA: auto-generated
    * session title). Generated from original_request at create and replaced from

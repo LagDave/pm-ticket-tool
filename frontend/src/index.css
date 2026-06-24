@@ -1080,6 +1080,153 @@ textarea.request-input {
 }
 
 /* ===========================================================================
+ * Projects & bits — manager screens (project context grounding)
+ * ======================================================================== */
+
+/* Right-aligned cluster of header actions (nav + primary), used by the dashboard
+ * and the project screens so the topline can hold more than one button. */
+.dashboard-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* The optional second line of the project form — sits under the name input. */
+.project-description-input {
+  margin-top: 12px;
+}
+
+/* The optional project picker on the request-entry step. */
+.project-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 18px;
+}
+.project-picker-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.project-picker .ticket-effort-select {
+  width: auto;
+  min-width: 220px;
+}
+
+/* A kind group on the project detail — heading + its bit rows. */
+.bit-group {
+  margin-top: 26px;
+}
+.bit-group-heading {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.bit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bit-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  padding: 16px 18px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.bit-row:hover {
+  border-color: var(--line-2);
+  background: var(--surface-2);
+}
+/* While its inline edit form is open the row drops the hover/columns and lets the
+ * form fill the width. */
+.bit-row-editing {
+  display: block;
+}
+
+.bit-row-main {
+  min-width: 0;
+  flex: 1 1 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.bit-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.bit-key {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+/* Quiet provenance badge: manual / imported / merged — keeps the audit visible. */
+.bit-source {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.bit-summary {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+.bit-row-actions {
+  display: flex;
+  gap: 9px;
+  flex-shrink: 0;
+}
+
+/* The add/edit bit form — a compact stack of fields. */
+.bit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.bit-form-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.bit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.bit-field-grow {
+  flex: 1 1 220px;
+}
+.bit-field-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* ===========================================================================
  * Responsive
  * ======================================================================== */
 
@@ -1088,6 +1235,9 @@ textarea.request-input {
   .dashboard {
     width: min(100% - 28px, var(--shell-width));
     padding: 36px 0 72px;
+  }
+  .bit-row-actions {
+    width: 100%;
   }
   .step-panel {
     padding: 22px 20px;

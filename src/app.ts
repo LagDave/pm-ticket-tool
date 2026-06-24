@@ -16,6 +16,7 @@ import healthRouter from "./routes/health";
 import internalScoutRouter from "./routes/internalScout";
 import interviewEngineRouter from "./routes/interviewEngine";
 import interviewSessionsRouter from "./routes/interviewSessions";
+import projectsRouter from "./routes/projects";
 import ticketsRouter from "./routes/tickets";
 
 export function createApp(): Application {
@@ -41,6 +42,10 @@ export function createApp(): Application {
   // resource with /:id/interview… paths; it is mounted alongside (not over) the
   // foundation sessions router, whose paths (/ and /:id) do not collide (spec 2 T5).
   app.use("/health", healthRouter);
+  // Project context & bits (spec project-context-bits): owns /projects CRUD and
+  // /projects/:id/bits. Its paths do not collide with the sessions/engine/ticket
+  // routers below.
+  app.use("/projects", projectsRouter);
   app.use("/sessions", interviewSessionsRouter);
   app.use("/sessions", interviewEngineRouter);
   // Code scout (spec 5): owns POST/GET /sessions/:id/scout. Paths do not collide

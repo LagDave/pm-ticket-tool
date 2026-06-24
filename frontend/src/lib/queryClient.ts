@@ -36,4 +36,9 @@ export const QUERY_KEYS = {
   interview: (sessionId: number) => ["interview", sessionId] as const,
   /** A persisted ticket + its comments (spec 3), keyed by ticket id. */
   ticket: (ticketId: number) => ["ticket", ticketId] as const,
+  /** The owner's projects list (project context grounding). The bare prefix is
+   *  used for broad invalidation after a create/delete. */
+  projects: () => ["projects"] as const,
+  /** One project + its bits, keyed by project id (project context grounding). */
+  project: (id: number) => ["project", id] as const,
 };

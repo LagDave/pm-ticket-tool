@@ -25,6 +25,8 @@ interface DashboardProps {
   onOpenSession: (sessionId: number | null, step: WizardStep) => void;
   /** Open a ticket read-only by its id (spec 4 T6). */
   onViewTicket: (ticketId: number) => void;
+  /** Open the projects manager (project context grounding). */
+  onOpenProjects: () => void;
 }
 
 /** Page size for the dashboard list. Named, not magic (§4.2). */
@@ -44,7 +46,7 @@ function resumeStep(status: SessionStatus): WizardStep {
   return status === "complete" ? WIZARD_STEP.ticket : WIZARD_STEP.interview;
 }
 
-export function Dashboard({ onOpenSession, onViewTicket }: DashboardProps) {
+export function Dashboard({ onOpenSession, onViewTicket, onOpenProjects }: DashboardProps) {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<SessionStatus | "all">("all");
   // The session whose ticket the PM asked to view; drives the resume-state fetch
@@ -102,13 +104,18 @@ export function Dashboard({ onOpenSession, onViewTicket }: DashboardProps) {
           <img className="wizard-logo" src="/logo.webp"alt="" aria-hidden width={32} height={32} />
           <h1 className="wizard-title">Your sessions</h1>
         </div>
-        <button
-          type="button"
-          className="primary-button"
-          onClick={() => onOpenSession(null, WIZARD_STEP.request)}
-        >
-          New session
-        </button>
+        <div className="dashboard-header-actions">
+          <button type="button" className="secondary-button" onClick={onOpenProjects}>
+            Projects
+          </button>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => onOpenSession(null, WIZARD_STEP.request)}
+          >
+            New session
+          </button>
+        </div>
       </header>
 
       <div className="filter-bar">

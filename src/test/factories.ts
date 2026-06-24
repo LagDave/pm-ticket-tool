@@ -20,6 +20,33 @@ export function makeRequestText(suffix = ""): string {
   return `Add a feature that does the thing${suffix ? ` (${suffix})` : ""}.`;
 }
 
+/** A synthetic project name. */
+export function makeProjectName(suffix = ""): string {
+  return `Project ${suffix || "Alpha"}`;
+}
+
+/**
+ * A synthetic candidate-bit body (the create/import row shape). Defaults to a
+ * `feature` kind; pass overrides to exercise settled kinds. Used to seed manual
+ * bit creates in service/model tests (§20.4).
+ */
+export function makeCandidateBit(
+  overrides: Partial<CandidateBitShape> = {},
+): CandidateBitShape {
+  return {
+    kind: overrides.kind ?? "feature",
+    bit_key: overrides.bit_key ?? "auth",
+    summary: overrides.summary ?? "Email/password plus Google sign-in.",
+  };
+}
+
+/** Local mirror of the candidate-bit body shape (no circular import of production types). */
+export interface CandidateBitShape {
+  kind: "feature" | "constraint" | "integration" | "tech_stack" | "inventory";
+  bit_key: string;
+  summary: string;
+}
+
 /**
  * A synthetic UNGROUNDED generated batch matching the engine's structured-output
  * shape (the no-findings fallback, spec 6): no groundingRef and `skipped` is null,

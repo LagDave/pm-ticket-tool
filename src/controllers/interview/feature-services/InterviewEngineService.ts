@@ -18,9 +18,10 @@ import { BaseModel } from "../../../models/BaseModel";
 import { DecisionRecordModel } from "../../../models/DecisionRecordModel";
 import { InterviewSessionModel } from "../../../models/InterviewSessionModel";
 import { InterviewTurnModel } from "../../../models/InterviewTurnModel";
-import { ScoutCacheModel } from "../../../models/ScoutCacheModel";
+import { ProjectBitModel } from "../../../models/ProjectBitModel";
+import { ProjectModel } from "../../../models/ProjectModel";
 import { generatedBatchSchema } from "../../../validation/interviewQuestions";
-import type { ScoutFindings } from "../../../types/codeScout";
+import type { ProjectGrounding } from "../../../types/project";
 import type {
   CreateDecisionRecordInput,
 } from "../../../models/DecisionRecordModel";
@@ -164,16 +165,22 @@ export class InterviewEngineService {
   }
 
   /**
-   * Read the session's cached scout findings, or undefined on a miss (spec 6).
-   * The session has already been owner-verified by the caller (§11.7), so this
-   * read is scoped to a session the caller owns. Undefined routes generation to
-   * the ungrounded fallback; findings route it to the grounded path.
+   * Load the project-bits grounding for a session, or undefined when there is no
+   * project / no active bits (the unchanged ungrounded path). Replaces the old
+   * scout_cache read — project bits supersede the code scout. The session is
+   * owner-verified by the caller; the project is read owner-scoped and only its
+   * ACTIVE bits are loaded for the cached grounding prefix (§11.7, spec R4).
    */
-  private static async findCachedFindings(
-    sessionId: number,
-  ): Promise<ScoutFindings | undefined> {
-    const cached = await ScoutCacheModel.findBySession(sessionId);
-    return cached?.findings ?? undefined;
+  private static async loadProjectGrounding(
+    session: IInterviewSession,
+    owner: OwnerContext,
+  ): Promise<ProjectGrounding | undefined> {
+    if (session.project_id === null) return undefined;
+    const project = await ProjectModel.findByIdForOwner(session.project_id, owner);
+    if (!project) return undefined; // project deleted since attach → ungrounded
+    const bits = await ProjectBitModel.listActiveByProject(project.id);
+    if (bits.length === 0) return undefined; // no bits yet → nothing to ground on
+    return { projectName: project.name, bits };
   }
 
   /** The most recent turn, or null when no batch exists yet. */
@@ -318,18 +325,18 @@ export class InterviewEngineService {
     turnIndex: number,
   ): Promise<void> {
     const decisions = await DecisionRecordModel.listBySession(session.id);
-    // Branch once on "findings present" (spec 6 Pushback): read the cached scout
-    // findings through the model (§7.4) — undefined on a miss routes the agent to
-    // the ungrounded path, present routes it to the grounded path. Read-only here;
-    // generation never writes the cache.
-    const findings = await this.findCachedFindings(session.id);
+    // Branch once on "grounding present": load the session's project bits through
+    // the models (§7.4) — undefined when there is no project / no active bits routes
+    // the agent to the unchanged ungrounded path, present routes it to the grounded
+    // path. Read-only here; generation never writes bits.
+    const grounding = await this.loadProjectGrounding(session, owner);
     const params = {
       originalRequest: session.original_request,
       priorDecisions: decisions,
       roundNumber: turnIndex + 1,
       maxRounds: INTERVIEW_ENGINE.MAX_ROUNDS,
       maxQuestions: INTERVIEW_ENGINE.MAX_QUESTIONS_PER_BATCH,
-      findings,
+      grounding,
     };
 
     const batch = await this.callAgentWithFallback(params, session.id);

@@ -4,7 +4,8 @@
  * free — no live model call, synthetic data only (§20.4). Covers: the batch
  * schema (≤4 well-formed questions), atomic write-through persistence, the
  * materiality gate (asks again vs terminates), resume/replay with no
- * regeneration, the global stop, and the malformed-output rejection path.
+ * regeneration, the global stop, the malformed-output rejection path, and the
+ * project-bits grounding path (grounded options + suppression).
  */
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -17,22 +18,22 @@ import { generateBatch } from "../../../agents/interviewAgent";
 import { db } from "../../../database/connection";
 import { InterviewSessionModel } from "../../../models/InterviewSessionModel";
 import { InterviewTurnModel } from "../../../models/InterviewTurnModel";
-import { ScoutCacheModel } from "../../../models/ScoutCacheModel";
+import { ProjectBitModel } from "../../../models/ProjectBitModel";
+import { ProjectModel } from "../../../models/ProjectModel";
 import {
   makeBatch,
   makeGroundedBatch,
   makeOwner,
+  makeProjectName,
   makeRequestText,
-  makeScoutFindings,
 } from "../../../test/factories";
-import type { ScoutFindings } from "../../../types/codeScout";
 import type { OwnerContext } from "../../../types/interview";
 import { SPEED_TIERS } from "../../../validation/interviewQuestions";
 import { InterviewEngineService } from "./InterviewEngineService";
 
 const mockGenerate = vi.mocked(generateBatch);
 
-/** Create a fresh persisted session owned by a synthetic owner. */
+/** Create a fresh persisted (ungrounded) session owned by a synthetic owner. */
 async function seedSession(owner: OwnerContext): Promise<number> {
   const session = await InterviewSessionModel.create(owner, {
     originalRequest: makeRequestText("engine"),
@@ -40,17 +41,32 @@ async function seedSession(owner: OwnerContext): Promise<number> {
   return session.id;
 }
 
-/** Seed a scout_cache row so the session's generation takes the grounded path (spec 6). */
-async function seedFindings(
-  sessionId: number,
-  findings: ScoutFindings = makeScoutFindings(),
-): Promise<void> {
-  await ScoutCacheModel.create({
-    sessionId,
-    provider: "github",
-    repoRef: "octocat/hello-world",
-    findings,
+/**
+ * Create a project with active bits and a session attached to it, so the
+ * session's generation takes the grounded path. Includes a SETTLED tech_stack
+ * bit (data_store) the grounded batch factory can mark as the suppressed question.
+ */
+async function seedGroundedSession(owner: OwnerContext): Promise<number> {
+  const project = await ProjectModel.create(owner, { name: makeProjectName() });
+  await ProjectBitModel.createMany([
+    {
+      projectId: project.id,
+      kind: "tech_stack",
+      bitKey: "data_store",
+      summary: "Postgres via Knex is already the data store.",
+    },
+    {
+      projectId: project.id,
+      kind: "feature",
+      bitKey: "auth",
+      summary: "Email/password auth already exists.",
+    },
+  ]);
+  const session = await InterviewSessionModel.create(owner, {
+    originalRequest: makeRequestText("engine"),
+    projectId: project.id,
   });
+  return session.id;
 }
 
 describe("InterviewEngineService", () => {
@@ -59,8 +75,10 @@ describe("InterviewEngineService", () => {
   });
 
   afterAll(async () => {
-    // CASCADE from interview_sessions clears scout_cache rows for synthetic owners.
+    // CASCADE from interview_sessions clears turns/decisions; projects own their
+    // bits (CASCADE) and are deleted separately for synthetic owners.
     await db("interview_sessions").where("owner_user_id", ">", 1000).del();
+    await db("projects").where("owner_user_id", ">", 1000).del();
   });
 
   it("generates a first batch, validates it, and persists it as turn 0", async () => {
@@ -240,20 +258,20 @@ describe("InterviewEngineService", () => {
     ).rejects.toMatchObject({ code: "SESSION_NOT_FOUND" });
   });
 
-  /* ---------------- grounded options (spec 6) ---------------------------- */
+  /* ---------------- project-bits grounding (spec: project context) -------- */
 
-  describe("grounded options (spec 6)", () => {
-    it("no-findings fallback: forwards no findings and persists ungrounded options", async () => {
+  describe("grounded options (project bits)", () => {
+    it("no-grounding fallback: forwards no grounding and persists ungrounded options", async () => {
       const owner = makeOwner();
-      const sessionId = await seedSession(owner); // NO scout_cache row seeded
+      const sessionId = await seedSession(owner); // NO project attached
       mockGenerate.mockResolvedValueOnce(makeBatch({ hasOpenMaterialDecisions: true }));
 
       const state = await InterviewEngineService.advanceNextBatch(sessionId, owner);
 
-      // The agent was called WITHOUT findings (ungrounded path).
+      // The agent was called WITHOUT grounding (ungrounded path).
       expect(mockGenerate).toHaveBeenCalledTimes(1);
       const params = mockGenerate.mock.calls[0][0];
-      expect(params.findings).toBeUndefined();
+      expect(params.grounding).toBeUndefined();
 
       // The persisted options carry no grounding and skipped is null, but each
       // still carries a speed tier and exactly one option is recommended.
@@ -274,21 +292,20 @@ describe("InterviewEngineService", () => {
       expect(persisted.skipped).toBeNull();
     });
 
-    it("grounded path: forwards cached findings and persists grounded options + skips", async () => {
+    it("grounded path: forwards the project bits and persists grounded options + skips", async () => {
       const owner = makeOwner();
-      const sessionId = await seedSession(owner);
-      const findings = makeScoutFindings({ summary: "Auth + Postgres already exist." });
-      await seedFindings(sessionId, findings);
+      const sessionId = await seedGroundedSession(owner);
       mockGenerate.mockResolvedValueOnce(makeGroundedBatch({ hasOpenMaterialDecisions: true }));
 
       const state = await InterviewEngineService.advanceNextBatch(sessionId, owner);
 
-      // The agent received the cached findings — the grounded branch (spec 6 Pushback).
+      // The agent received the project bits — the grounded branch.
       const params = mockGenerate.mock.calls[0][0];
-      expect(params.findings).toBeDefined();
-      expect(params.findings?.summary).toBe("Auth + Postgres already exist.");
+      expect(params.grounding).toBeDefined();
+      expect(params.grounding?.bits.length).toBeGreaterThan(0);
+      expect(params.grounding?.bits.some((b) => b.summary.includes("Postgres"))).toBe(true);
 
-      // Options reference a finding, carry a speed tier, and ONE is recommended.
+      // Options reference a bit, carry a speed tier, and ONE is recommended.
       const persisted = state.turns[0].questions as {
         questions: Array<{
           options: Array<{
@@ -304,7 +321,7 @@ describe("InterviewEngineService", () => {
       expect(options.every((o) => SPEED_TIERS.includes(o.speed as never))).toBe(true);
       expect(options.filter((o) => o.recommended === true)).toHaveLength(1);
 
-      // A fully-determined question was skipped, with a recorded reason (auditable).
+      // A fully-determined question was suppressed, with a recorded reason (auditable).
       expect(persisted.skipped).not.toBeNull();
       expect(persisted.skipped?.[0].decisionKey).toBe("data_store");
       expect(persisted.skipped?.[0].reason.length).toBeGreaterThan(0);
@@ -312,8 +329,7 @@ describe("InterviewEngineService", () => {
 
     it("rejects a batch with more than one recommended option per question (boundary)", async () => {
       const owner = makeOwner();
-      const sessionId = await seedSession(owner);
-      await seedFindings(sessionId);
+      const sessionId = await seedGroundedSession(owner);
       // Two recommended options on one question violates "at most one" (spec Constraints).
       mockGenerate.mockResolvedValueOnce(
         makeGroundedBatch({
@@ -323,8 +339,8 @@ describe("InterviewEngineService", () => {
               decisionKey: "auth_method",
               text: "How should users authenticate?",
               options: [
-                { id: "a", label: "A", groundingRef: "Auth", speed: "fast", recommended: true },
-                { id: "b", label: "B", groundingRef: "Auth", speed: "moderate", recommended: true },
+                { id: "a", label: "A", groundingRef: "auth", speed: "fast", recommended: true },
+                { id: "b", label: "B", groundingRef: "auth", speed: "moderate", recommended: true },
               ],
               allowOther: false,
               dependsOn: [],
@@ -343,8 +359,7 @@ describe("InterviewEngineService", () => {
 
     it("accepts a grounded batch with no recommended pick (the ≤1 refine permits zero)", async () => {
       const owner = makeOwner();
-      const sessionId = await seedSession(owner);
-      await seedFindings(sessionId);
+      const sessionId = await seedGroundedSession(owner);
       mockGenerate.mockResolvedValueOnce(
         makeGroundedBatch({
           questions: [
@@ -353,8 +368,8 @@ describe("InterviewEngineService", () => {
               decisionKey: "auth_method",
               text: "How should users authenticate?",
               options: [
-                { id: "a", label: "A", groundingRef: "Auth", speed: "fast", recommended: false },
-                { id: "b", label: "B", groundingRef: "Auth", speed: "moderate", recommended: false },
+                { id: "a", label: "A", groundingRef: "auth", speed: "fast", recommended: false },
+                { id: "b", label: "B", groundingRef: "auth", speed: "moderate", recommended: false },
               ],
               allowOther: false,
               dependsOn: [],
@@ -370,8 +385,7 @@ describe("InterviewEngineService", () => {
 
     it("rejects an option with an invalid speed value (enum, §11.2)", async () => {
       const owner = makeOwner();
-      const sessionId = await seedSession(owner);
-      await seedFindings(sessionId);
+      const sessionId = await seedGroundedSession(owner);
       mockGenerate.mockResolvedValueOnce(
         makeGroundedBatch({
           questions: [
@@ -381,7 +395,7 @@ describe("InterviewEngineService", () => {
               text: "How should users authenticate?",
               options: [
                 // "medium" is not on the speed scale → boundary validation rejects it.
-                { id: "a", label: "A", groundingRef: "Auth", speed: "medium" as never, recommended: true },
+                { id: "a", label: "A", groundingRef: "auth", speed: "medium" as never, recommended: true },
               ],
               allowOther: false,
               dependsOn: [],

@@ -21,10 +21,11 @@ export class InterviewSessionController {
   static async create(req: Request, res: Response): Promise<Response> {
     try {
       const owner = requireOwner(req);
-      const { originalRequest } = req.body as CreateSessionBody;
+      const { originalRequest, projectId } = req.body as CreateSessionBody;
       const session = await InterviewSessionService.createSession(
         owner,
         originalRequest,
+        projectId,
       );
       return ok(res, session, 201);
     } catch (error) {
