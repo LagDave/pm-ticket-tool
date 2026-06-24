@@ -49,5 +49,14 @@ router.get(
   validate(sessionIdParamSchema, "params"),
   InterviewSessionController.getById,
 );
+// Delete a session the caller owns. Shares the /:id path with the GET above but
+// is a distinct method, and every child table cascades on the session_id FK so a
+// single owner-scoped row delete reaps turns, decisions, tickets/comments, and
+// scout cache/jobs atomically (§10.5).
+router.delete(
+  "/:id",
+  validate(sessionIdParamSchema, "params"),
+  InterviewSessionController.remove,
+);
 
 export default router;

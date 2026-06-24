@@ -120,4 +120,22 @@ export class InterviewSessionService {
       title,
     });
   }
+
+  /**
+   * Delete a session the caller owns, returning its id. Owner-verifies first via
+   * getSessionForOwner, which throws NOT_FOUND when the session is missing or
+   * another owner's (§11.7) — so a foreign id is indistinguishable from a missing
+   * one and never leaks. The model delete then removes the row; every child table
+   * (interview_turns, decision_record, tickets → ticket_comments, scout_cache,
+   * scout_jobs) cascades on the session_id FK, so children are reaped atomically
+   * by the database — no app-side multi-table delete (§10.5).
+   */
+  static async deleteSession(
+    id: number,
+    owner: OwnerContext,
+  ): Promise<{ id: number }> {
+    await this.getSessionForOwner(id, owner);
+    await InterviewSessionModel.deleteForOwner(id, owner);
+    return { id };
+  }
 }

@@ -97,4 +97,16 @@ export class InterviewSessionController {
       return handleError(res, error);
     }
   }
+
+  /** DELETE /sessions/:id — delete a session the caller owns → 200 (children cascade). */
+  static async remove(req: Request, res: Response): Promise<Response> {
+    try {
+      const owner = requireOwner(req);
+      const { id } = req.params as unknown as SessionIdParam;
+      const deleted = await InterviewSessionService.deleteSession(id, owner);
+      return ok(res, deleted, 200);
+    } catch (error) {
+      return handleError(res, error);
+    }
+  }
 }

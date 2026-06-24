@@ -450,7 +450,10 @@ textarea.request-input {
 }
 
 .primary-button,
-.secondary-button {
+.secondary-button,
+.light-button,
+.danger-button,
+.session-delete {
   appearance: none;
   display: inline-flex;
   align-items: center;
@@ -499,10 +502,58 @@ textarea.request-input {
 }
 
 .primary-button:disabled,
-.secondary-button:disabled {
+.secondary-button:disabled,
+.light-button:disabled,
+.danger-button:disabled,
+.session-delete:disabled {
   opacity: 0.4;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+/* White button with black text - the dashboard's resume affordance (PM request).
+ * High-contrast on the dark canvas; distinct from the orange primary. */
+.light-button {
+  border: 1px solid #ffffff;
+  background: #ffffff;
+  color: #0a0b10;
+}
+.light-button:hover:not(:disabled) {
+  background: #e9ebf2;
+  border-color: #e9ebf2;
+  transform: translateY(-1px);
+}
+.light-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+}
+
+/* Destructive confirm: a filled red that reads clearly as "this deletes". Shown
+ * only in the second step of the inline delete confirm. */
+.danger-button {
+  border: 1px solid #e5484d;
+  background: #e5484d;
+  color: #ffffff;
+}
+.danger-button:hover:not(:disabled) {
+  background: #ec5d62;
+  border-color: #ec5d62;
+  transform: translateY(-1px);
+}
+.danger-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+}
+
+/* Quiet delete trigger: muted by default so it never competes with resume, turns
+ * red on hover to signal the destructive path before the confirm step. */
+.session-delete {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+}
+.session-delete:hover:not(:disabled) {
+  color: #ff7b72;
+  border-color: color-mix(in srgb, #ff7b72 40%, var(--line-2));
+  background: color-mix(in srgb, #ff7b72 10%, transparent);
 }
 
 /* ===========================================================================
@@ -669,8 +720,14 @@ textarea.request-input {
   color: var(--faint);
 }
 
-/* Labeled, animated "thinking" indicator while a batch generates. */
-.batch-loading {
+/* ---------------------------------------------------------------------------
+ * ThinkingLoader: the ONE loading indicator for the whole app. An orange
+ * dual-ring orb + a serif title that swaps through the Dave message pool + an
+ * optional muted subtitle. When done it swaps the orb for a GREEN check (triage
+ * uses this to resolve on a satisfying tick). One component used everywhere a
+ * screen waits, so loading looks consistent (PM request).
+ * ------------------------------------------------------------------------- */
+.thinking-loader {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -683,14 +740,14 @@ textarea.request-input {
   box-shadow: var(--shadow-card);
 }
 
-.batch-loading-orb {
+.thinking-loader-orb {
   position: relative;
   width: 26px;
   height: 26px;
   flex-shrink: 0;
 }
-.batch-loading-orb::before,
-.batch-loading-orb::after {
+.thinking-loader-orb::before,
+.thinking-loader-orb::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -699,7 +756,7 @@ textarea.request-input {
   border-top-color: var(--accent);
   animation: orb-spin 0.9s linear infinite;
 }
-.batch-loading-orb::after {
+.thinking-loader-orb::after {
   inset: 5px;
   border-top-color: var(--accent-soft);
   animation-duration: 1.4s;
@@ -709,85 +766,29 @@ textarea.request-input {
   to { transform: rotate(360deg); }
 }
 
-.batch-loading-label {
-  font-family: var(--font-display);
-  font-size: 1.12rem;
-  font-weight: 500;
-  color: var(--ink);
-}
-.batch-loading-sub {
-  margin-top: 2px;
-  font-size: 0.85rem;
-  color: var(--faint);
-}
-
-/* ---------------------------------------------------------------------------
- * Triage loader ("Sizing up your request"): an animated gauge of bars that
- * rise/fall like a meter being read, resolving into a GREEN check when the
- * classification lands. The bars use the accent (it is a genuine progress
- * indicator); the completion check is green to echo COMPLETE.
- * ------------------------------------------------------------------------- */
-.triage-thinking {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.triage-gauge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  width: 44px;
-  height: 32px;
-  flex-shrink: 0;
-}
-
-.triage-bar {
-  width: 5px;
-  height: 100%;
-  transform-origin: center bottom;
-  border-radius: 999px;
-  background: linear-gradient(180deg, var(--accent-soft), var(--accent));
-}
-
-.triage-check {
+/* Done state: a green check that echoes COMPLETE, replacing the orb. */
+.thinking-loader-check {
   display: inline-grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
   border-radius: 999px;
   background: color-mix(in srgb, #3ddc97 18%, var(--surface-2));
   border: 1px solid color-mix(in srgb, #3ddc97 50%, var(--line-2));
   color: #6ee7b0;
 }
 
-.triage-thinking-copy {
-  min-width: 0;
+.thinking-loader-label {
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  font-weight: 500;
+  color: var(--ink);
 }
-.triage-thinking-label {
-  margin: 0;
-}
-
-/* Inline "Loading…" indicator: a neutral spinning ring + a label. Replaces bare
- * loading text so a load/resume reads as actively in progress (Item 4). */
-.loading-line {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  color: var(--muted);
-  font-size: 0.96rem;
-}
-.loading-line-spinner {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  border-radius: 999px;
-  border: 2px solid var(--line-2);
-  border-top-color: var(--accent);
-}
-.loading-line-label {
-  line-height: 1.4;
+.thinking-loader-sub {
+  margin-top: 2px;
+  font-size: 0.85rem;
+  color: var(--faint);
 }
 
 /* ===========================================================================
@@ -1118,8 +1119,8 @@ textarea.request-input {
   .dashboard {
     animation: none;
   }
-  .batch-loading-orb::before,
-  .batch-loading-orb::after {
+  .thinking-loader-orb::before,
+  .thinking-loader-orb::after {
     animation-duration: 2.4s;
   }
 }

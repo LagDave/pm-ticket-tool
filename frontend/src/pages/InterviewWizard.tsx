@@ -98,7 +98,7 @@ export function InterviewWizard({
       <header className="wizard-header">
         <div className="wizard-topline">
           <div className="wizard-brand">
-            <img className="wizard-logo" src="/logo.png" alt="" aria-hidden width={32} height={32} />
+            <img className="wizard-logo" src="/logo.webp" alt="" aria-hidden width={32} height={32} />
             <h1 className="wizard-title">PM Ticket Tool</h1>
           </div>
           {onExit && (

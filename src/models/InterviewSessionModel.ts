@@ -190,4 +190,25 @@ export class InterviewSessionModel extends BaseModel {
       .returning("*");
     return (row as IInterviewSession | undefined) ?? null;
   }
+
+  /**
+   * Hard-delete a session, scoped to the owner (§11.7). The owner filter makes a
+   * missing row and another owner's row indistinguishable — both delete nothing
+   * and return 0 — so a caller can never confirm another owner's session exists
+   * (§5.5). Returns the number of rows deleted (1 on success, 0 otherwise).
+   *
+   * A single delete of this row removes ALL children atomically: interview_turns,
+   * decision_record, tickets (and ticket_comments under them), scout_cache, and
+   * scout_jobs all carry `ON DELETE CASCADE` on their session_id FK, so the
+   * database reaps them — no app-side multi-table delete is needed (§10.5).
+   */
+  static async deleteForOwner(
+    id: number,
+    owner: OwnerContext,
+    trx?: QueryContext,
+  ): Promise<number> {
+    return this.table(trx)
+      .where({ id, owner_user_id: owner.ownerUserId })
+      .del();
+  }
 }

@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   cloneSession,
   createSession,
+  deleteSession,
   getSession,
   getSessionState,
   listSessions,
@@ -116,6 +117,27 @@ export function useCloneSession() {
     },
     onError: (error) => {
       toast.error(error.message || "Could not re-run the session.");
+    },
+  });
+}
+
+/**
+ * Permanently delete a session. The server cascade also removes its ticket,
+ * comments, turns, decisions, and scout rows. Drops the per-session caches and
+ * invalidates every list page so the row disappears; toasts success/failure.
+ */
+export function useDeleteSession() {
+  const queryClient = useQueryClient();
+  return useMutation<{ id: number }, ApiError, number>({
+    mutationFn: (id) => deleteSession(id),
+    onSuccess: ({ id }) => {
+      queryClient.removeQueries({ queryKey: QUERY_KEYS.session(id) });
+      queryClient.removeQueries({ queryKey: QUERY_KEYS.sessionState(id) });
+      void queryClient.invalidateQueries({ queryKey: SESSIONS_KEY_PREFIX });
+      toast.success("Session deleted.");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Could not delete the session.");
     },
   });
 }

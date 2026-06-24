@@ -14,7 +14,7 @@
  * answered batches, and an answered-count make generating batch 2/3 visibly
  * different from batch 1 - it no longer looks like the first Generate screen.
  * The generate button advertises the real next batch number ("Ready for batch
- * N"), generation shows a labeled BatchThinking indicator, and the deck animates
+ * N"), generation shows the shared ThinkingLoader, and the deck animates
  * out/in between batches via AnimatePresence keyed on the batch number.
  */
 import { AnimatePresence, motion } from "framer-motion";
@@ -36,8 +36,7 @@ import {
   generateButtonLabel,
   hasOpenBatch,
 } from "../../utils/batchProgress";
-import { LoadingLine } from "../ui/LoadingLine";
-import { BatchThinking } from "./BatchThinking";
+import { ThinkingLoader } from "../ui/ThinkingLoader";
 import { OTHER_OPTION } from "./OptionDeck";
 import { QuestionCarousel } from "./QuestionCarousel";
 
@@ -163,15 +162,15 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
     });
   };
 
-  if (isLoading) return <LoadingLine label="Loading feature scope…" />;
+  if (isLoading) return <ThinkingLoader subtitle="Loading your feature scope" />;
 
-  // Generating a batch - show the labeled, animated thinking indicator. Rendered
-  // directly (no wrapping AnimatePresence): BatchThinking owns its own internal
-  // AnimatePresence for the rotating phases, and wrapping it in a second
-  // mode="wait" presence here deadlocks its exit when the batch lands, leaving
-  // the loader stuck on screen. React swaps the trees cleanly without it.
+  // Generating a batch - show the shared ThinkingLoader. Rendered directly (no
+  // wrapping AnimatePresence): the loader owns its own internal AnimatePresence
+  // for the rotating messages, and wrapping it in a second mode="wait" presence
+  // here deadlocks its exit when the batch lands, leaving the loader stuck on
+  // screen. React swaps the trees cleanly without it.
   if (advance.isPending) {
-    return <BatchThinking batchNumber={answered + 1} />;
+    return <ThinkingLoader subtitle={`Preparing batch ${answered + 1}`} />;
   }
 
   // No open batch yet - offer to generate the first/next one. The header and

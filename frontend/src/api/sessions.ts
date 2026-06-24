@@ -2,7 +2,7 @@
  * Sessions domain API - thin typed functions over the one client (§12.1). One
  * file per backend domain; never calls axios/fetch directly (§14.2).
  */
-import { apiGet, apiPost } from "./index";
+import { apiDelete, apiGet, apiPost } from "./index";
 import type {
   CreateSessionInput,
   InterviewSession,
@@ -47,6 +47,15 @@ export async function getSessionState(id: number): Promise<InterviewState> {
 /** POST /sessions/:id/clone - re-run a prior session as a fresh clone (spec 4 T3). */
 export async function cloneSession(id: number): Promise<InterviewSession> {
   return apiPost<InterviewSession>(`/sessions/${id}/clone`);
+}
+
+/**
+ * DELETE /sessions/:id - permanently delete a session the caller owns. The
+ * server cascade also removes its ticket, comments, turns, decisions, and scout
+ * rows. Returns the deleted id.
+ */
+export async function deleteSession(id: number): Promise<{ id: number }> {
+  return apiDelete<{ id: number }>(`/sessions/${id}`);
 }
 
 /**

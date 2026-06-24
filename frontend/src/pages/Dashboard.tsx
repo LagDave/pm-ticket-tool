@@ -9,9 +9,10 @@
  */
 import { useEffect, useState } from "react";
 import { SessionList } from "../components/dashboard/SessionList";
-import { LoadingLine } from "../components/ui/LoadingLine";
+import { ThinkingLoader } from "../components/ui/ThinkingLoader";
 import {
   useCloneSession,
+  useDeleteSession,
   useResume,
   useSessions,
 } from "../hooks/queries/useInterviewSessionQueries";
@@ -56,6 +57,7 @@ export function Dashboard({ onOpenSession, onViewTicket }: DashboardProps) {
     status: statusFilter === "all" ? undefined : statusFilter,
   });
   const clone = useCloneSession();
+  const remove = useDeleteSession();
   const resume = useResume(ticketSessionId);
 
   // Once the resume-state for a "view ticket" click resolves, route to the ticket
@@ -82,6 +84,10 @@ export function Dashboard({ onOpenSession, onViewTicket }: DashboardProps) {
     });
   };
 
+  const handleDelete = (session: InterviewSession): void => {
+    remove.mutate(session.id);
+  };
+
   const handleFilterChange = (value: SessionStatus | "all"): void => {
     setStatusFilter(value);
     setPage(1); // a new filter starts at the first page
@@ -93,12 +99,12 @@ export function Dashboard({ onOpenSession, onViewTicket }: DashboardProps) {
     <main className="dashboard">
       <header className="dashboard-header">
         <div className="wizard-brand">
-          <img className="wizard-logo" src="/logo.png" alt="" aria-hidden width={32} height={32} />
+          <img className="wizard-logo" src="/logo.webp"alt="" aria-hidden width={32} height={32} />
           <h1 className="wizard-title">Your sessions</h1>
         </div>
         <button
           type="button"
-          className="secondary-button"
+          className="primary-button"
           onClick={() => onOpenSession(null, WIZARD_STEP.request)}
         >
           New session
@@ -120,7 +126,7 @@ export function Dashboard({ onOpenSession, onViewTicket }: DashboardProps) {
         ))}
       </div>
 
-      {isLoading && <LoadingLine label="Loading sessions…" />}
+      {isLoading && <ThinkingLoader subtitle="Loading your sessions" />}
       {error && (
         <p className="field-hint">Could not load your sessions. Try again.</p>
       )}
@@ -130,9 +136,11 @@ export function Dashboard({ onOpenSession, onViewTicket }: DashboardProps) {
           <SessionList
             sessions={data.items}
             isCloning={clone.isPending}
+            isDeleting={remove.isPending}
             onResume={handleResume}
             onReRun={handleReRun}
             onViewTicket={(session) => setTicketSessionId(session.id)}
+            onDelete={handleDelete}
           />
           {totalPages > 1 && (
             <div className="pager">

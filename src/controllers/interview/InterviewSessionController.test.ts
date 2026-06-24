@@ -340,4 +340,54 @@ describe("Sessions endpoints", () => {
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("SESSION_NOT_FOUND");
   });
+
+  /* ----------------------------- DELETE session --------------------------- */
+
+  it("DELETE /sessions/:id deletes the caller's session and returns 200 + { id }", async () => {
+    const id = await createSessionFor(OWNER_A, "Delete me over HTTP.");
+
+    const res = await request(app)
+      .delete(`/sessions/${id}`)
+      .set("x-dev-user-id", OWNER_A);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.error).toBeNull();
+    expect(res.body.data.id).toBe(id);
+
+    // The session is gone — a follow-up GET now 404s.
+    const gone = await request(app)
+      .get(`/sessions/${id}`)
+      .set("x-dev-user-id", OWNER_A);
+    expect(gone.status).toBe(404);
+    expect(gone.body.error.code).toBe("SESSION_NOT_FOUND");
+  });
+
+  it("DELETE /sessions/:id for a missing id returns 404 SESSION_NOT_FOUND", async () => {
+    const res = await request(app)
+      .delete("/sessions/999999999")
+      .set("x-dev-user-id", OWNER_A);
+
+    expect(res.status).toBe(404);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe("SESSION_NOT_FOUND");
+  });
+
+  it("DELETE /sessions/:id cannot delete another owner's session (404, no leak §11.7)", async () => {
+    const id = await createSessionFor(OWNER_A, "A's undeletable-by-B session.");
+
+    const leak = await request(app)
+      .delete(`/sessions/${id}`)
+      .set("x-dev-user-id", OWNER_B);
+
+    expect(leak.status).toBe(404);
+    expect(leak.body.error.code).toBe("SESSION_NOT_FOUND");
+
+    // Owner A's session still exists — B's attempt changed nothing.
+    const stillThere = await request(app)
+      .get(`/sessions/${id}`)
+      .set("x-dev-user-id", OWNER_A);
+    expect(stillThere.status).toBe(200);
+    expect(stillThere.body.data.id).toBe(id);
+  });
 });

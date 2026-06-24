@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Project Context &amp; Bits Grounding Spec</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #ffffff;
+      --ink: #080808;
+      --muted: #5f5f5f;
+      --line: #d8d8d8;
+      --soft: #f5f5f5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    .spec-shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0; }
+    .spec-hero, .spec-card, .task-card { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+    .spec-hero { border-color: var(--ink); padding: 32px; margin-bottom: 20px; }
+    .hero-topline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .spec-card { padding: 28px; margin-top: 16px; }
+    .task-card { padding: 20px; background: var(--soft); margin-top: 14px; }
+    .wave-band { margin-top: 28px; padding: 10px 16px; border: 1px solid var(--ink); border-radius: 8px; background: var(--ink); color: var(--paper); font-weight: 800; text-transform: uppercase; letter-spacing: 0; font-size: 0.82rem; }
+    .eyebrow, dt { color: var(--muted); font-size: 0.78rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
+    .eyebrow { margin: 0; }
+    .status-pill { display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 0.78rem; font-weight: 800; letter-spacing: 0; text-transform: uppercase; }
+    .status-card { border-color: var(--ink); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 840px; margin-bottom: 24px; font-size: clamp(2.25rem, 6vw, 5rem); line-height: 0.95; letter-spacing: 0; }
+    h2 { font-size: 1.35rem; letter-spacing: 0; }
+    h3 { font-size: 1rem; letter-spacing: 0; }
+    code { padding: 0.1rem 0.3rem; border: 1px solid var(--line); border-radius: 4px; background: var(--soft); font-size: 0.92em; }
+    .meta-grid, .split-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .meta-grid { margin: 0; }
+    .meta-grid div, .split-grid > div { border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    dd { margin: 4px 0 0; font-weight: 700; }
+    .task-card dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 8px 0 0; }
+    .task-card dt { padding-top: 2px; }
+    .task-card dd { font-weight: 500; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }
+    .tag { font-size: 0.66rem; font-weight: 800; text-transform: uppercase; border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; color: var(--muted); }
+    table.kinds { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 0.92rem; }
+    table.kinds th, table.kinds td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+    table.kinds th { background: var(--soft); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0; }
+    @media (max-width: 640px) {
+      .spec-shell { width: min(100% - 20px, 1120px); padding: 24px 0; }
+      .spec-hero, .spec-card { padding: 20px; }
+      .task-card dl { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">PM Tool · Plan Spec</p>
+        <span class="status-pill status-pending">Pending Execution</span>
+      </div>
+      <h1>Project Context &amp; Bits Grounding</h1>
+      <dl class="meta-grid">
+        <div class="status-card"><dt>Status</dt><dd>Pending Execution</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/06252026-project-context-bits</dd></div>
+        <div><dt>Size</dt><dd>Large</dd></div>
+        <div><dt>Risk</dt><dd>Level 3</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>The interview is ungrounded: it invents app specifics (a "Puzzle page" that does not exist) and asks
+        questions whose answer is already settled (web vs. mobile, when the app is web-only). Both come from the
+        engine having no model of the app. The code scout was meant to supply that, but it is being abandoned
+        (provider/token infra, per-interview latency, ~25 files). This replaces the scout with a human-curated,
+        self-refreshing <strong>project context</strong> — a set of typed "bits" about the app — that grounds the
+        interview (and the ticket) and stays current as work completes.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>A <strong>Project</strong> owns a set of <strong>bits</strong> (typed key→summary rows). Bits are rendered
+        into the interview's <em>cached</em> system prefix so the engine grounds options in real app facts and
+        <em>suppresses</em> questions a settled fact already answers. Bits also feed the ticket generator. They are
+        maintained three ways: (1) manual CRUD; (2) bulk <strong>import</strong> of a JSON file produced by a separate
+        Claude&nbsp;Code session via a copy-paste <strong>generate-bits prompt</strong>; (3) <strong>merge-on-complete</strong>,
+        which turns a finished ticket into candidate bits. A <strong>reconciliation agent</strong> dedups/merges/flags
+        conflicts on every add (import or merge), with a human resolve step. The entire code-scout subsystem is deleted.</p>
+      <p><strong>Done when:</strong> a session attached to a project produces options grounded in that project's bits,
+        skips questions settled by <code>constraint</code>/<code>tech_stack</code>/<code>inventory</code> bits (visibly,
+        with an "answer anyway" override), the import + reconcile + resolve loop works end-to-end, completing a ticket
+        proposes bits, and the scout code/tables are gone with a green <code>tsc</code>/test run.</p>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <h3>The grounding seam (the surgical core)</h3>
+      <ul>
+        <li><code>src/controllers/interview/feature-services/InterviewEngineService.ts</code> — <code>findCachedFindings(sessionId)</code>
+          (reads <code>scout_cache</code>) is the only live scout read; it feeds <code>generateAndPersistBatch</code>. Replace with a
+          project-bits loader keyed off <code>session.project_id</code>. The grounded/ungrounded branch carries over.</li>
+        <li><code>src/agents/interviewAgent.ts</code> — <code>GenerateBatchParams.findings: ScoutFindings</code> + <code>buildFindingsBlock</code>
+          + the GROUNDED/UNGROUNDED rule sets + the <code>skipped</code> mechanism. Swap the grounding input to project bits, render by
+          kind, and move the grounding block into a <code>cache_control</code> system block.</li>
+        <li><code>src/agents/ticketAgent.ts</code> + <code>src/controllers/ticket/feature-services/TicketGenerationService.ts</code> —
+          ticket generation gets <code>{originalRequest, decisions}</code> only; add project bits.</li>
+      </ul>
+      <h3>Reference analogs (mirror these — §6.1, §12.1)</h3>
+      <ul>
+        <li><strong>Backend domain</strong> → the existing interview/ticket triads (Controller → <code>feature-services/</code> →
+          <code>models/</code> + <code>feature-utils/</code> typed error + <code>controllerResponses</code>), themselves mirrors of
+          <code>src/controllers/gbp-automation/</code> (§6.1). New <code>controllers/project/</code> copies this shape.</li>
+        <li><strong>Reconciliation agent</strong> → <code>src/agents/interviewAgent.ts</code> / <code>ticketAgent.ts</code> — one bounded
+          structured-output call, lazy SDK singleton, model+fallback, <code>messages.parse()</code> with a zod output schema (§6.2).</li>
+        <li><strong>Owner scope</strong> → <code>src/models/InterviewSessionModel.ts</code> — every query takes <code>owner: OwnerContext</code>
+          and filters <code>owner_user_id</code> (§11.7). <code>src/middleware/ownerContext.ts</code> supplies it.</li>
+        <li><strong>Migrations</strong> → <code>src/database/migrations/20260624000004_scout_cache_schema.ts</code> — Knex TS, Postgres-only,
+          <code>timestamptz</code>, CHECK via <code>knex.raw</code> in the migration only, index what you filter on (§10.x).</li>
+        <li><strong>Frontend</strong> → <code>frontend/src/api/index.ts</code> (the one HTTP client) + <code>api/tickets.ts</code> +
+          <code>hooks/queries/useTicketQueries.ts</code> + <code>pages/Dashboard.tsx</code> + <code>components/ticket/*</code> (§12.1).</li>
+      </ul>
+      <h3>Bit taxonomy (richer set — chosen)</h3>
+      <table class="kinds">
+        <tr><th>Kind</th><th>Meaning</th><th>Grounding role</th></tr>
+        <tr><td><code>constraint</code></td><td>Hard limit/decision ("web only", "must support SSO")</td><td><strong>Settled</strong> — can suppress a question</td></tr>
+        <tr><td><code>tech_stack</code></td><td>What it's built with ("React SPA + Express + Postgres")</td><td><strong>Settled</strong> — can suppress</td></tr>
+        <tr><td><code>inventory</code></td><td>What exists ("screens: home, dashboard, settings")</td><td><strong>Settled</strong> — anchors options; can suppress</td></tr>
+        <tr><td><code>feature</code></td><td>Capability summary ("auth: email/password + Google")</td><td>Grounds/flavors options only</td></tr>
+        <tr><td><code>integration</code></td><td>External system ("Twilio SMS, SendGrid, Stripe")</td><td>Grounds/flavors options only</td></tr>
+      </table>
+      <h3>Key decisions carried from planning</h3>
+      <ul>
+        <li><strong>Bit keys are cosmetic labels; dedup is semantic.</strong> No unique <code>(project_id, bit_key)</code> constraint — the
+          reconciliation agent matches by meaning, not key (resolves key-drift).</li>
+        <li><strong>Merge-default, never auto-delete.</strong> The agent proposes; <code>insert</code> auto-applies, everything else is
+          human-resolved; <code>force</code> overrides; <code>status</code>/<code>source</code> keep an audit trail.</li>
+        <li><strong>Import is additive.</strong> Never clears existing bits unless an explicit <code>force/replace</code> flag is set.</li>
+        <li><strong>Suppression is visible.</strong> Skipped questions render with their reason + an "answer anyway" override (R3).</li>
+        <li><strong>Ticket grounding = yes</strong> (no-preference → locked; veto in <code>-c</code>).</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>All DB access in <code>models/</code> (§7.4); Routes → Controllers → Services → Models (§7.1); thin routes (§7.2).</li>
+            <li><code>{success,data,error}</code> envelope + typed <code>ProjectError</code> + one status mapper (§8.1–§8.3).</li>
+            <li>Owner-scope every project/bit query by <code>OwnerContext</code> as a required arg (§11.7/§5.5).</li>
+            <li>Validate every input (incl. the uploaded import file) at the route boundary via <code>validation/</code> zod schemas (§11.2/§5.2).</li>
+            <li>Reconciliation agent + ticket/interview grounding = bounded structured-output calls with model+fallback (§6.2); re-validate at the boundary (§11.2).</li>
+            <li>Named constants in <code>config/</code> — bit caps, import caps, reconciliation model/effort/tokens (§4.2).</li>
+            <li>Multi-row writes (apply plan, merge-on-complete) in a transaction (§10.5); index <code>project_id</code> / owner columns (§10.4).</li>
+            <li>Frontend: one HTTP client, React Query for server state, feature folders, one error contract (§12.1/§14.2/§15.1/§16.1); no <code>any</code>/<code>console.*</code> (§17.1/§17.2).</li>
+            <li>Bits render into a byte-stable <code>cache_control</code> system block; per-call data stays in the user message (R4).</li>
+            <li>Tests mirror each model/service, covering the contract, error paths, and tenant scope (§20.1/§20.2).</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No new runtime dependency (no vector DB / embeddings — bits ship whole in the prompt).</li>
+            <li>No auto-delete or auto-overwrite of bits by the agent; no clearing on import without <code>force</code>.</li>
+            <li>No per-call/volatile data in the cached system prefix (would break caching).</li>
+            <li>No inline <code>db()</code> outside models; no hand-rolled responses; no <code>knex.raw</code> outside the migration.</li>
+            <li>Do not delete scout files until the grounding swap (T5) has replaced the scout read.</li>
+            <li>Do not introduce real auth here — inherit the existing <code>ownerContext</code> seam unchanged.</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Real authentication (still the dev <code>ownerContext</code> placeholder).</li>
+        <li>Azure repo provider / any code-scanning (the scout is removed, not replaced).</li>
+        <li>Embeddings/RAG over bits (explicitly rejected — bits fit the context window whole).</li>
+        <li>Auto-applying agent-proposed merges/conflicts without human confirmation.</li>
+        <li>Re-feeding existing bits into the generate-bits prompt for delta-only export (import dedup handles overlap).</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level:</strong> 3 (structural — scout teardown blast radius + an agent that can silently corrupt grounding).</p>
+      <h3>Risks Identified</h3>
+      <ul>
+        <li><strong>R1 · Scout teardown blast radius (L3).</strong> ~25 files, <code>app.ts</code>/<code>index.ts</code>/<code>config</code> unwiring,
+          two applied tables dropped. <strong>Mitigation:</strong> sequence teardown <em>last</em> (Wave 3) after T5 replaces the scout read; rely on the
+          <code>tsc</code> gate for dangling imports; drop tables in a dedicated migration (data abandoned by design; <code>down()</code> recreates empty schema).</li>
+        <li><strong>R2 · Reconciliation can silently corrupt context (L3).</strong> A bad auto-merge degrades every future interview.
+          <strong>Mitigation:</strong> agent only proposes; <code>insert</code> auto-applies, <code>update</code>/<code>conflict</code>/<code>similar</code> require human resolve;
+          <code>force</code> explicit; <code>status='superseded'</code> + <code>source</code> retain an audit so a bad merge is reversible; the resolve screen must make conflicts cheap to scan.</li>
+        <li><strong>R3 · Suppress + stale bit = silently dropped question (L2, accepted).</strong> <strong>Mitigation:</strong> only settled kinds suppress;
+          skipped questions render visibly with reason + "answer anyway" override; skip is conditional on the request not being about changing that fact.</li>
+        <li><strong>R4 · Caching only pays if the prefix is byte-stable (L2).</strong> <strong>Mitigation:</strong> bits + static rules in the cached system block,
+          per-call data in the user message; verify via <code>usage.cache_read_input_tokens</code>; sub-4096-token projects simply don't cache (no harm).</li>
+        <li><strong>R5 · Import file is untrusted model-generated JSON (L2).</strong> <strong>Mitigation:</strong> zod validation at the boundary, size/count caps,
+          per-row error reporting, reject malformed; additive-merge default.</li>
+      </ul>
+      <p><strong>Blast radius:</strong> <code>InterviewEngineService</code> + <code>interviewAgent</code> (grounding swap), <code>TicketGenerationService</code> + <code>ticketAgent</code> (ticket grounding),
+        <code>app.ts</code> + <code>index.ts</code> + <code>config/index.ts</code> (scout unwire), <code>interview_sessions</code> table (new <code>project_id</code>), the frontend interview wizard
+        (picker + skipped surface), and the deletion of <code>agents/codeScout/*</code>, <code>controllers/codeScout/*</code>, <code>services/codeContext/*</code>, <code>services/scoutJobs/*</code>,
+        <code>workers/scoutWorker.ts</code>, <code>models/Scout*</code>, <code>routes/codeScout.ts</code>, <code>routes/internalScout.ts</code>, <code>types/codeScout.ts</code>, <code>validation/codeScout.ts</code>,
+        <code>scripts/scout-work.ts</code> (+ tests), and dropping <code>scout_cache</code>/<code>scout_jobs</code>.</p>
+      <h3>Pushback</h3>
+      <ul>
+        <li>This was scoped as one Large plan by choice; the grounding pipeline alone fixes the screenshots, while the reconciliation agent is the hard, unverifiable part.
+          <strong>Mitigation:</strong> execute in 3 waves so value lands in Wave&nbsp;1 and the risky/fuzzy work is staged after a green, grounded baseline.</li>
+        <li>Suppression was chosen over pre-answer despite the silent-omission risk. If R3's visible-skip + override proves noisy in use, fall back to pre-answer (options still shown, known answer pre-recommended) — recorded as the v2 lever.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+      <p>14 tasks in 3 dependency-ordered waves. Within a wave, tasks with disjoint files run in parallel via sub-agents (§ Parallel Sub-Agent Orchestration). Each sub-agent gets this spec, its task(s), and the list of files other agents own.</p>
+
+      <div class="wave-band">Wave 1 — Grounding pipeline + foundation (ships the screenshot fix)</div>
+
+      <article class="task-card">
+        <h3>T1: Schema — projects, project_bits, sessions.project_id</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Knex TS migrations: create <code>projects</code> (owner_user_id, organization_id NULL, name, description NULL, timestamps; idx owner_user_id); create <code>project_bits</code> (project_id FK CASCADE, kind CHECK[feature,constraint,integration,tech_stack,inventory], bit_key, summary, status CHECK[active,superseded] default active, source CHECK[manual,imported,merged] default manual, source_ticket_id NULL FK tickets, timestamps; idx project_id, idx (project_id,status)); ALTER <code>interview_sessions</code> ADD <code>project_id</code> bigint NULL FK projects ON DELETE SET NULL (idx project_id). No unique on (project_id,bit_key).</dd></div>
+          <div><dt>Files</dt><dd><code>src/database/migrations/&lt;ts&gt;_projects_schema.ts</code>, <code>..._project_bits_schema.ts</code>, <code>..._sessions_add_project.ts</code>; scaffolds in <code>plans/.../migrations/</code></dd></div>
+          <div><dt>Depends</dt><dd>none</dd></div>
+          <div><dt>Verify</dt><dd><code>npm run migrate</code> then <code>migrate:rollback</code> clean</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T2: Types + validation</h3>
+        <dl>
+          <div><dt>Do</dt><dd><code>types/project.ts</code>: <code>IProject</code>, <code>IProjectBit</code>, <code>BitKind</code>, <code>BitStatus</code>, <code>BitSource</code>, <code>ReconciliationPlan</code>/<code>ReconciliationAction</code>. Zod schemas for create/update project, create/update bit, the import file shape (array of {kind, bit_key, summary}), and the reconciliation agent output (boundary re-validation).</dd></div>
+          <div><dt>Files</dt><dd><code>src/types/project.ts</code>, <code>src/validation/project.ts</code>, <code>src/validation/projectBit.ts</code></dd></div>
+          <div><dt>Depends</dt><dd>none (parallel with T1)</dd></div>
+          <div><dt>Verify</dt><dd><code>npx tsc --noEmit</code></dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T3: Models — ProjectModel, ProjectBitModel</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Owner-scoped CRUD mirroring <code>InterviewSessionModel</code> (§11.7). <code>ProjectModel</code>: create/list/findByIdForOwner/update/delete. <code>ProjectBitModel</code>: listActiveByProject, listByProject, create, updateForOwner, delete, supersede, createMany (txn). A system read for the engine (bits by owner-verified <code>session.project_id</code>), mirroring <code>findByIdSystem</code>'s documented trusted-path rationale.</dd></div>
+          <div><dt>Files</dt><dd><code>src/models/ProjectModel.ts</code>, <code>src/models/ProjectBitModel.ts</code> (+ <code>.test.ts</code>)</dd></div>
+          <div><dt>Depends</dt><dd>T1, T2</dd></div>
+          <div><dt>Verify</dt><dd><code>npm test</code> (contract + owner-scope tests, §20.2)</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T4: Project domain — controller, services, routes (CRUD)</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Mirror gbp-automation (§6.1): <code>ProjectController</code> (thin), <code>feature-services/ProjectService</code> + <code>ProjectBitService</code>, <code>feature-utils/ProjectError</code> + <code>controllerResponses</code>. <code>routes/projects.ts</code> with <code>ownerContext</code> mounted (mirror <code>routes/interviewSessions.ts</code>): GET/POST <code>/projects</code>, GET/PATCH/DELETE <code>/projects/:id</code>, GET/POST <code>/projects/:id/bits</code>, PATCH/DELETE <code>/projects/:id/bits/:bitId</code>. Mount in <code>app.ts</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/project/**</code>, <code>src/routes/projects.ts</code>, <code>src/app.ts</code> (mount) (+ tests)</dd></div>
+          <div><dt>Depends</dt><dd>T3</dd></div>
+          <div><dt>Verify</dt><dd><code>npm test</code>; manual: create project + bit via API returns the envelope</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T5: Interview grounding swap (+ caching + suppression)</h3>
+        <dl>
+          <div><dt>Do</dt><dd>In <code>InterviewEngineService</code>, replace <code>findCachedFindings</code> with a project-bits loader off <code>session.project_id</code> (undefined when no project → ungrounded path unchanged). In <code>interviewAgent.ts</code>: swap <code>findings: ScoutFindings</code> → a project-grounding input; render bits grouped by kind, marking settled kinds; move the grounding block + static rules into a <code>cache_control: ephemeral</code> system block (per-call decisions/round stay in the user message). Update GROUNDED rules: settled-kind bits may fully determine a question → <code>skipped</code> with reason, conditional on the request not being about changing that fact. Drop the <code>ScoutCacheModel</code>/<code>ScoutFindings</code> imports here (the only live scout read).</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/interview/feature-services/InterviewEngineService.ts</code>, <code>src/agents/interviewAgent.ts</code>, <code>src/types/interview.ts</code> (grounding type), tests</dd></div>
+          <div><dt>Depends</dt><dd>T3</dd></div>
+          <div><dt>Verify</dt><dd><code>npm test</code>; manual: grounded session skips a settled question; <code>cache_read_input_tokens</code> &gt; 0 on batch 2</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T6: Frontend — projects/bits screens, picker, api, hooks, nav</h3>
+        <dl>
+          <div><dt>Do</dt><dd><code>api/projects.ts</code> (+ bits fns) over the one client; <code>hooks/queries/useProjectQueries.ts</code> (React Query, §15.1); <code>pages/ProjectsManager.tsx</code> (list/create/edit/delete) + <code>pages/ProjectDetail.tsx</code> (bits manager: list by kind, add/edit/delete bit); <code>components/projects/*</code> + <code>components/bits/*</code>; nav entry in <code>App.tsx</code>; project picker at interview start (in <code>RequestEntry</code>/session create), persisting <code>project_id</code> on the session.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/api/projects.ts</code>, <code>frontend/src/hooks/queries/useProjectQueries.ts</code>, <code>frontend/src/pages/ProjectsManager.tsx</code>, <code>frontend/src/pages/ProjectDetail.tsx</code>, <code>frontend/src/components/projects/**</code>, <code>frontend/src/components/bits/**</code>, <code>frontend/src/App.tsx</code>, <code>frontend/src/components/interview/RequestEntry.tsx</code>, <code>frontend/src/types/project.ts</code></dd></div>
+          <div><dt>Depends</dt><dd>T4</dd></div>
+          <div><dt>Verify</dt><dd>Preview: create project, add bits, start a grounded interview; no <code>any</code>/<code>console.*</code> (§17)</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T7: Interview skipped-questions surface (+ answer-anyway)</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Render <code>batch.skipped[]</code> in the wizard as a visible "Skipped — based on project context" list with each reason; "Answer anyway" opens a free-text field that records a decision for that <code>decisionKey</code> (source <code>answer</code>) via a small engine path (extend the engine to accept an override decision by key). This is R3's mitigation — suppression is never silent.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/interview/QuestionBatch.tsx</code>, <code>frontend/src/pages/InterviewWizard.tsx</code>, <code>frontend/src/api/interview.ts</code>; backend: <code>InterviewEngineService</code> + <code>routes/interviewEngine.ts</code> (override-decision endpoint), <code>DecisionRecordModel</code></dd></div>
+          <div><dt>Depends</dt><dd>T5</dd></div>
+          <div><dt>Verify</dt><dd>Preview: a skipped question shows with reason; "answer anyway" records a decision visible in the ticket</dd></div>
+        </dl>
+      </article>
+
+      <div class="wave-band">Wave 2 — Reconciliation + import (the hygiene engine)</div>
+
+      <article class="task-card">
+        <h3>T8: Reconciliation agent</h3>
+        <dl>
+          <div><dt>Do</dt><dd><code>agents/bitReconciliationAgent.ts</code> mirroring <code>interviewAgent.ts</code>: one bounded structured-output call, lazy SDK singleton, model+fallback, <code>messages.parse()</code>. Input: existing active bits + incoming candidates. Output (zod): <code>actions[]</code> each <code>{incomingIndex, action: insert|update|skip_duplicate|conflict|similar, targetBitId?, mergedSummary?, relatedBitIds?, reason}</code>. Merge-default framing; dedup within the batch too. Config block <code>BIT_RECONCILIATION</code> in <code>config/index.ts</code> (model, fallback, effort medium, max_tokens, MAX_BITS_PER_IMPORT, MAX_SUMMARY_CHARS).</dd></div>
+          <div><dt>Files</dt><dd><code>src/agents/bitReconciliationAgent.ts</code>, <code>src/config/index.ts</code>, <code>src/validation/projectBit.ts</code> (output schema)</dd></div>
+          <div><dt>Depends</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd><code>npx tsc --noEmit</code>; unit test the prompt-build + boundary parse</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T9: Reconciliation service + endpoints</h3>
+        <dl>
+          <div><dt>Do</dt><dd><code>feature-services/BitReconciliationService</code>: load active bits, call the agent (w/ fallback), re-validate at boundary, return a plan. <code>applyPlan</code> in a transaction (§10.5): <code>insert</code> creates, <code>update</code> supersedes target + inserts merged (audit), <code>skip_duplicate</code> no-ops, <code>conflict</code>/<code>similar</code> only apply the human-chosen resolution; <code>force</code> bypasses flags. Single-bit add (POST /bits) routes through the same service. Endpoints: POST <code>/projects/:id/bits/reconcile</code> (plan, no writes), POST <code>/projects/:id/bits/apply</code> (apply confirmed plan).</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/project/feature-services/BitReconciliationService.ts</code>, <code>ProjectController</code> (+ handlers), <code>routes/projects.ts</code> (+ tests)</dd></div>
+          <div><dt>Depends</dt><dd>T3, T8</dd></div>
+          <div><dt>Verify</dt><dd><code>npm test</code>: plan/apply contract, force path, txn rollback on partial failure</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T10: Import pipeline + generate-bits prompt endpoint</h3>
+        <dl>
+          <div><dt>Do</dt><dd>POST <code>/projects/:id/bits/import</code>: accept the uploaded JSON, validate at boundary (zod, size/count caps, per-row errors, §11.2/§5.2), feed to <code>BitReconciliationService</code> → return a plan (additive; never clears unless <code>force/replace</code>). GET <code>/projects/:id/bit-prompt</code>: server-owned template embedding the exact bit JSON schema (single source with the importer), a product-lens instruction set ("describe what the app does, the platforms, the real screen/route list, integrations, constraints — not code structure"), and a "write the file to disk" directive.</dd></div>
+          <div><dt>Files</dt><dd><code>ProjectController</code>, <code>routes/projects.ts</code>, <code>src/controllers/project/feature-utils/bitPromptTemplate.ts</code>, <code>validation/projectBit.ts</code> (+ tests)</dd></div>
+          <div><dt>Depends</dt><dd>T9</dd></div>
+          <div><dt>Verify</dt><dd><code>npm test</code>: malformed file rejected per-row; valid file returns a plan; prompt embeds the schema</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T11: Frontend — import dialog, generate-prompt popup, resolve screen</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Generate-prompt popup (fetch <code>/bit-prompt</code>, copy button). Import dialog (upload JSON → call reconcile → render plan). Reconciliation <strong>resolve screen</strong> (R2's UX heart): grouped by action, conflicts/similars cheap to scan, per-row merge / keep-both / skip / force, then apply. Reuse for single-bit add.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/bits/ImportDialog.tsx</code>, <code>GeneratePromptPopup.tsx</code>, <code>ReconcileResolve.tsx</code>; <code>api/projects.ts</code> (reconcile/apply/import/prompt fns); <code>hooks/queries/useProjectQueries.ts</code></dd></div>
+          <div><dt>Depends</dt><dd>T10, T6</dd></div>
+          <div><dt>Verify</dt><dd>Preview: paste prompt → upload result → resolve a flagged conflict → bits land; no <code>any</code>/<code>console.*</code></dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T12: Ticket grounding</h3>
+        <dl>
+          <div><dt>Do</dt><dd><code>TicketGenerationService</code> loads the session's project bits and passes them to <code>generateTicket</code>; <code>ticketAgent.ts</code> renders them as orienting context for <code>context_summary</code>/acceptance criteria (advisory, not invented requirements). Ungrounded path unchanged when no project.</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/ticket/feature-services/TicketGenerationService.ts</code>, <code>src/agents/ticketAgent.ts</code> (+ tests)</dd></div>
+          <div><dt>Depends</dt><dd>T3</dd></div>
+          <div><dt>Verify</dt><dd><code>npm test</code>; manual: a grounded ticket's context_summary reflects real app facts</dd></div>
+        </dl>
+      </article>
+
+      <div class="wave-band">Wave 3 — Merge-on-complete + scout teardown</div>
+
+      <article class="task-card">
+        <h3>T13: Merge-on-complete</h3>
+        <dl>
+          <div><dt>Do</dt><dd>On ticket finalize (locate the finalize path in <code>TicketController</code>), if the session has a project, generate candidate bit(s) from the finalized ticket + decisions (a small generation step, may emit several bits across topics) and run them through <code>BitReconciliationService</code> → surface the plan to the PM for inline resolve (never silent auto-apply beyond <code>insert</code>). Stamp <code>source='merged'</code>, <code>source_ticket_id</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/ticket/**</code> (finalize handler/service), <code>BitReconciliationService</code>, frontend finalize flow (surface the plan)</dd></div>
+          <div><dt>Depends</dt><dd>T9, T12</dd></div>
+          <div><dt>Verify</dt><dd>Manual: finalize a ticket → candidate bits proposed → resolve → bits appear with merged provenance</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T14: Scout teardown</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Delete <code>agents/codeScout/*</code>, <code>controllers/codeScout/*</code>, <code>services/codeContext/*</code>, <code>services/scoutJobs/*</code>, <code>workers/scoutWorker.ts</code>, <code>models/ScoutCacheModel*</code>, <code>models/ScoutJobModel*</code>, <code>routes/codeScout.ts</code>, <code>routes/internalScout.ts</code>, <code>types/codeScout.ts</code>, <code>validation/codeScout.ts</code>, <code>scripts/scout-work.ts</code> (+ tests). Unwire <code>app.ts</code> (drop codeScout + internalScout routers), <code>index.ts</code> (drop worker startup/stop), <code>config/index.ts</code> (drop SCOUT, SCOUT_JOB, GITHUB_TOKEN, SCOUT_WORKER_SECRET, RUN_SCOUT_WORKER, getGitHubToken, getScoutWorkerSecret), <code>package.json</code> (<code>scout:work</code>). New migration dropping <code>scout_jobs</code> then <code>scout_cache</code>.</dd></div>
+          <div><dt>Files</dt><dd>(deletions above) + <code>src/app.ts</code>, <code>src/index.ts</code>, <code>src/config/index.ts</code>, <code>package.json</code>, <code>src/database/migrations/&lt;ts&gt;_drop_scout.ts</code></dd></div>
+          <div><dt>Depends</dt><dd>T5 (grounding swap must already replace the scout read)</dd></div>
+          <div><dt>Verify</dt><dd><code>npx tsc --noEmit</code> zero dangling imports; <code>npm test</code>; <code>npm run migrate</code> drops cleanly; server boots without scout env</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled> <code>npx tsc --noEmit</code> — zero errors (front + back)</li>
+        <li><input type="checkbox" disabled> <code>npm test</code> — models/services covered for contract, error paths, owner scope (§20.2)</li>
+        <li><input type="checkbox" disabled> <code>npm run check:all</code> — no new backend violations (§18); cite any with §IDs</li>
+        <li><input type="checkbox" disabled> <code>npm run migrate</code> + <code>migrate:rollback</code> clean for all new migrations</li>
+        <li><input type="checkbox" disabled> Manual: project with bits → grounded interview anchors options to real app facts (no invented screens)</li>
+        <li><input type="checkbox" disabled> Manual: a settled-kind bit suppresses a question, shown with reason + working "answer anyway"</li>
+        <li><input type="checkbox" disabled> Manual: <code>cache_read_input_tokens</code> &gt; 0 on the second batch of a grounded session (R4)</li>
+        <li><input type="checkbox" disabled> Manual: generate-prompt → import JSON → reconcile → resolve a conflict → bits land; nothing cleared without force</li>
+        <li><input type="checkbox" disabled> Manual: finalize a ticket → candidate bits proposed and resolvable (merge-on-complete)</li>
+        <li><input type="checkbox" disabled> Manual: grounded ticket's context_summary reflects real app facts</li>
+        <li><input type="checkbox" disabled> Scout fully removed: no scout files/imports, server boots without scout env, <code>scout_cache</code>/<code>scout_jobs</code> dropped</li>
+        <li><input type="checkbox" disabled> Acceptance artifact (<code>test.html</code> + <code>test-results.json</code>) generated and passing/waived</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

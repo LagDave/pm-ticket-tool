@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Unified Loader, Session Delete, Logo + Button Polish Spec</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #ffffff;
+      --ink: #080808;
+      --muted: #5f5f5f;
+      --line: #d8d8d8;
+      --soft: #f5f5f5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    .spec-shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0; }
+    .spec-hero, .spec-card, .task-card { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+    .spec-hero { border-color: var(--ink); padding: 32px; margin-bottom: 20px; }
+    .hero-topline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .spec-card { padding: 28px; margin-top: 16px; }
+    .task-card { padding: 20px; background: var(--soft); margin-top: 14px; }
+    .eyebrow, dt { color: var(--muted); font-size: 0.78rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
+    .eyebrow { margin: 0; }
+    .status-pill { display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 0.78rem; font-weight: 800; letter-spacing: 0; text-transform: uppercase; }
+    .status-card { border-color: var(--ink); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 840px; margin-bottom: 24px; font-size: clamp(2.25rem, 6vw, 5rem); line-height: 0.95; letter-spacing: 0; }
+    h2 { font-size: 1.35rem; letter-spacing: 0; }
+    h3 { font-size: 1rem; letter-spacing: 0; }
+    code { padding: 0.1rem 0.3rem; border: 1px solid var(--line); border-radius: 4px; background: var(--soft); font-size: 0.92em; }
+    .meta-grid, .split-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .meta-grid { margin: 0; }
+    .meta-grid div, .split-grid > div { border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    dd { margin: 4px 0 0; font-weight: 700; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
+    .task-card dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0; }
+    .task-card dl > div { border: 1px solid var(--line); border-radius: 6px; padding: 10px; background: var(--paper); }
+    @media (max-width: 640px) {
+      .spec-shell { width: min(100% - 20px, 1120px); padding: 24px 0; }
+      .spec-hero, .spec-card { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">PM Ticket Tool Plan Spec</p>
+        <span class="status-pill">In Progress</span>
+      </div>
+      <h1>Unified Loader, Session Delete, Logo + Button Polish</h1>
+      <dl class="meta-grid">
+        <div class="status-card"><dt>Status</dt><dd>In Progress</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/06252026-loaders-delete-logo-buttons</dd></div>
+        <div><dt>Size</dt><dd>Medium</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>UI-polish batch from PM review of the live app. The app has three different loading indicators (batch orb, triage gauge, inline line) which feel inconsistent; the PM likes the batch-orb style and wants it everywhere, with rotating "Dave the engineer" copy for personality. The PM added a new <code>logo.webp</code> to use over the PNG, needs a way to delete sessions (none exists today), and wants the dashboard's primary actions color-coded (New session = accent, Resume = white).</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <ul>
+        <li>One shared <code>ThinkingLoader</code> (orange dual-ring orb + swapping serif title + optional subtitle + optional green-check "done" state) used for every loading state: batch generation, triage, session-list load, feature-scope load.</li>
+        <li>A pool of ~50 rotating messages, most about "Dave" the engineer, the rest about the codebase/process; shuffled per mount.</li>
+        <li>Header logo + favicon use <code>/logo.webp</code> (file moved from <code>dist/</code> to <code>public/</code> so it survives rebuilds).</li>
+        <li>Delete a session: owner-scoped <code>DELETE /sessions/:id</code> (DB cascade removes turns, decisions, tickets, comments, scout cache/jobs) + a per-row Delete with inline confirm on the dashboard.</li>
+        <li>Dashboard "New session" is the accent (orange) button; row "Resume"/"Finish" is a white button with black text.</li>
+      </ul>
+      <p><strong>Done when:</strong> all loaders are the single component with rotating copy; logo.webp serves in header + favicon; a session can be deleted and disappears from the list; the two buttons are recolored; tsc/lint/build/tests green; deployed and verified live.</p>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <h3>Relevant Files</h3>
+      <ul>
+        <li><code>frontend/src/components/interview/BatchThinking.tsx</code> - current batch orb loader (the liked style); to be replaced by the shared loader.</li>
+        <li><code>frontend/src/components/ui/LoadingLine.tsx</code> - inline ring loader (sessions/feature-scope); replaced.</li>
+        <li><code>frontend/src/components/interview/TriageBranch.tsx</code> - holds <code>TriageThinking</code> gauge + green check; replaced by the shared loader's done state.</li>
+        <li><code>frontend/src/index.css</code> - <code>.batch-loading*</code>, <code>.triage-*</code>, <code>.loading-line*</code>, <code>.primary/secondary-button</code>.</li>
+        <li><code>src/models/InterviewSessionModel.ts</code>, <code>.../feature-services/InterviewSessionService.ts</code>, <code>.../InterviewSessionController.ts</code>, <code>src/routes/interviewSessions.ts</code> - the session domain (delete added here).</li>
+        <li><code>frontend/src/api/sessions.ts</code>, <code>hooks/queries/useInterviewSessionQueries.ts</code>, <code>components/dashboard/SessionList.tsx</code>, <code>pages/Dashboard.tsx</code> - delete UI + buttons.</li>
+      </ul>
+      <h3>Patterns To Follow</h3>
+      <ul>
+        <li>Backend mirrors <code>gbp-automation/</code> (§6.1): route → controller → service → model; <code>{success,data,error}</code> envelope (§8.1); typed <code>InterviewError</code> + central status map (§8.3); every model query owner-scoped (§11.7, §5.5).</li>
+        <li>Frontend mirrors the <code>api/</code> + React Query + feature-folder triad (§12.1): <code>apiDelete</code> in the one client, a thin domain fn, a mutation hook that invalidates <code>["sessions"]</code>, a presentational component (§14.1).</li>
+        <li>Loader is presentational + motion only (§14.1); rotating-message pool and timings are named constants (§4.2); no <code>any</code> (§17.2).</li>
+      </ul>
+      <p><strong>Reference analog:</strong> <code>cloneSession</code> end-to-end (model → service → controller → route → api → <code>useCloneSession</code>) is the closest existing CRUD-on-a-session path; the delete mirrors it.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Delete is owner-scoped at the model layer (§11.7); a foreign/missing id returns 404 via NOT_FOUND, indistinguishable (§5.5).</li>
+            <li>One loader component; the three old loaders removed, not left dead (§4.1, dead-export hygiene).</li>
+            <li>Move <code>logo.webp</code> into <code>frontend/public/</code> (Vite source), not reference it from <code>dist/</code>.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No new dependencies (lucide-react + framer-motion already present).</li>
+            <li>No DB migration - all session-child FKs already <code>ON DELETE CASCADE</code>; do not re-declare schema.</li>
+            <li>No accent creep: the orb is a genuine progress indicator; buttons stay restrained (only New session = accent, Resume = white).</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Authentication (still the real gap; everyone is owner 1).</li>
+        <li>Soft-delete / archive / undo - delete is a hard cascade delete.</li>
+        <li>Bulk delete; delete from inside the wizard (dashboard rows only).</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level:</strong> 2 (Concern). One destructive endpoint; everything else is cosmetic.</p>
+      <h3>Risks Identified</h3>
+      <ul>
+        <li><strong>Irreversible data loss</strong> (delete cascades to tickets/comments/turns/decisions/scout rows). <strong>Mitigation:</strong> owner-scope at the model (§11.7) so no cross-owner delete; an inline two-step confirm in the row (not a one-click button); hard delete is the PM's explicit ask for their own data.</li>
+        <li><strong>Cascade reaches more tables than obvious.</strong> <strong>Mitigation:</strong> verified every <code>session_id</code> FK is <code>ON DELETE CASCADE</code> (interview_turns, decision_record, tickets→ticket_comments, scout_cache, scout_jobs); the DB does it atomically, no app-side multi-write.</li>
+        <li><strong>Loader regressions</strong> (StrictMode double-mount intervals, AnimatePresence exit deadlock seen before in BatchThinking). <strong>Mitigation:</strong> single <code>setInterval</code> cleared on unmount; render the loader directly without a wrapping mode="wait" presence (the prior fix).</li>
+      </ul>
+      <p><strong>Blast radius:</strong> loader change touches QuestionBatch, TriageBranch, Dashboard (3 consumers). Button/CSS change is dashboard-only. Delete adds one route; no existing endpoint changes.</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card">
+        <h3>T1: Use logo.webp (header + favicon)</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Copy <code>frontend/dist/logo.webp</code> → <code>frontend/public/logo.webp</code>; point the 4 refs at <code>/logo.webp</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/public/logo.webp</code>, <code>index.html</code>, <code>App.tsx</code>, <code>InterviewWizard.tsx</code>, <code>Dashboard.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>none</dd></div>
+          <div><dt>Verify</dt><dd>Live HTML favicon = /logo.webp; header img loads (200).</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T2: Unified ThinkingLoader + ~50 rotating messages</h3>
+        <dl>
+          <div><dt>Do</dt><dd>New <code>lib/loadingMessages.ts</code> (~50 messages, mostly Dave; shuffle helper). New <code>components/ui/ThinkingLoader.tsx</code> (orb + swapping serif title + optional subtitle + optional <code>done</code> green check). Migrate CSS <code>.batch-loading*</code> → <code>.thinking-loader*</code> + a green <code>.thinking-loader-check</code>; remove <code>.triage-*</code> + <code>.loading-line*</code>. Delete <code>BatchThinking.tsx</code> + <code>LoadingLine.tsx</code>; replace usages in <code>QuestionBatch</code>, <code>Dashboard</code>, and <code>TriageBranch</code> (done state keeps the green check).</dd></div>
+          <div><dt>Files</dt><dd><code>lib/loadingMessages.ts</code>, <code>components/ui/ThinkingLoader.tsx</code>, <code>index.css</code>, <code>QuestionBatch.tsx</code>, <code>TriageBranch.tsx</code>, <code>Dashboard.tsx</code>; remove <code>BatchThinking.tsx</code>, <code>LoadingLine.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>none</dd></div>
+          <div><dt>Verify</dt><dd>Every loading state shows the orb + rotating copy; triage still resolves to a green check; tsc/lint clean.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T3: Delete endpoint (backend)</h3>
+        <dl>
+          <div><dt>Do</dt><dd><code>InterviewSessionModel.deleteForOwner(id, owner)</code> (owner-scoped DELETE → rowcount). <code>InterviewSessionService.deleteSession(id, owner)</code> (NOT_FOUND if absent/foreign, then delete). <code>InterviewSessionController.remove</code> → 200 <code>{ id }</code>. <code>router.delete("/:id", validate(sessionIdParamSchema,"params"), …remove)</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>InterviewSessionModel.ts</code>, <code>InterviewSessionService.ts</code>, <code>InterviewSessionController.ts</code>, <code>routes/interviewSessions.ts</code>, + model/controller tests</dd></div>
+          <div><dt>Depends on</dt><dd>none</dd></div>
+          <div><dt>Verify</dt><dd>DELETE own session → 200; foreign/missing → 404; children gone (cascade). Tests pass.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T4: Delete (frontend) + T5 button colors</h3>
+        <dl>
+          <div><dt>Do</dt><dd><code>api/sessions.deleteSession(id)</code> via <code>apiDelete</code>; <code>useDeleteSession()</code> mutation invalidating <code>["sessions"]</code> + toast. <code>SessionList</code> per-row Delete with inline confirm + <code>onDelete</code>/<code>isDeleting</code>. <code>Dashboard</code> wires it. Recolor: New session → <code>primary-button</code>; Resume/Finish → new white <code>.light-button</code>; add quiet <code>.session-delete</code> danger style.</dd></div>
+          <div><dt>Files</dt><dd><code>api/sessions.ts</code>, <code>useInterviewSessionQueries.ts</code>, <code>SessionList.tsx</code>, <code>Dashboard.tsx</code>, <code>index.css</code></dd></div>
+          <div><dt>Depends on</dt><dd>T3 (endpoint shape)</dd></div>
+          <div><dt>Verify</dt><dd>Delete → confirm → row gone, list refetches; New session orange; Resume white/black.</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled> <code>cd frontend && npx tsc --noEmit</code> - zero errors</li>
+        <li><input type="checkbox" disabled> <code>npm run lint</code> (frontend) clean; <code>npm run check:conventions --strict</code> (backend) 0</li>
+        <li><input type="checkbox" disabled> backend tests pass incl. new delete tests; <code>npm run build</code> clean</li>
+        <li><input type="checkbox" disabled> One loader everywhere with rotating Dave copy; triage keeps its green check</li>
+        <li><input type="checkbox" disabled> logo.webp in header + favicon (live)</li>
+        <li><input type="checkbox" disabled> Delete a session removes it (and its ticket) from the list</li>
+        <li><input type="checkbox" disabled> New session = orange, Resume = white/black (live)</li>
+        <li><input type="checkbox" disabled> Deployed; live bundle verified</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

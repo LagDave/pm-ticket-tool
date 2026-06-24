@@ -7,6 +7,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { db } from "../database/connection";
 import { makeOwner, makeRequestText } from "../test/factories";
 import { InterviewSessionModel } from "./InterviewSessionModel";
+import { InterviewTurnModel } from "./InterviewTurnModel";
 
 describe("InterviewSessionModel", () => {
   afterAll(async () => {
@@ -162,5 +163,58 @@ describe("InterviewSessionModel", () => {
     });
     expect(completePage).toHaveLength(1);
     expect(completePage[0].status).toBe("complete");
+  });
+
+  it("deletes the owner's session and returns 1", async () => {
+    const owner = makeOwner();
+    const created = await InterviewSessionModel.create(owner, {
+      originalRequest: makeRequestText("delete-me"),
+    });
+
+    const deletedCount = await InterviewSessionModel.deleteForOwner(created.id, owner);
+    expect(deletedCount).toBe(1);
+
+    // The row is gone — a re-read returns null.
+    const reread = await InterviewSessionModel.findByIdForOwner(created.id, owner);
+    expect(reread).toBeNull();
+  });
+
+  it("does NOT delete another owner's session and returns 0, leaving the row intact (§11.7)", async () => {
+    const ownerA = makeOwner();
+    const ownerB = makeOwner();
+    const sessionA = await InterviewSessionModel.create(ownerA, {
+      originalRequest: makeRequestText("ownerA-keep"),
+    });
+
+    // Owner B tries to delete owner A's id — nothing matches, returns 0.
+    const deletedCount = await InterviewSessionModel.deleteForOwner(sessionA.id, ownerB);
+    expect(deletedCount).toBe(0);
+
+    // Owner A's row is untouched.
+    const stillThere = await InterviewSessionModel.findByIdForOwner(sessionA.id, ownerA);
+    expect(stillThere?.id).toBe(sessionA.id);
+  });
+
+  it("cascades the delete to child rows (interview_turns) via the FK (§10.5)", async () => {
+    const owner = makeOwner();
+    const created = await InterviewSessionModel.create(owner, {
+      originalRequest: makeRequestText("with-child"),
+    });
+    await InterviewTurnModel.create({
+      sessionId: created.id,
+      turnIndex: 0,
+      questions: { questions: [] },
+    });
+
+    // Sanity: the child exists before the delete.
+    const before = await InterviewTurnModel.listBySession(created.id);
+    expect(before).toHaveLength(1);
+
+    const deletedCount = await InterviewSessionModel.deleteForOwner(created.id, owner);
+    expect(deletedCount).toBe(1);
+
+    // The DB cascade reaped the child turn alongside the session row.
+    const after = await InterviewTurnModel.listBySession(created.id);
+    expect(after).toHaveLength(0);
   });
 });

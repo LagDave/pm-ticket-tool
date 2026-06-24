@@ -7,15 +7,20 @@
  * yet) with the raw request as a muted subtitle, last-updated, plus the resume /
  * re-run / view-ticket actions (all neutral, no accent). Typed, no any (§17.2).
  */
+import { useState } from "react";
 import type { InterviewSession, SessionStatus } from "../../types/interview";
 
 interface SessionListProps {
   sessions: InterviewSession[];
   /** True while a re-run is in flight, to disable the buttons. */
   isCloning: boolean;
+  /** True while a delete is in flight, to disable the confirm buttons. */
+  isDeleting: boolean;
   onResume: (session: InterviewSession) => void;
   onReRun: (session: InterviewSession) => void;
   onViewTicket: (session: InterviewSession) => void;
+  /** Permanently delete a session (after the inline confirm). */
+  onDelete: (session: InterviewSession) => void;
 }
 
 /** How many characters of the original request to show in a row. Named, not magic. */
@@ -66,10 +71,16 @@ function subtitle(session: InterviewSession): string | null {
 export function SessionList({
   sessions,
   isCloning,
+  isDeleting,
   onResume,
   onReRun,
   onViewTicket,
+  onDelete,
 }: SessionListProps) {
+  // Which row is showing its delete confirm (UI-only state, §15.2). Delete is
+  // destructive and cascades, so it is a two-step inline confirm, never one click.
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
+
   if (sessions.length === 0) {
     return <p className="field-hint">No sessions yet. Start a new one above.</p>;
   }
@@ -94,7 +105,7 @@ export function SessionList({
             {isResumable(session.status) ? (
               <button
                 type="button"
-                className="secondary-button"
+                className="light-button"
                 onClick={() => onResume(session)}
               >
                 {session.status === "awaiting_input" ? "Finish" : "Resume"}
@@ -117,6 +128,38 @@ export function SessionList({
             >
               Re-run
             </button>
+            {confirmingId === session.id ? (
+              <>
+                <button
+                  type="button"
+                  className="danger-button"
+                  onClick={() => {
+                    onDelete(session);
+                    setConfirmingId(null);
+                  }}
+                  disabled={isDeleting}
+                >
+                  Confirm delete
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setConfirmingId(null)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="session-delete"
+                onClick={() => setConfirmingId(session.id)}
+                aria-label={`Delete session: ${primaryLabel(session)}`}
+              >
+                Delete
+              </button>
+            )}
           </div>
         </li>
       ))}

@@ -18,9 +18,8 @@
  * logic here (§14.1). Failures render the retry panel off the query's error state
  * (§16.1). Mirrors the QuestionBatch / TicketStep generate-then-render shape.
  */
-import { AnimatePresence, motion } from "framer-motion";
-import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ThinkingLoader } from "../ui/ThinkingLoader";
 import { useTriageSession } from "../../hooks/queries/useInterviewSessionQueries";
 import type { TriageRoute } from "../../types/interview";
 
@@ -53,7 +52,10 @@ export function TriageBranch({ sessionId, onRouted }: TriageBranchProps) {
     return (
       <section className="step-panel">
         <h2 className="step-heading">Sizing up your request</h2>
-        <TriageThinking done={Boolean(outcome)} />
+        <ThinkingLoader
+          done={Boolean(outcome)}
+          doneLabel="Got it. Routing you now…"
+        />
       </section>
     );
   }
@@ -142,79 +144,5 @@ export function TriageBranch({ sessionId, onRouted }: TriageBranchProps) {
         )}
       </div>
     </section>
-  );
-}
-
-/** The rotating "what we're doing" lines while triage runs. Named, not magic (§4.2). */
-const TRIAGE_PHASES: readonly string[] = [
-  "Reading your request…",
-  "Weighing the open decisions…",
-  "Choosing the fastest path…",
-];
-
-/** How long each triage phase shows before rotating, in ms. */
-const TRIAGE_PHASE_MS = 1_300;
-
-/**
- * The triage loader: an animated "sizing" meter (bars that rise and fall like a
- * gauge being read) plus a rotating phase line, that resolves into a green check
- * when the classification lands (Item 3). Presentational + motion only.
- */
-function TriageThinking({ done }: { done: boolean }) {
-  const [phase, setPhase] = useState(0);
-
-  useEffect(() => {
-    if (done) return;
-    const timer = window.setInterval(() => {
-      setPhase((current) => (current + 1) % TRIAGE_PHASES.length);
-    }, TRIAGE_PHASE_MS);
-    return () => window.clearInterval(timer);
-  }, [done]);
-
-  return (
-    <div className="triage-thinking" role="status" aria-live="polite">
-      <div className="triage-gauge" aria-hidden>
-        {done ? (
-          <motion.span
-            className="triage-check"
-            initial={{ scale: 0, rotate: -25 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", stiffness: 420, damping: 18 }}
-          >
-            <Check size={22} strokeWidth={3} />
-          </motion.span>
-        ) : (
-          [0, 1, 2, 3, 4].map((i) => (
-            <motion.span
-              key={i}
-              className="triage-bar"
-              animate={{ scaleY: [0.35, 1, 0.35] }}
-              transition={{
-                duration: 1,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: i * 0.12,
-              }}
-            />
-          ))
-        )}
-      </div>
-      <div className="triage-thinking-copy">
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={done ? "done" : phase}
-            className="field-hint triage-thinking-label"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.22 }}
-          >
-            {done
-              ? "Got it. Routing you now…"
-              : TRIAGE_PHASES[phase]}
-          </motion.p>
-        </AnimatePresence>
-      </div>
-    </div>
   );
 }
