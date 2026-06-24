@@ -1045,6 +1045,35 @@ textarea.request-input {
   line-height: 1.6;
 }
 
+/* Enrichment sections (spec What): problem/background prose, bullet lists, grounding. */
+.ticket-prose {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.ticket-bullets {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+.ticket-bullets strong {
+  color: var(--accent-soft);
+  font-weight: 600;
+}
+.ticket-grounding code {
+  font-size: 0.86rem;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--canvas-2);
+  color: var(--ink);
+}
+
 /* Inline edit form */
 .ticket-edit,
 .ticket-criteria-edit {

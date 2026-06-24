@@ -47,6 +47,8 @@ export function handleError(res: Response, error: unknown): Response {
     // An upstream model/generation failure is a 502 (bad gateway), distinct from
     // our own 500 (mirrors the interview domain).
     if (error.code.includes("GENERATION")) status = 502;
+    // The public share endpoint over its rate limit (§11.3) → 429 Too Many Requests.
+    if (error.code.includes("RATE_LIMITED")) status = 429;
     return fail(res, status, error.code, error.message, error.details);
   }
 

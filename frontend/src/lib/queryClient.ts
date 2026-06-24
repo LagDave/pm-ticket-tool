@@ -36,4 +36,6 @@ export const QUERY_KEYS = {
   interview: (sessionId: number) => ["interview", sessionId] as const,
   /** A persisted ticket + its comments (spec 3), keyed by ticket id. */
   ticket: (ticketId: number) => ["ticket", ticketId] as const,
+  /** The public read-only shared ticket (spec What), keyed by its share token. */
+  sharedTicket: (token: string) => ["shared-ticket", token] as const,
 };

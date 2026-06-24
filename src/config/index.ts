@@ -77,8 +77,12 @@ export const TICKET_GENERATION = {
   FALLBACK_MODEL: "claude-sonnet-4-6",
   /** Medium reasoning effort for the synthesis call (spec T1). */
   EFFORT: "medium",
-  /** Bounded output so a single generation call stays short-lived (serverless). */
-  MAX_TOKENS: 4_096,
+  /**
+   * Bounded output so a single generation call stays short-lived (serverless).
+   * Raised for the enriched ticket (problem, key decisions, open questions,
+   * metrics, dependencies, grounding on top of the core fields) — spec What.
+   */
+  MAX_TOKENS: 8_192,
 } as const;
 
 /**

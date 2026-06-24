@@ -53,12 +53,16 @@ export class TicketService {
     this.assertVersionMatches(current, body.expectedVersion, ticketId);
 
     // Merge the edit onto the current ticket so Markdown reflects every field,
-    // not only the ones that changed.
+    // not only the ones that changed. priority is editable; the rich details are
+    // display-only and carried through unchanged so a re-render keeps every
+    // enrichment section (spec What / Out Of Scope).
     const merged = {
       userStory: body.userStory ?? current.user_story ?? "",
       acceptanceCriteria: body.acceptanceCriteria ?? current.acceptance_criteria ?? [],
       effort: body.effort ?? current.effort ?? "M",
       contextSummary: body.contextSummary ?? current.context_summary ?? "",
+      priority: body.priority ?? current.priority,
+      details: current.details,
     };
     const renderedMarkdown = TicketMarkdownService.render(merged);
 
@@ -69,6 +73,7 @@ export class TicketService {
         userStory: body.userStory,
         acceptanceCriteria: body.acceptanceCriteria,
         effort: body.effort,
+        priority: body.priority,
         contextSummary: body.contextSummary,
         renderedMarkdown,
       },
@@ -122,6 +127,8 @@ export class TicketService {
         acceptanceCriteria: row.acceptance_criteria ?? [],
         effort: row.effort ?? "M",
         contextSummary: row.context_summary ?? "",
+        priority: row.priority,
+        details: row.details,
       });
       await TicketModel.setRenderedMarkdown(ticketId, renderedMarkdown, trx);
       return { ...row, rendered_markdown: renderedMarkdown };

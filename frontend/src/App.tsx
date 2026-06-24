@@ -1,16 +1,19 @@
 /**
  * App root. Mounts the React Query provider (§15.1) and the shared toast
  * container (§16.3), then switches between the dashboard (the landing screen),
- * the interview wizard (new session or resume), and a read-only ticket view.
+ * the interview wizard (new session or resume), a read-only ticket view, and the
+ * public shared-ticket view reached via the /?ticket=<token> deep link (spec What).
  *
- * View routing is plain UI state (§15.2) - no router library is added (§15.4);
- * this mirrors how the wizard already switches steps with local state. The
- * dashboard hands a session + step to the wizard for resume (spec 4 T5) and a
- * ticket id to the ticket view (spec 4 T6).
+ * View routing is plain UI state (§15.2) - no router library is added (§15.4); this
+ * mirrors how the wizard already switches steps with local state. The only URL the
+ * app reads is the `?ticket=` deep link, parsed once on mount to seed the initial
+ * view; everything else is in-memory navigation. The dashboard hands a session +
+ * step to the wizard for resume (spec 4 T5) and a ticket id to the ticket view (T6).
  */
 import { useState } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
+import { SharedTicketView } from "./components/ticket/SharedTicketView";
 import { TicketView } from "./components/ticket/TicketView";
 import { queryClient } from "./lib/queryClient";
 import { Dashboard } from "./pages/Dashboard";
@@ -20,10 +23,21 @@ import { InterviewWizard, type WizardStep } from "./pages/InterviewWizard";
 type View =
   | { name: "dashboard" }
   | { name: "wizard"; sessionId: number | null; step: WizardStep }
-  | { name: "ticket"; ticketId: number };
+  | { name: "ticket"; ticketId: number }
+  | { name: "shared"; token: string };
+
+/**
+ * Seed the initial view from the URL: a `?ticket=<token>` deep link opens the
+ * public read-only shared ticket (spec What); anything else lands on the dashboard.
+ * Read once at mount - the app does not otherwise use URL routing (§15.4).
+ */
+function initialView(): View {
+  const token = new URLSearchParams(window.location.search).get("ticket");
+  return token ? { name: "shared", token } : { name: "dashboard" };
+}
 
 export default function App() {
-  const [view, setView] = useState<View>({ name: "dashboard" });
+  const [view, setView] = useState<View>(initialView);
 
   const goDashboard = (): void => setView({ name: "dashboard" });
 
@@ -62,6 +76,8 @@ export default function App() {
           <TicketView ticketId={view.ticketId} />
         </main>
       )}
+
+      {view.name === "shared" && <SharedTicketView token={view.token} />}
 
       <Toaster position="top-right" />
     </QueryClientProvider>

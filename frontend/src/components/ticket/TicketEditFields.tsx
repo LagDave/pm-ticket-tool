@@ -1,17 +1,20 @@
 /**
- * TicketEditFields - the inline-edit form for a draft ticket (spec T4, §12.3).
+ * TicketEditFields - the inline-edit form for a draft ticket (spec T4/What, §12.3).
  * Seeds local form state from the current ticket, then saves through a
  * version-guarded PATCH mutation (the hook carries the optimistic-concurrency
- * version; a stale save surfaces a toast, §16.3). A component renders +
- * delegates; no fetch, no business logic (§14.1). Typed throughout, no any (§17.2).
+ * version; a stale save surfaces a toast, §16.3). Editable: story, effort,
+ * priority, context, and criteria; the generated rich sections are display-only
+ * (spec Out Of Scope). A component renders + delegates; no fetch, no business
+ * logic (§14.1). Typed throughout, no any (§17.2).
  */
 import { useState } from "react";
 import { useUpdateTicket } from "../../hooks/queries/useTicketQueries";
-import { EFFORT_TIERS } from "../../types/ticket";
+import { EFFORT_TIERS, PRIORITY_TIERS } from "../../types/ticket";
 import type {
   AcceptanceCriterion,
   EffortTier,
   Ticket,
+  TicketPriority,
 } from "../../types/ticket";
 
 interface TicketEditFieldsProps {
@@ -24,6 +27,7 @@ export function TicketEditFields({ ticket, onDone }: TicketEditFieldsProps) {
   const update = useUpdateTicket(ticket.id);
   const [userStory, setUserStory] = useState(ticket.user_story ?? "");
   const [effort, setEffort] = useState<EffortTier>(ticket.effort ?? "M");
+  const [priority, setPriority] = useState<TicketPriority>(ticket.priority ?? "medium");
   const [contextSummary, setContextSummary] = useState(ticket.context_summary ?? "");
   const [criteria, setCriteria] = useState<AcceptanceCriterion[]>(
     ticket.acceptance_criteria ?? [],
@@ -35,6 +39,7 @@ export function TicketEditFields({ ticket, onDone }: TicketEditFieldsProps) {
         expectedVersion: ticket.version,
         userStory: userStory.trim(),
         effort,
+        priority,
         contextSummary: contextSummary.trim(),
         acceptanceCriteria: criteria,
       },
@@ -69,6 +74,23 @@ export function TicketEditFields({ ticket, onDone }: TicketEditFieldsProps) {
         {EFFORT_TIERS.map((tier) => (
           <option key={tier} value={tier}>
             {tier}
+          </option>
+        ))}
+      </select>
+
+      <label className="field-label" htmlFor="edit-priority">
+        Priority
+      </label>
+      <select
+        id="edit-priority"
+        className="ticket-effort-select"
+        value={priority}
+        onChange={(event) => setPriority(event.target.value as TicketPriority)}
+        disabled={update.isPending}
+      >
+        {PRIORITY_TIERS.map((tier) => (
+          <option key={tier} value={tier}>
+            {tier.charAt(0).toUpperCase() + tier.slice(1)}
           </option>
         ))}
       </select>

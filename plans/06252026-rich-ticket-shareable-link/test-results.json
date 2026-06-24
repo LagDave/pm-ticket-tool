@@ -1,0 +1,130 @@
+{
+  "plan": "plans/06252026-rich-ticket-shareable-link",
+  "generatedAt": "2026-06-25",
+  "status": "In Progress",
+  "items": [
+    {
+      "id": "T-mig-1",
+      "title": "Migration adds share_token/priority/details and backfills a unique token for every ticket",
+      "surface": "cli",
+      "precondition": "A Postgres DB at the prior schema",
+      "steps": ["1. npm run migrate"],
+      "expected": "Migration applies; share_token is NOT NULL + unique on all rows; priority CHECK + details jsonb added",
+      "status": "pass",
+      "evidence": "npm run migrate -> 'Batch 1 run: 7 migrations' against a fresh test DB (pm_tool_rt_test); up() ran the add-columns + backfill + NOT NULL/unique + CHECK without error",
+      "notes": "Migration renamed to 20260625000010 to avoid a timestamp collision with the parallel project-context-bits branch.",
+      "waiver": ""
+    },
+    {
+      "id": "T-api-1",
+      "title": "Public GET /shared/tickets/:token returns ticket content with NO auth",
+      "surface": "api",
+      "precondition": "A generated ticket exists with a known share_token",
+      "steps": ["1. GET /shared/tickets/<token> with no auth header"],
+      "expected": "200 + { success, data, error } envelope; data carries user_story, acceptance_criteria, effort, priority, details, status, rendered_markdown",
+      "status": "pass",
+      "evidence": "SharedTicketController.test.ts (supertest, real app) asserts 200 + envelope + fields; SharedTicketService.test.ts asserts the projection",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T-sec-1",
+      "title": "Public payload exposes ONLY content (no id, session_id, share_token, or comments)",
+      "surface": "api",
+      "precondition": "A generated ticket with a known token",
+      "steps": ["1. GET /shared/tickets/<token>", "2. Inspect the response body"],
+      "expected": "data.id, data.session_id, data.share_token, data.comments are all undefined; only content fields present",
+      "status": "pass",
+      "evidence": "SharedTicketController.test.ts + SharedTicketService.test.ts both assert internal identifiers are absent (§5.4)",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T-api-2",
+      "title": "Unknown but well-formed token returns 404 without leaking existence",
+      "surface": "api",
+      "precondition": "none",
+      "steps": ["1. GET /shared/tickets/<43-char unknown token>"],
+      "expected": "404 + error.code SHARED_TICKET_NOT_FOUND",
+      "status": "pass",
+      "evidence": "SharedTicketController.test.ts asserts 404 + code; SharedTicketService.test.ts asserts the throw",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T-api-3",
+      "title": "Malformed token is rejected at the boundary (400)",
+      "surface": "api",
+      "precondition": "none",
+      "steps": ["1. GET /shared/tickets/too-short"],
+      "expected": "400 + error.code VALIDATION_ERROR",
+      "status": "pass",
+      "evidence": "SharedTicketController.test.ts asserts 400 + VALIDATION_ERROR (shareTokenParamSchema, §11.2)",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T-api-4",
+      "title": "Generation persists the enriched fields (priority, details) + mints a share token",
+      "surface": "api",
+      "precondition": "A session with recorded decisions",
+      "steps": ["1. POST /sessions/:id/ticket"],
+      "expected": "The draft ticket carries priority, details (key decisions/open questions/etc.), and a unique share_token",
+      "status": "pass",
+      "evidence": "TicketGenerationService.test.ts (agent mocked to the enriched shape) + TicketModel.test.ts round-trip priority/details/share_token; full suite 198 tests pass",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T-api-5",
+      "title": "Edit/finalize re-render keeps the enrichment sections and persists priority",
+      "surface": "api",
+      "precondition": "A draft ticket",
+      "steps": ["1. PATCH /tickets/:id { expectedVersion, priority }", "2. POST /tickets/:id/finalize"],
+      "expected": "Priority edit persists + re-renders; rich sections survive the re-render; version guard intact",
+      "status": "pass",
+      "evidence": "TicketController.test.ts (edit/finalize 200, version bump, 409 conflict) + TicketModel.test.ts (priority edit persists); markdown render covered by TicketMarkdownService.test.ts",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T-ui-1",
+      "title": "A generated ticket shows all sections in-app; empty sections are hidden",
+      "surface": "ui",
+      "precondition": "Run the worktree dev server (the existing preview serves main, not this branch)",
+      "steps": [
+        "1. Start the wizard, generate a ticket",
+        "2. Observe the ticket view"
+      ],
+      "expected": "Story, Problem/Background, Criteria, Key Decisions, Open Questions, Success Metrics, Dependencies, Codebase Grounding, Effort, Priority, Context render; empty sections are omitted",
+      "status": "pending",
+      "evidence": "Frontend verified by tsc (strict) + production build + eslint; TicketReadView is pure presentational over the API-tested shape. Browser pass not run: the live preview serves the main checkout, not this worktree.",
+      "notes": "Needs a manual UI pass against a worktree dev server.",
+      "waiver": ""
+    },
+    {
+      "id": "T-ui-2",
+      "title": "Copy produces a short block ending in a working 'View full ticket' link",
+      "surface": "ui",
+      "precondition": "A generated ticket open in the app",
+      "steps": ["1. Click 'Copy ticket + link'", "2. Paste and inspect"],
+      "expected": "Compact Markdown (story + criteria + effort + priority) ending in [View full ticket](<origin>/?ticket=<token>)",
+      "status": "pending",
+      "evidence": "buildShortTicketMarkdown is a pure util (tsc + build clean). Browser pass not run (see T-ui-1).",
+      "notes": "Needs a manual UI pass.",
+      "waiver": ""
+    },
+    {
+      "id": "T-ui-3",
+      "title": "Opening /?ticket=<token> renders the full ticket read-only (no edit/finalize/comments)",
+      "surface": "ui",
+      "precondition": "A valid share token",
+      "steps": ["1. Open <origin>/?ticket=<token> in a fresh/anonymous context"],
+      "expected": "The full ticket renders read-only; a bad token shows a clean 'invalid or no longer available' state",
+      "status": "pending",
+      "evidence": "App.tsx reads ?ticket on mount -> SharedTicketView -> useSharedTicket (endpoint covered by T-api-1/2/3). Browser pass not run (see T-ui-1).",
+      "notes": "Needs a manual UI pass.",
+      "waiver": ""
+    }
+  ]
+}

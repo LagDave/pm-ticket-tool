@@ -82,6 +82,14 @@ export type TicketStatus = "draft" | "final";
 export type EffortTier = "XS" | "S" | "M" | "L" | "XL";
 
 /**
+ * Priority is a coarse impact TIER, never a number (spec What). Like effort, the
+ * model only commits to a tier and the UI shows a "confirm with team" note — an
+ * AI-guessed priority is as unreliable as an hour estimate (spec Risk). Mirrors
+ * the tickets_priority_check constraint.
+ */
+export type TicketPriority = "high" | "medium" | "low";
+
+/**
  * One acceptance-criterion block in Given/When/Then form. Stored as a JSONB
  * array on tickets.acceptance_criteria; structured, never `any` (§4.5).
  */
@@ -91,7 +99,44 @@ export interface AcceptanceCriterion {
   then: string;
 }
 
-/** A row of tickets. JSON column typed as the structured criterion array. */
+/**
+ * One settled decision surfaced on the ticket (spec What: Key Decisions). `label`
+ * is the decision in the PM's terms; `detail` is an optional one-line rationale.
+ * Derived by the generator from decision_record so the PM's answers are visible
+ * in the artifact instead of compressed away (spec Why). Stored in tickets.details.
+ */
+export interface KeyDecision {
+  label: string;
+  detail: string | null;
+}
+
+/**
+ * One codebase-grounding note (spec What: Codebase Grounding). `area` is a file or
+ * module the work touches; `note` is why it matters. Populated from scout findings
+ * when a scout ran for the session, else an empty list (spec Risk).
+ */
+export interface CodebaseGroundingItem {
+  area: string;
+  note: string;
+}
+
+/**
+ * The rich enrichment payload persisted as tickets.details (jsonb). One typed
+ * object rather than six sparse columns — pure content the app never filters on
+ * (spec Risk: data-model choice). Every array defaults to empty and
+ * problemBackground to null, so a thin model answer is still a valid ticket
+ * (spec Risk: larger model output). Structured, never `any` (§4.5).
+ */
+export interface TicketDetails {
+  problemBackground: string | null;
+  keyDecisions: KeyDecision[];
+  openQuestions: string[];
+  successMetrics: string[];
+  dependencies: string[];
+  codebaseGrounding: CodebaseGroundingItem[];
+}
+
+/** A row of tickets. JSON columns typed as structured values, never `any` (§4.5). */
 export interface ITicket {
   id: number;
   session_id: number;
@@ -102,8 +147,36 @@ export interface ITicket {
   version: number;
   rendered_markdown: string | null;
   context_summary: string | null;
+  /** Coarse priority tier, or null until generation sets it (spec What). */
+  priority: TicketPriority | null;
+  /** Rich enrichment payload (jsonb), or null on legacy/pre-generation rows. */
+  details: TicketDetails | null;
+  /**
+   * Unguessable per-ticket capability token for the public read-only share link
+   * (spec What). 256-bit base64url from crypto (§5.1). Read through the
+   * non-owner-scoped findByShareToken — the token IS the capability (spec Risk).
+   */
+  share_token: string;
   created_at: Date;
   updated_at: Date;
+}
+
+/**
+ * The public, read-only projection returned by the shared-ticket endpoint (spec
+ * What). Content only: it deliberately omits id, session_id, share_token, owner
+ * context, and comments so the public link leaks nothing internal (§5.4, §5.5).
+ */
+export interface PublicTicket {
+  user_story: string | null;
+  acceptance_criteria: AcceptanceCriterion[] | null;
+  effort: EffortTier | null;
+  priority: TicketPriority | null;
+  context_summary: string | null;
+  details: TicketDetails | null;
+  status: TicketStatus;
+  version: number;
+  rendered_markdown: string | null;
+  created_at: Date;
 }
 
 /** A row of ticket_comments — one PM comment on a ticket (spec Pushback: child table). */
@@ -116,15 +189,32 @@ export interface ITicketComment {
 }
 
 /**
- * The four fields the generator produces from a session's decision_record +
- * original_request (spec T1). `contextSummary` is the short hand-off summary;
- * `effort` is a tier (above). Validated at the boundary before persisting (§11.2).
+ * The fields the generator produces from a session's decision_record +
+ * original_request (spec T1/What). The first four are the original core; the rest
+ * are the enrichment that keeps the PM's answers visible (spec Why). snake_case
+ * mirrors the structured-output schema the model fills. The service maps the rich
+ * fields into the camelCase TicketDetails before persisting. Validated at the
+ * boundary before persisting (§11.2); rich fields are best-effort (may be empty).
  */
 export interface GeneratedTicket {
   user_story: string;
   acceptance_criteria: AcceptanceCriterion[];
   effort: EffortTier;
   context_summary: string;
+  /** Coarse priority tier the model proposes; PM-editable (spec What/Risk). */
+  priority: TicketPriority;
+  /** The business "why" behind the request (spec What: Problem/Background). */
+  problem_background: string;
+  /** Settled decisions in the PM's terms (spec What: Key Decisions). */
+  key_decisions: { label: string; detail: string }[];
+  /** Assumptions / unresolved questions (spec What: Open Questions). */
+  open_questions: string[];
+  /** Observable success signals (spec What: Success Metrics). */
+  success_metrics: string[];
+  /** Prerequisites / blockers (spec What: Dependencies). */
+  dependencies: string[];
+  /** Code areas the work touches, from scout findings (spec What: Codebase Grounding). */
+  codebase_grounding: { area: string; note: string }[];
 }
 
 /** Server-derived caller context — owner scope is never trusted from the client (§5.5, §11.7). */

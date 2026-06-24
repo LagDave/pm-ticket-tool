@@ -10,6 +10,7 @@ import {
   addTicketComment,
   finalizeTicket,
   generateTicket,
+  getSharedTicket,
   getTicket,
   updateTicket,
 } from "../../api/tickets";
@@ -29,6 +30,18 @@ export function useTicket(ticketId: number | null) {
     queryKey: QUERY_KEYS.ticket(ticketId ?? 0),
     queryFn: () => getTicket(ticketId as number),
     enabled: ticketId !== null && ticketId > 0,
+  });
+}
+
+/**
+ * Fetch the public read-only shared ticket by its token (spec What). Disabled
+ * until a token is present. Unauthenticated; powers the deep-link SharedTicketView.
+ */
+export function useSharedTicket(token: string | null) {
+  return useQuery({
+    queryKey: QUERY_KEYS.sharedTicket(token ?? ""),
+    queryFn: () => getSharedTicket(token as string),
+    enabled: token !== null && token.length > 0,
   });
 }
 

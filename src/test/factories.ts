@@ -126,6 +126,21 @@ export function makeGeneratedTicket(
     effort: overrides.effort ?? "M",
     context_summary:
       overrides.context_summary ?? "Generate a durable ticket from saved decisions.",
+    priority: overrides.priority ?? "medium",
+    problem_background:
+      overrides.problem_background ??
+      "PMs lose interview detail when a ticket only shows four fields.",
+    key_decisions: overrides.key_decisions ?? [
+      { label: "Authenticate via magic link", detail: "Chosen over passwords for speed." },
+      { label: "Links expire in 15 minutes", detail: "" },
+    ],
+    open_questions: overrides.open_questions ?? ["Should magic links be single-use?"],
+    success_metrics:
+      overrides.success_metrics ?? ["PMs hand off tickets without follow-up questions."],
+    dependencies: overrides.dependencies ?? ["Transactional email provider"],
+    codebase_grounding: overrides.codebase_grounding ?? [
+      { area: "Authentication", note: "A session-based login flow already exists." },
+    ],
   };
 }
 
@@ -135,6 +150,13 @@ export interface GeneratedTicketShape {
   acceptance_criteria: Array<{ given: string; when: string; then: string }>;
   effort: "XS" | "S" | "M" | "L" | "XL";
   context_summary: string;
+  priority: "high" | "medium" | "low";
+  problem_background: string;
+  key_decisions: Array<{ label: string; detail: string }>;
+  open_questions: string[];
+  success_metrics: string[];
+  dependencies: string[];
+  codebase_grounding: Array<{ area: string; note: string }>;
 }
 
 /**
