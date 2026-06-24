@@ -1,6 +1,6 @@
 {
   "name": "pm-tool-backend",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "PM Ticket Tool — TypeScript + Express + Knex + PostgreSQL backend",
   "type": "commonjs",
