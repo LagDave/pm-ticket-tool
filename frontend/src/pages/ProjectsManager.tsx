@@ -61,6 +61,9 @@ export function ProjectsManager({ onOpenProject, onExit }: ProjectsManagerProps)
           <h1 className="wizard-title">Projects</h1>
         </div>
         <div className="dashboard-header-actions">
+          <button type="button" className="link-button back-link" onClick={onExit}>
+            ← Dashboard
+          </button>
           {form.mode === "closed" && (
             <button
               type="button"
@@ -70,9 +73,6 @@ export function ProjectsManager({ onOpenProject, onExit }: ProjectsManagerProps)
               New project
             </button>
           )}
-          <button type="button" className="link-button" onClick={onExit}>
-            ← Dashboard
-          </button>
         </div>
       </header>
 
@@ -97,7 +97,7 @@ export function ProjectsManager({ onOpenProject, onExit }: ProjectsManagerProps)
         <p className="field-hint">Could not load your projects. Try again.</p>
       )}
 
-      {projects && (
+      {projects && (projects.length > 0 || form.mode === "closed") && (
         <ProjectList
           projects={projects}
           isDeleting={remove.isPending}

@@ -1136,8 +1136,17 @@ textarea.request-input {
  * and the project screens so the topline can hold more than one button. */
 .dashboard-header-actions {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.link-button.back-link {
+  color: #ffffff;
+}
+.link-button.back-link:hover {
+  color: #ff751f;
+  background: transparent;
 }
 
 /* The optional second line of the project form — sits under the name input. */
