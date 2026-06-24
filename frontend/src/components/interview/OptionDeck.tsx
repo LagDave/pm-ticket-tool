@@ -27,6 +27,8 @@ interface OptionDeckProps {
   otherText: string;
   disabled: boolean;
   onSelectOption: (optionId: string) => void;
+  /** Make the custom card the active selection (on focus), before any text. */
+  onSelectOther: () => void;
   onChangeOther: (otherText: string) => void;
 }
 
@@ -62,6 +64,7 @@ export function OptionDeck({
   otherText,
   disabled,
   onSelectOption,
+  onSelectOther,
   onChangeOther,
 }: OptionDeckProps) {
   const ordered = useMemo(() => orderedOptions(question), [question]);
@@ -78,7 +81,7 @@ export function OptionDeck({
         variants={staggerContainer}
         initial="hidden"
         animate="show"
-        className="grid gap-3.5 sm:grid-cols-2"
+        className="grid gap-4 sm:grid-cols-2"
       >
         {ordered.map(({ option, id }) => (
           <OptionCard
@@ -97,6 +100,7 @@ export function OptionDeck({
             isDimmed={hasSelection && !isOtherSelected}
             otherText={otherText}
             disabled={disabled}
+            onSelectOther={onSelectOther}
             onChange={onChangeOther}
           />
         )}
@@ -118,12 +122,14 @@ function OtherCard({
   isDimmed,
   otherText,
   disabled,
+  onSelectOther,
   onChange,
 }: {
   isSelected: boolean;
   isDimmed: boolean;
   otherText: string;
   disabled: boolean;
+  onSelectOther: () => void;
   onChange: (value: string) => void;
 }) {
   return (
@@ -135,14 +141,14 @@ function OtherCard({
       }}
       animate={{
         opacity: isDimmed ? 0.45 : 1,
-        scale: isSelected ? 1.03 : isDimmed ? 0.97 : 1,
+        scale: isDimmed ? 0.97 : 1,
         filter: isDimmed ? "saturate(0.6)" : "saturate(1)",
       }}
       transition={SPRING_SOFT}
       className={
-        "flex min-w-0 flex-col gap-3 rounded-2xl border border-dashed p-5 transition-colors " +
+        "relative flex min-w-0 flex-col gap-3 rounded-2xl border border-dashed p-5 transition-colors " +
         (isSelected
-          ? "border-accent bg-accent/[0.08] shadow-[0_18px_50px_-20px_rgba(255,117,31,0.55)]"
+          ? "z-10 border-accent bg-accent/[0.08] shadow-[0_12px_34px_-20px_rgba(255,117,31,0.5)]"
           : "border-line-2 bg-surface/40")
       }
     >
@@ -181,6 +187,7 @@ function OtherCard({
         }
         placeholder="Describe your own answer…"
         value={otherText}
+        onFocus={onSelectOther}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
       />

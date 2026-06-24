@@ -1,0 +1,10 @@
+-- Project Context & Bits Grounding — MSSQL: NOT APPLICABLE.
+--
+-- This app is PostgreSQL-only by design (foundation Risk; see
+-- src/database/migrations/20260624000004_scout_cache_schema.ts: "Postgres-only app —
+-- no MSSQL counterpart by design"). There is no SQL Server target.
+--
+-- The portable CLAUDE.md convention lists mssql.sql as mandatory; this project's
+-- stack profile overrides it. The real schema lives in pgsql.sql and ships as Knex
+-- TS migrations in src/database/migrations/. This file exists only to record that
+-- the MSSQL artifact is intentionally omitted.

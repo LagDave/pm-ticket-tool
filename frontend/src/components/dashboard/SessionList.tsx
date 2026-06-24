@@ -7,6 +7,7 @@
  * yet) with the raw request as a muted subtitle, last-updated, plus the resume /
  * re-run / view-ticket actions (all neutral, no accent). Typed, no any (§17.2).
  */
+import { Check, FileText, Play, RotateCcw, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import type { InterviewSession, SessionStatus } from "../../types/interview";
 
@@ -105,59 +106,70 @@ export function SessionList({
             {isResumable(session.status) ? (
               <button
                 type="button"
-                className="light-button"
+                className="icon-button is-resume"
                 onClick={() => onResume(session)}
+                aria-label={session.status === "awaiting_input" ? "Finish" : "Resume"}
+                title={session.status === "awaiting_input" ? "Finish" : "Resume"}
               >
-                {session.status === "awaiting_input" ? "Finish" : "Resume"}
+                <Play size={16} aria-hidden />
               </button>
             ) : (
               <button
                 type="button"
-                className="secondary-button"
+                className="icon-button"
                 onClick={() => onViewTicket(session)}
                 disabled={session.status !== "complete"}
+                aria-label="View ticket"
+                title="View ticket"
               >
-                View ticket
+                <FileText size={16} aria-hidden />
               </button>
             )}
             <button
               type="button"
-              className="secondary-button"
+              className="icon-button"
               onClick={() => onReRun(session)}
               disabled={isCloning}
+              aria-label="Re-run"
+              title="Re-run"
             >
-              Re-run
+              <RotateCcw size={16} aria-hidden />
             </button>
             {confirmingId === session.id ? (
               <>
                 <button
                   type="button"
-                  className="danger-button"
+                  className="icon-button is-danger"
                   onClick={() => {
                     onDelete(session);
                     setConfirmingId(null);
                   }}
                   disabled={isDeleting}
+                  aria-label={`Confirm delete: ${primaryLabel(session)}`}
+                  title="Confirm delete"
                 >
-                  Confirm delete
+                  <Check size={16} aria-hidden />
                 </button>
                 <button
                   type="button"
-                  className="secondary-button"
+                  className="icon-button"
                   onClick={() => setConfirmingId(null)}
                   disabled={isDeleting}
+                  aria-label="Cancel delete"
+                  title="Cancel"
                 >
-                  Cancel
+                  <X size={16} aria-hidden />
                 </button>
               </>
             ) : (
               <button
                 type="button"
-                className="session-delete"
+                className="icon-button is-delete"
                 onClick={() => setConfirmingId(session.id)}
                 aria-label={`Delete session: ${primaryLabel(session)}`}
+                title="Delete"
               >
-                Delete
+                <Trash2 size={16} aria-hidden />
               </button>
             )}
           </div>

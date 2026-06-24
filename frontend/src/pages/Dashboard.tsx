@@ -7,6 +7,7 @@
  * business logic here (§14.1); errors surface via the hooks' toast (§16.3) and an
  * inline error state. Other pages are not imported (§12.4). Typed, no any (§17.2).
  */
+import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SessionList } from "../components/dashboard/SessionList";
 import { ThinkingLoader } from "../components/ui/ThinkingLoader";
@@ -107,6 +108,7 @@ export function Dashboard({ onOpenSession, onViewTicket }: DashboardProps) {
           className="primary-button"
           onClick={() => onOpenSession(null, WIZARD_STEP.request)}
         >
+          <Plus size={17} strokeWidth={2.5} className="shrink-0" aria-hidden />
           New session
         </button>
       </header>

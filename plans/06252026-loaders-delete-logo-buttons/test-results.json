@@ -1,0 +1,118 @@
+{
+  "plan": "plans/06252026-loaders-delete-logo-buttons",
+  "generatedAt": "2026-06-25",
+  "status": "In Progress",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Logo uses logo.webp in favicon and header",
+      "surface": "ui",
+      "precondition": "Deployed build live at app-production-504c.up.railway.app",
+      "steps": [
+        "1. View source of the live page; check the <link rel=icon> href",
+        "2. Load /logo.webp directly",
+        "3. Open the dashboard and the wizard; confirm the header mark renders"
+      ],
+      "expected": "Favicon and header both reference /logo.webp; the asset serves (200)",
+      "status": "pass",
+      "evidence": "Live HTML favicon = /logo.webp; logo.webp built into dist and served; 3 header refs + favicon repointed from logo.png. File moved dist/ -> public/ so it survives rebuilds.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2a",
+      "title": "One shared ThinkingLoader wired at every loading state + ~50 Dave messages",
+      "surface": "ui",
+      "precondition": "n/a (static + bundle check)",
+      "steps": [
+        "1. Confirm BatchThinking, LoadingLine, and the triage gauge are removed",
+        "2. Confirm QuestionBatch, Dashboard, and TriageBranch all render ThinkingLoader",
+        "3. Grep the live bundle for the message pool + loader styles"
+      ],
+      "expected": "Single loader component; old loaders gone; Dave copy + .thinking-loader styles in the live bundle",
+      "status": "pass",
+      "evidence": "BatchThinking.tsx + LoadingLine.tsx deleted; triage gauge removed; 3 call sites use ThinkingLoader; live JS contains the Dave copy; live CSS has .thinking-loader (14 refs). tsc/lint/build clean.",
+      "notes": "lib/loadingMessages.ts holds 50 messages (mostly Dave), shuffled per mount.",
+      "waiver": ""
+    },
+    {
+      "id": "T2b",
+      "title": "Loader renders correctly: orb spins, copy rotates, triage resolves to a green check",
+      "surface": "ui",
+      "precondition": "A session mid-feature-scope (to see batch/triage loaders) on the live site",
+      "steps": [
+        "1. Start a new session and trigger triage; watch the loader",
+        "2. Generate a batch; watch the loader",
+        "3. Confirm the orange orb spins, the title swaps lines, and triage ends on a green check"
+      ],
+      "expected": "Animated orb + rotating serif copy everywhere; triage settles on the green check",
+      "status": "pending",
+      "evidence": "",
+      "notes": "Component + CSS are correct and shipped; the animation itself was not eyeballed in a browser (reliable screenshots are unavailable in this environment). Quick visual confirm on the live site.",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "DELETE /sessions/:id is owner-scoped, returns 200 then 404, cascades children",
+      "surface": "api",
+      "precondition": "Live API; owner header x-dev-user-id: 1",
+      "steps": [
+        "1. POST /api/sessions to create a throwaway session",
+        "2. DELETE /api/sessions/:id",
+        "3. GET /api/sessions/:id"
+      ],
+      "expected": "DELETE -> 200 { id }; subsequent GET -> 404; foreign/missing -> 404; children removed by cascade",
+      "status": "pass",
+      "evidence": "Live: created id=8 -> DELETE 200 {\"id\":8} -> GET 404. Backend suite 185 tests incl. 6 new delete cases (model returns 1/0 + cascade; controller 200/404 own+foreign). check:conventions --strict: 0 hard violations.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4",
+      "title": "Dashboard row Delete -> inline confirm -> row removed",
+      "surface": "ui",
+      "precondition": "At least one session in the list on the live site",
+      "steps": [
+        "1. Click Delete on a row",
+        "2. Confirm the row shows Confirm delete + Cancel",
+        "3. Click Confirm delete",
+        "4. Confirm the row disappears and a 'Session deleted' toast shows"
+      ],
+      "expected": "Two-step confirm; on confirm the row is gone and the list refetches",
+      "status": "pending",
+      "evidence": "Endpoint proven live (T3); useDeleteSession invalidates [\"sessions\"]; 'Confirm delete' present in live bundle; wiring compiles.",
+      "notes": "Click-through not driven in a browser. Endpoint + wiring verified; quick confirm on the live site.",
+      "waiver": ""
+    },
+    {
+      "id": "T5a",
+      "title": "Dashboard New session button is the accent (orange)",
+      "surface": "ui",
+      "precondition": "Dashboard rendered",
+      "steps": [
+        "1. Open the dashboard",
+        "2. Inspect the New session button computed background-color"
+      ],
+      "expected": "background-color is the accent #ff751f with near-black text",
+      "status": "pass",
+      "evidence": "Local preview computed style: background-color rgb(255, 117, 31) (= #ff751f), color rgb(8, 9, 13). No console errors on mount.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T5b",
+      "title": "Row Resume/Finish button is white with black text",
+      "surface": "ui",
+      "precondition": "At least one resumable session in the list",
+      "steps": [
+        "1. Open the dashboard with a resumable session",
+        "2. Inspect the Resume button computed colors"
+      ],
+      "expected": "white background, near-black text (.light-button)",
+      "status": "pending",
+      "evidence": ".light-button shipped in live CSS (5 refs); SessionList uses it for Resume/Finish. Not rendered locally (no session rows without the backend).",
+      "notes": "Quick confirm on the live site once a session exists.",
+      "waiver": ""
+    }
+  ]
+}

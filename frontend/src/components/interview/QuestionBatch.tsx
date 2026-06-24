@@ -96,22 +96,29 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
   const isOpen = hasOpenBatch(state);
 
   // Selection is mutually exclusive (Item 8): picking a real option clears any
-  // custom free-text, and typing custom text selects the custom card (clearing
-  // any picked option). Clearing the custom input back to empty reverts to no
-  // selection, rather than leaving the empty custom card falsely selected.
+  // custom free-text, and engaging the custom card selects it (clearing any
+  // picked option). Picking an option clears the custom text; engaging the custom
+  // field makes it the active selection and keeps it selected while in use.
   const setOption = (questionId: string, optionId: string): void => {
     setDrafts((prev) => ({
       ...prev,
       [questionId]: { optionId, otherText: "" },
     }));
   };
+  // Focusing the custom field makes it the active selection right away (Item 1):
+  // the custom card highlights and the previously picked option de-highlights,
+  // before any text is typed. It stays selected while engaged; an empty custom
+  // card reads selected but is "not answered" (draftIsAnswered gates submit).
+  const selectOther = (questionId: string): void => {
+    setDrafts((prev) => ({
+      ...prev,
+      [questionId]: { optionId: OTHER_OPTION, otherText: prev[questionId]?.otherText ?? "" },
+    }));
+  };
   const setOther = (questionId: string, otherText: string): void => {
     setDrafts((prev) => ({
       ...prev,
-      [questionId]: {
-        optionId: otherText.trim().length > 0 ? OTHER_OPTION : null,
-        otherText,
-      },
+      [questionId]: { optionId: OTHER_OPTION, otherText },
     }));
   };
 
@@ -202,6 +209,7 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
         isSaving={submit.isPending}
         allAnswered={allAnswered}
         onSelectOption={setOption}
+        onSelectOther={selectOther}
         onChangeOther={setOther}
         onSubmit={handleSubmit}
       />
@@ -228,6 +236,7 @@ function OpenBatchView({
   isSaving,
   allAnswered,
   onSelectOption,
+  onSelectOther,
   onChangeOther,
   onSubmit,
 }: {
@@ -242,6 +251,7 @@ function OpenBatchView({
   isSaving: boolean;
   allAnswered: boolean;
   onSelectOption: (questionId: string, optionId: string) => void;
+  onSelectOther: (questionId: string) => void;
   onChangeOther: (questionId: string, otherText: string) => void;
   onSubmit: (stopAndGenerate: boolean) => void;
 }) {
@@ -274,6 +284,7 @@ function OpenBatchView({
         isAnswered={isAnswered}
         disabled={isBusy}
         onSelectOption={onSelectOption}
+        onSelectOther={onSelectOther}
         onChangeOther={onChangeOther}
       />
 

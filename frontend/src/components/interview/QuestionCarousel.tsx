@@ -33,6 +33,8 @@ interface QuestionCarouselProps {
   isAnswered: (questionId: string) => boolean;
   disabled: boolean;
   onSelectOption: (questionId: string, optionId: string) => void;
+  /** Make the custom free-text the active selection for a question (on focus). */
+  onSelectOther: (questionId: string) => void;
   onChangeOther: (questionId: string, otherText: string) => void;
 }
 
@@ -46,6 +48,7 @@ export function QuestionCarousel({
   isAnswered,
   disabled,
   onSelectOption,
+  onSelectOther,
   onChangeOther,
 }: QuestionCarouselProps) {
   // [index, direction] - direction (+1/-1) tells the slide which way to animate.
@@ -110,6 +113,7 @@ export function QuestionCarousel({
               otherText={otherByQuestion[current.id] ?? ""}
               disabled={disabled}
               onSelectOption={(optionId) => onSelectOption(current.id, optionId)}
+              onSelectOther={() => onSelectOther(current.id)}
               onChangeOther={(otherText) => onChangeOther(current.id, otherText)}
             />
           </motion.div>
