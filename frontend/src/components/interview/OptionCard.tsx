@@ -50,9 +50,9 @@ export function OptionCard({
         "group relative flex w-full flex-col gap-4 overflow-hidden rounded-2xl border p-5 text-left " +
         "transition-colors cursor-pointer disabled:cursor-not-allowed " +
         (isSelected
-          ? "border-accent bg-accent/[0.08] shadow-[0_18px_50px_-20px_rgba(255,178,36,0.55)]"
+          ? "border-accent bg-accent/[0.08] shadow-[0_18px_50px_-20px_rgba(255,117,31,0.55)]"
           : isRecommended
-            ? "border-accent/55 bg-surface-2/80 shadow-[0_0_0_1px_rgba(255,178,36,0.12),0_20px_50px_-30px_rgba(255,178,36,0.4)]"
+            ? "border-accent/55 bg-surface-2/80 shadow-[0_0_0_1px_rgba(255,117,31,0.12),0_20px_50px_-30px_rgba(255,117,31,0.4)]"
             : "border-line bg-surface/70 hover:border-line-2")
       }
     >

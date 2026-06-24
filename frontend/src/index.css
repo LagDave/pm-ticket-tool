@@ -1,7 +1,10 @@
 /**
  * Dark-studio design system (frontend redesign). DARK is the default and only
- * theme: deep near-black canvas, off-white ink, one vivid warm-amber accent
- * reserved for the recommended option + primary actions. A characterful type
+ * theme: deep near-black canvas, off-white ink, one vivid orange accent
+ * (#ff751f) reserved sparingly for the recommended option, the single primary
+ * action, and the active/selected indicator — everything else stays neutral on
+ * the dark canvas, so the orange reads as a rare, intentional highlight rather
+ * than colour-on-everything. A characterful type
  * pairing (Fraunces display + Sora body — deliberately not Inter/Roboto/system)
  * loaded locally from @fontsource so there is no FOUT/network race.
  *
@@ -46,11 +49,13 @@
   --color-muted: #9aa0b0;
   --color-faint: #686e7e;
 
-  /* The one vivid accent — warm amber, used sharply for the recommended card,
-   * primary actions, and focus. Cold dark canvas + warm accent = the studio feel. */
-  --color-accent: #ffb224;
-  --color-accent-soft: #f6c453;
-  --color-accent-deep: #b27414;
+  /* The one vivid accent — orange (#ff751f), used sparingly for the recommended
+   * card, the single primary action, and the active/selected indicator. Soft and
+   * deep are derived shades of the same orange (no second hue). Cold dark canvas
+   * + one warm accent = the studio feel. */
+  --color-accent: #ff751f;
+  --color-accent-soft: #ff8f47;
+  --color-accent-deep: #c2541a;
 
   --font-display: "Fraunces", ui-serif, Georgia, serif;
   --font-body: "Sora", ui-sans-serif, system-ui, sans-serif;
@@ -75,11 +80,11 @@
   --muted: #9aa0b0;
   --faint: #686e7e;
 
-  --accent: #ffb224;
-  --accent-soft: #f6c453;
-  --accent-deep: #b27414;
-  --accent-tint: rgba(255, 178, 36, 0.12);
-  --accent-tint-strong: rgba(255, 178, 36, 0.18);
+  --accent: #ff751f;
+  --accent-soft: #ff8f47;
+  --accent-deep: #c2541a;
+  --accent-tint: rgba(255, 117, 31, 0.12);
+  --accent-tint-strong: rgba(255, 117, 31, 0.18);
 
   --radius-card: 18px;
   --radius-md: 12px;
@@ -88,7 +93,7 @@
   --shell-width: 880px;
 
   --shadow-card: 0 24px 60px -30px rgba(0, 0, 0, 0.9);
-  --shadow-accent: 0 12px 30px -12px rgba(255, 178, 36, 0.55);
+  --shadow-accent: 0 12px 30px -12px rgba(255, 117, 31, 0.55);
 }
 
 * {
@@ -124,7 +129,7 @@ body::before {
   background:
     radial-gradient(60rem 40rem at 12% -8%, rgba(120, 86, 255, 0.14), transparent 60%),
     radial-gradient(54rem 38rem at 92% 2%, rgba(38, 198, 218, 0.1), transparent 58%),
-    radial-gradient(40rem 40rem at 50% 120%, rgba(255, 178, 36, 0.06), transparent 60%);
+    radial-gradient(40rem 40rem at 50% 120%, rgba(255, 117, 31, 0.06), transparent 60%);
 }
 
 /* Custom scrollbar so the dark canvas stays cohesive in Chromium. */
@@ -142,7 +147,7 @@ body::before {
 }
 
 ::selection {
-  background: rgba(255, 178, 36, 0.28);
+  background: rgba(255, 117, 31, 0.28);
   color: var(--ink);
 }
 
@@ -460,13 +465,16 @@ textarea.request-input {
   transform: translateY(0) scale(0.985);
 }
 
+/* Secondary = neutral white/outline on the dark canvas. Deliberately NOT tinted
+ * with the accent (even on hover) — the orange is reserved for the single primary
+ * action so it stays a rare highlight. */
 .secondary-button {
   border: 1px solid var(--line-2);
   background: var(--surface);
   color: var(--ink);
 }
 .secondary-button:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--line-2));
+  border-color: var(--faint);
   background: var(--surface-2);
   transform: translateY(-1px);
 }
@@ -539,6 +547,103 @@ textarea.request-input {
   width: 38px;
   background: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-tint);
+}
+
+/* ---------------------------------------------------------------------------
+ * Question carousel (one question per screen). The pager controls are
+ * deliberately NEUTRAL — arrows and inactive dots are off-white/faint on the
+ * dark canvas; only the ACTIVE dot carries the orange accent. Restraint by
+ * design: the accent stays reserved for the recommended badge, the single
+ * primary action, and the active/selected indicator.
+ * ------------------------------------------------------------------------- */
+
+/* The drag/slide stage. Clips the off-screen question during the slide and
+ * gives the absolutely-positioned slides a height to animate within. */
+.carousel-stage {
+  position: relative;
+  overflow: hidden;
+}
+
+/* The pager row beneath the question: prev arrow · dots · next arrow. */
+.carousel-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+/* Neutral round arrow buttons. White-ish on a subtle surface; never accent. */
+.carousel-arrow {
+  appearance: none;
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease,
+    transform 0.12s ease;
+}
+.carousel-arrow:hover:not(:disabled) {
+  border-color: var(--faint);
+  background: var(--surface-2);
+  transform: translateY(-1px);
+}
+.carousel-arrow:active:not(:disabled) {
+  transform: translateY(0) scale(0.96);
+}
+.carousel-arrow:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
+/* The dot rail — one dot per question in the batch. */
+.carousel-dots {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+/* A single nav dot. Inactive = faint neutral; answered = a brighter neutral so
+ * progress reads at a glance; active = the orange accent (the one highlight). */
+.carousel-dot {
+  appearance: none;
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--line-2);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease,
+    width 0.2s ease;
+}
+.carousel-dot:hover {
+  transform: scale(1.2);
+}
+.carousel-dot.is-answered {
+  background: var(--muted);
+}
+.carousel-dot.is-active {
+  width: 24px;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+
+/* The current-question position read-out ("Question 2 of 3"), centred above
+ * the deck. Quiet, neutral. */
+.carousel-position {
+  margin: 0 0 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
 }
 
 /* Labeled, animated "thinking" indicator while a batch generates. */

@@ -2,10 +2,13 @@
  * QuestionBatch — wizard step that renders the current open batch and collects
  * answers (§12.3). A component renders + delegates: server state comes from the
  * useInterview hooks (§14.3, §15.1); only the in-progress answer selections are
- * local UI state. Each question is an animated OptionDeck (stagger-in, hover
- * lift, recommended highlighted, build-speed meter); per-question free-text and
- * the global "stop and generate now" are supported. Errors surface via the
- * shared toast in the hooks (§16.3); no fetch or business logic here (§14.1).
+ * local UI state. The batch is shown ONE QUESTION PER SCREEN via QuestionCarousel
+ * (swipe / arrows / clickable dots) rather than a vertical stack — each screen is
+ * a question and its full animated OptionDeck (recommended highlighted, neutral
+ * build-speed meter). Per-question free-text and the global "stop and generate
+ * now" are supported; the primary "submit the batch" action appears once every
+ * question is answered. Errors surface via the shared toast in the hooks (§16.3);
+ * no fetch or business logic here (§14.1).
  *
  * Batch progress (spec 2 UX): a "Interview · Batch N" header, a stepper of
  * answered batches, and an answered-count make generating batch 2/3 visibly
@@ -34,7 +37,8 @@ import {
   hasOpenBatch,
 } from "../../utils/batchProgress";
 import { BatchThinking } from "./BatchThinking";
-import { OptionDeck, OTHER_OPTION } from "./OptionDeck";
+import { OTHER_OPTION } from "./OptionDeck";
+import { QuestionCarousel } from "./QuestionCarousel";
 
 interface QuestionBatchProps {
   sessionId: number;
@@ -46,6 +50,17 @@ interface QuestionBatchProps {
 interface Draft {
   optionId: string | null;
   otherText: string;
+}
+
+/**
+ * True when a draft is a usable answer: a picked option, or "Other" with non-empty
+ * text. Single source of truth for both the per-question dot state (carousel) and
+ * the batch-level "all answered" gate (§4.3 — don't duplicate the rule).
+ */
+function draftIsAnswered(draft: Draft | undefined): boolean {
+  if (!draft) return false;
+  if (draft.optionId === OTHER_OPTION) return draft.otherText.trim().length > 0;
+  return draft.optionId !== null;
 }
 
 /** Find the open batch: the last turn whose answers are still null. */
@@ -99,12 +114,23 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
       return { questionId: q.id, optionId: draft?.optionId ?? null, otherText: null };
     });
 
-  const allAnswered = questions.every((q) => {
-    const draft = drafts[q.id];
-    if (!draft) return false;
-    if (draft.optionId === OTHER_OPTION) return draft.otherText.trim().length > 0;
-    return draft.optionId !== null;
-  });
+  const allAnswered = questions.every((q) => draftIsAnswered(drafts[q.id]));
+  const isAnswered = (questionId: string): boolean =>
+    draftIsAnswered(drafts[questionId]);
+
+  // Flatten the drafts into the two id-keyed maps the carousel reads (it stays
+  // presentational; the parent keeps owning the draft state). Memoized so the
+  // carousel doesn't see a fresh object identity on every unrelated render.
+  const selectedByQuestion = useMemo(() => {
+    const map: Record<string, string | null> = {};
+    for (const q of questions) map[q.id] = drafts[q.id]?.optionId ?? null;
+    return map;
+  }, [questions, drafts]);
+  const otherByQuestion = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const q of questions) map[q.id] = drafts[q.id]?.otherText ?? "";
+    return map;
+  }, [questions, drafts]);
 
   const finishIfComplete = (next: InterviewState): void => {
     if (next.isComplete) onComplete(next);
@@ -158,7 +184,9 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
         answered={answered}
         batchNumber={batchNumber}
         questions={questions}
-        drafts={drafts}
+        selectedByQuestion={selectedByQuestion}
+        otherByQuestion={otherByQuestion}
+        isAnswered={isAnswered}
         isGrounded={isGrounded}
         isBusy={isBusy}
         isSaving={submit.isPending}
@@ -173,16 +201,18 @@ export function QuestionBatch({ sessionId, onComplete }: QuestionBatchProps) {
 
 /**
  * The open-batch view: the progress header, the prompt, the grounding note, the
- * animated decks, and the submit / stop actions. Extracted so the parent is a
- * lean orchestrator (§13.2); it animates in/out (keyed on the batch number by
- * the parent) so a new batch visibly arrives. Presentational — the parent owns
- * the draft state and the mutations.
+ * one-question-per-screen carousel, and the submit / stop actions. Extracted so
+ * the parent is a lean orchestrator (§13.2); it animates in/out (keyed on the
+ * batch number by the parent) so a new batch visibly arrives. Presentational —
+ * the parent owns the draft state and the mutations.
  */
 function OpenBatchView({
   answered,
   batchNumber,
   questions,
-  drafts,
+  selectedByQuestion,
+  otherByQuestion,
+  isAnswered,
   isGrounded,
   isBusy,
   isSaving,
@@ -194,7 +224,9 @@ function OpenBatchView({
   answered: number;
   batchNumber: number;
   questions: InterviewQuestion[];
-  drafts: Record<string, Draft>;
+  selectedByQuestion: Record<string, string | null>;
+  otherByQuestion: Record<string, string>;
+  isAnswered: (questionId: string) => boolean;
   isGrounded: boolean;
   isBusy: boolean;
   isSaving: boolean;
@@ -213,7 +245,8 @@ function OpenBatchView({
       <BatchProgress answered={answered} current={batchNumber} />
       <h2 className="step-heading">A few questions</h2>
       <p className="field-hint">
-        Answer what you can. When you have enough, stop and we&apos;ll draft the
+        One at a time — swipe or use the arrows and dots to move between them.
+        Answer what you can; when you have enough, stop and we&apos;ll draft the
         ticket.
       </p>
       {isGrounded && (
@@ -224,17 +257,15 @@ function OpenBatchView({
         </p>
       )}
 
-      {questions.map((question) => (
-        <OptionDeck
-          key={question.id}
-          question={question}
-          selectedOptionId={drafts[question.id]?.optionId ?? null}
-          otherText={drafts[question.id]?.otherText ?? ""}
-          disabled={isBusy}
-          onSelectOption={(optionId) => onSelectOption(question.id, optionId)}
-          onChangeOther={(otherText) => onChangeOther(question.id, otherText)}
-        />
-      ))}
+      <QuestionCarousel
+        questions={questions}
+        selectedByQuestion={selectedByQuestion}
+        otherByQuestion={otherByQuestion}
+        isAnswered={isAnswered}
+        disabled={isBusy}
+        onSelectOption={onSelectOption}
+        onChangeOther={onChangeOther}
+      />
 
       <div className="step-actions">
         <button

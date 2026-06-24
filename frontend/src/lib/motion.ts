@@ -34,3 +34,25 @@ export const stepIn: Variants = {
   show: { opacity: 1, y: 0, transition: SPRING_SOFT },
   exit: { opacity: 0, y: -10, transition: { duration: 0.18 } },
 };
+
+/** How far a carousel slide travels horizontally as it enters/leaves, in px. */
+export const SLIDE_OFFSET = 56;
+
+/**
+ * Horizontal slide variants for a paged carousel (one question per screen). The
+ * custom `direction` (+1 = moving to a later page, -1 = an earlier one) sets which
+ * side a slide enters from and exits to, so forward/back read correctly. Pair with
+ * AnimatePresence `mode="wait"` + `custom={direction}`.
+ */
+export const slideVariants: Variants = {
+  enter: (direction: number) => ({
+    x: direction >= 0 ? SLIDE_OFFSET : -SLIDE_OFFSET,
+    opacity: 0,
+  }),
+  center: { x: 0, opacity: 1, transition: SPRING_SOFT },
+  exit: (direction: number) => ({
+    x: direction >= 0 ? -SLIDE_OFFSET : SLIDE_OFFSET,
+    opacity: 0,
+    transition: { duration: 0.18 },
+  }),
+};

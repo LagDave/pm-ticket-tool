@@ -1,8 +1,10 @@
 /**
  * Button — the one styled button primitive for the dark UI (§12.3, §13.3).
- * Three intents (primary = amber accent, secondary = outline, ghost = quiet link)
- * with a subtle Framer Motion press/hover. Reused app-wide so actions look
- * consistent; presentational only, no fetch or business logic.
+ * Three intents (primary = orange accent, secondary = neutral outline, ghost =
+ * quiet link) with a subtle Framer Motion press/hover. Reused app-wide so actions
+ * look consistent. Only `primary` carries the orange — secondary/ghost stay
+ * neutral white on the dark canvas so the accent reads as a rare highlight.
+ * Presentational only, no fetch or business logic.
  */
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
@@ -28,10 +30,10 @@ const BASE =
 
 const INTENT: Record<ButtonIntent, string> = {
   primary:
-    "bg-accent text-canvas font-semibold shadow-[0_8px_24px_-8px_rgba(255,178,36,0.6)] " +
+    "bg-accent text-canvas font-semibold shadow-[0_8px_24px_-8px_rgba(255,117,31,0.6)] " +
     "hover:bg-accent-soft",
   secondary:
-    "border border-line-2 bg-surface/60 text-ink hover:border-accent/60 hover:bg-surface-2",
+    "border border-line-2 bg-surface/60 text-ink hover:border-faint hover:bg-surface-2",
   ghost: "text-muted hover:text-ink",
 };
 

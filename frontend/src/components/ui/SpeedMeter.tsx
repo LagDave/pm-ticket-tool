@@ -1,8 +1,12 @@
 /**
  * SpeedMeter — renders an OptionSpeed as an ordered 5-segment meter slowest→
  * fastest (spec 6, §12.3). Elegant, glanceable build-speed indicator for the
- * deck cards: filled segments use the accent, the rest stay faint, with a short
- * label + plain-language tradeoff hint. Presentational; pure, typed (§17.2).
+ * deck cards. The fill is deliberately NEUTRAL (off-white on the dark surface),
+ * not the accent: the meter is purely informational, so it must not compete with
+ * the orange that is reserved for the recommended badge, the primary action, and
+ * the active/selected indicator. Filled segments are bright neutral, the rest
+ * stay faint, with a short label + plain-language tradeoff hint. Presentational;
+ * pure, typed (§17.2).
  */
 import { motion } from "framer-motion";
 import type { OptionSpeed } from "../../types/interview";
@@ -22,7 +26,9 @@ interface SpeedMeterProps {
 export function SpeedMeter({ speed, muted = false }: SpeedMeterProps) {
   const filled = speedFilledSegments(speed);
   const segments = Array.from({ length: SPEED_SEGMENTS }, (_, i) => i < filled);
-  const fillClass = muted ? "bg-accent/45" : "bg-accent";
+  // Neutral fill — NOT the accent (§ restraint): bright off-white when active,
+  // dimmer when this card is recessed behind a selection.
+  const fillClass = muted ? "bg-muted/40" : "bg-muted";
 
   return (
     <div className="flex flex-col gap-1.5">
