@@ -32,6 +32,15 @@ router.post(
   TicketController.generate,
 );
 
+// Merge-on-complete (spec T13): propose project-context bits from the session's
+// finalized ticket and return the reconciliation plan to resolve. Hangs off the
+// session resource like generation; the :id param is validated at the boundary.
+router.post(
+  "/sessions/:id/propose-bits",
+  validate(sessionIdParamSchema, "params"),
+  TicketController.proposeBits,
+);
+
 // Read / edit / comment / finalize a specific ticket.
 router.get(
   "/tickets/:ticketId",

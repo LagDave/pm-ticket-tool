@@ -21,13 +21,19 @@
  *    — merge supersedes (status='superseded'), preserving an audit trail so a bad
  *    merge is reversible (spec R2). Returns the project's resulting ACTIVE bits.
  */
+import { generateBitProposal } from "../../../agents/bitProposalAgent";
 import { generateReconciliationPlan } from "../../../agents/bitReconciliationAgent";
-import { BIT_RECONCILIATION } from "../../../config";
+import { BIT_PROPOSAL, BIT_RECONCILIATION } from "../../../config";
 import { logger } from "../../../config/logger";
 import { BaseModel, QueryContext } from "../../../models/BaseModel";
+import { DecisionRecordModel } from "../../../models/DecisionRecordModel";
 import { ProjectBitModel } from "../../../models/ProjectBitModel";
 import { ProjectModel } from "../../../models/ProjectModel";
-import { reconciliationPlanSchema } from "../../../validation/projectBit";
+import { TicketModel } from "../../../models/TicketModel";
+import {
+  bitProposalOutputSchema,
+  reconciliationPlanSchema,
+} from "../../../validation/projectBit";
 import type {
   BitSource,
   CandidateBit,
@@ -35,8 +41,20 @@ import type {
   ReconciliationPlan,
   ResolvedAction,
 } from "../../../types/project";
-import type { OwnerContext } from "../../../types/interview";
+import type { EffortTier, OwnerContext } from "../../../types/interview";
 import { ProjectError } from "../feature-utils/ProjectError";
+
+/**
+ * The merge-on-complete preview (spec T13): the candidate bits the proposal agent
+ * distilled from a finalized ticket, plus the reconciliation plan diffing them
+ * against the project's active bits. The PM resolves the plan (the candidates are
+ * the same array the resolve screen sends back to applyResolutions). Returned by
+ * proposeFromTicket; surfaced through the envelope unchanged.
+ */
+export interface MergeProposal {
+  candidates: CandidateBit[];
+  plan: ReconciliationPlan;
+}
 
 /**
  * The result of an import (spec T10). A discriminated union because the two import
@@ -104,6 +122,64 @@ export class BitReconciliationService {
   }
 
   /**
+   * Merge-on-complete (spec T13): turn a FINALIZED ticket into candidate bits and
+   * preview how they reconcile against the project's existing context. The flow,
+   * owner-scoped end to end (§11.7):
+   *
+   *  1. owner-verify the project (NOT_FOUND when missing/foreign, never leaked);
+   *  2. load the ticket owner-scoped (TicketModel joins through its session's
+   *     owner_user_id, §11.7) — a ticket the caller does not own is NOT_FOUND;
+   *  3. load that session's settled decisions (the real source of truth);
+   *  4. call the proposal agent with model + fallback (mirrors callAgentWithFallback)
+   *     and re-validate its output at the boundary (bitProposalOutputSchema, §11.2);
+   *  5. reconcile() the candidates against the project's active bits → a plan.
+   *
+   * READ-ONLY: like reconcile(), it writes NOTHING. The returned candidates + plan
+   * go to the human resolve step, which calls applyResolutions with
+   * source "merged" + the ticket id (the agent proposes; the human disposes, spec
+   * R2). The two agents are sequenced (propose, then reconcile), each a single
+   * bounded call, so the endpoint stays short-lived (no long agent loop).
+   */
+  static async proposeFromTicket(
+    projectId: number,
+    owner: OwnerContext,
+    ticketId: number,
+  ): Promise<MergeProposal> {
+    await this.requireProject(projectId, owner);
+
+    // Owner-scoped ticket load: TicketModel joins through interview_sessions and
+    // filters owner_user_id, so a foreign/missing ticket is indistinguishable
+    // (NOT_FOUND), never leaked (§11.7, §5.5).
+    const ticket = await TicketModel.findByIdForOwner(ticketId, owner);
+    if (!ticket) {
+      throw new ProjectError(
+        "TICKET_NOT_FOUND",
+        `Ticket ${ticketId} was not found.`,
+        { ticketId },
+      );
+    }
+
+    const decisions = await DecisionRecordModel.listBySession(ticket.session_id);
+
+    const candidates = await this.callProposalWithFallback(
+      {
+        userStory: ticket.user_story ?? "",
+        acceptanceCriteria: ticket.acceptance_criteria ?? [],
+        contextSummary: ticket.context_summary ?? "",
+        // Effort is always set on a finalized ticket; default to M for the
+        // type-checker without leaking (the generator constrains it to a tier).
+        effort: (ticket.effort ?? "M") as EffortTier,
+        decisions,
+      },
+      projectId,
+    );
+
+    // Diff the proposed candidates against the project's active bits (no writes).
+    const plan = await this.reconcile(projectId, owner, candidates);
+    return { candidates, plan };
+  }
+
+  /**
    * Apply the human-confirmed resolutions for a batch of candidates against an
    * owner-verified project, atomically (spec T9, §10.5). Each resolution is paired
    * with its candidate by incomingIndex. The whole apply runs in ONE transaction
@@ -123,9 +199,16 @@ export class BitReconciliationService {
     owner: OwnerContext,
     candidates: CandidateBit[],
     resolutions: ResolvedAction[],
-    source: BitSource = "imported",
+    provenance: { source?: BitSource; sourceTicketId?: number } = {},
   ): Promise<IProjectBit[]> {
     await this.requireProject(projectId, owner);
+
+    // Default to the import/manual provenance so existing callers are unchanged
+    // (spec T13): source "imported", no originating ticket. Merge-on-complete
+    // passes { source: "merged", sourceTicketId } so the applied bits carry their
+    // origin (an audit trail, spec R2).
+    const source: BitSource = provenance.source ?? "imported";
+    const sourceTicketId: number | null = provenance.sourceTicketId ?? null;
 
     await BaseModel.runTransaction(async (trx) => {
       for (const resolution of resolutions) {
@@ -139,7 +222,7 @@ export class BitReconciliationService {
             { projectId, incomingIndex: resolution.incomingIndex },
           );
         }
-        await this.applyOne(projectId, candidate, resolution, source, trx);
+        await this.applyOne(projectId, candidate, resolution, source, sourceTicketId, trx);
       }
     });
 
@@ -211,6 +294,7 @@ export class BitReconciliationService {
     candidate: CandidateBit,
     resolution: ResolvedAction,
     source: BitSource,
+    sourceTicketId: number | null,
     trx: QueryContext,
   ): Promise<void> {
     const summary = resolution.summary ?? candidate.summary;
@@ -239,6 +323,7 @@ export class BitReconciliationService {
             bitKey: candidate.bit_key,
             summary,
             source,
+            sourceTicketId,
           },
           trx,
         );
@@ -258,6 +343,7 @@ export class BitReconciliationService {
             bitKey: candidate.bit_key,
             summary,
             source,
+            sourceTicketId,
           },
           trx,
         );
@@ -326,5 +412,59 @@ export class BitReconciliationService {
       );
     }
     return parsed.data as ReconciliationPlan;
+  }
+
+  /**
+   * Call the PROPOSAL agent (merge-on-complete, spec T13); on a model-rejection/
+   * error, retry once with the fallback model. Re-validate the parsed output at
+   * the boundary; reject (never return) anything off-schema. Mirrors
+   * callAgentWithFallback exactly, against the proposal agent + its own
+   * config/schema (§11.2).
+   */
+  private static async callProposalWithFallback(
+    params: Parameters<typeof generateBitProposal>[0],
+    projectId: number,
+  ): Promise<CandidateBit[]> {
+    let raw: unknown;
+    try {
+      raw = await generateBitProposal(params, BIT_PROPOSAL.MODEL);
+    } catch (error) {
+      logger.warn(
+        { err: error, projectId, model: BIT_PROPOSAL.MODEL },
+        "Primary bit-proposal model failed; retrying with fallback",
+      );
+      try {
+        raw = await generateBitProposal(params, BIT_PROPOSAL.FALLBACK_MODEL);
+      } catch {
+        throw new ProjectError(
+          "BIT_PROPOSAL_FAILED",
+          "The bit proposal engine could not produce candidate bits.",
+          { projectId },
+        );
+      }
+    }
+    return this.parseProposalOrThrow(raw, projectId);
+  }
+
+  /**
+   * Re-validate the proposal agent's output at the boundary; throw
+   * PROPOSAL_INVALID on failure (§11.2). bitProposalOutputSchema is authoritative
+   * (it also enforces the 1-4 count) — an off-schema proposal never reaches the
+   * reconciliation step. Mirrors parsePlanOrThrow. Returns the candidate array.
+   */
+  private static parseProposalOrThrow(raw: unknown, projectId: number): CandidateBit[] {
+    const parsed = bitProposalOutputSchema.safeParse(raw);
+    if (!parsed.success) {
+      logger.warn(
+        { projectId, issues: parsed.error.issues.map((i) => i.message) },
+        "Bit proposal failed boundary validation; rejecting",
+      );
+      throw new ProjectError(
+        "BIT_PROPOSAL_INVALID",
+        "The bit proposal engine returned malformed candidate bits.",
+        { projectId },
+      );
+    }
+    return parsed.data.bits;
   }
 }

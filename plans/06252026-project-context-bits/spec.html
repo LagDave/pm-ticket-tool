@@ -63,11 +63,11 @@
     <header class="spec-hero">
       <div class="hero-topline">
         <p class="eyebrow">PM Tool · Plan Spec</p>
-        <span class="status-pill status-pending">Pending Execution</span>
+        <span class="status-pill status-completed">Completed</span>
       </div>
       <h1>Project Context &amp; Bits Grounding</h1>
       <dl class="meta-grid">
-        <div class="status-card"><dt>Status</dt><dd>Pending Execution</dd></div>
+        <div class="status-card"><dt>Status</dt><dd>Completed</dd></div>
         <div><dt>Plan Folder</dt><dd>plans/06252026-project-context-bits</dd></div>
         <div><dt>Size</dt><dd>Large</dd></div>
         <div><dt>Risk</dt><dd>Level 3</dd></div>
@@ -385,6 +385,24 @@
         <li><input type="checkbox" disabled> Scout fully removed: no scout files/imports, server boots without scout env, <code>scout_cache</code>/<code>scout_jobs</code> dropped</li>
         <li><input type="checkbox" disabled> Acceptance artifact (<code>test.html</code> + <code>test-results.json</code>) generated and passing/waived</li>
       </ul>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <article class="revision-entry">
+        <h3>Rev 1 - 2026-06-25 — Executed</h3>
+        <p><strong>Change:</strong> All 14 tasks + scout teardown implemented in git worktree <code>project-context-bits</code> (branched from local HEAD) across 4 commits. Status → Completed.</p>
+        <p><strong>Verification:</strong> backend + frontend <code>tsc --noEmit</code> clean; <code>vitest run</code> 170/170 pass (20 files); <code>check:conventions --strict</code> 0 backend hard violations (20 advisories, all pre-existing patterns: §10.2 migration CHECK <code>.raw</code>, §11.7 parent-scoped-model heuristic); migrations apply (batch 8 = <code>drop_scout</code>); new suites cover the project / reconciliation / proposal contracts + owner-scope.</p>
+        <p><strong>Execution deviations (Reason: Execution deviation):</strong></p>
+        <ul>
+          <li>Cross-agent contract fix: <code>GET /projects/:id</code> returns <code>{project, bits}</code> (the frontend's expectation) and <code>importBits</code> carries the backend <code>{mode}</code> tagged union.</li>
+          <li>T13 endpoint <code>POST /sessions/:id/propose-bits</code> lives in the ticket domain (the trigger is a finalized ticket; the gate is the session's project), delegating project work to <code>BitReconciliationService</code> (services calling services, §7.1).</li>
+          <li><code>applyResolutions</code> gained optional <code>{source:"merged", sourceTicketId}</code> provenance — only "merged" is client-settable (§5.4); import/manual callers are unchanged.</li>
+          <li><code>ReconcileResolve</code> reused via one optional <code>provenance</code> prop; the existing import call site is byte-for-byte unchanged.</li>
+          <li>The fresh worktree had no <code>node_modules</code>; symlinked from the main checkout (identical <code>package.json</code>) rather than reinstalling.</li>
+        </ul>
+        <p><strong>Acceptance (Layer 2):</strong> <code>test.html</code> + <code>test-results.json</code> generated with 12 behavioral items (status Not Run) — pending a UI run against the worktree app (needs a live ANTHROPIC_API_KEY + a seeded grounded, finalized session). The green tsc / test / convention gates are the authoritative Layer-1 check; <code>-d</code> will gate on the Layer-2 run.</p>
+      </article>
     </section>
   </main>
 </body>

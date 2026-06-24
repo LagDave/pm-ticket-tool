@@ -84,4 +84,22 @@ export class TicketController {
       return handleError(res, error);
     }
   }
+
+  /**
+   * POST /sessions/:id/propose-bits — merge-on-complete (spec T13). Turn the
+   * session's finalized ticket into candidate project-context bits and return the
+   * reconciliation plan against the project's existing bits → 200. Read-only: the
+   * PM resolves the returned plan to apply (source "merged"). 409 NO_PROJECT when
+   * the session has no project; 409 NO_FINAL_TICKET when nothing is finalized yet.
+   */
+  static async proposeBits(req: Request, res: Response): Promise<Response> {
+    try {
+      const owner = requireOwner(req);
+      const { id } = req.params as unknown as SessionIdParam;
+      const proposal = await TicketService.proposeBitsFromSession(id, owner);
+      return ok(res, proposal);
+    } catch (error) {
+      return handleError(res, error);
+    }
+  }
 }

@@ -44,6 +44,12 @@ export function handleError(res: Response, error: unknown): Response {
     if (error.code.includes("CONFLICT") || error.code.includes("VERSION")) {
       status = 409;
     }
+    // Merge-on-complete preconditions (spec T13): a session with no project, or no
+    // finalized ticket yet, is a 409 — the resource is not in a state for the
+    // operation, not a bad request (the body was well-formed).
+    if (error.code === "NO_PROJECT" || error.code === "NO_FINAL_TICKET") {
+      status = 409;
+    }
     // An upstream model/generation failure is a 502 (bad gateway), distinct from
     // our own 500 (mirrors the interview domain).
     if (error.code.includes("GENERATION")) status = 502;

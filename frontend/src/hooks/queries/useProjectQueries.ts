@@ -19,6 +19,7 @@ import {
   getProject,
   importBits,
   listProjects,
+  proposeBitsFromTicket,
   reconcileBits,
   updateBit,
   updateProject,
@@ -34,6 +35,7 @@ import type {
   CreateProjectInput,
   ImportBitsInput,
   ImportResult,
+  MergeProposal,
   Project,
   ProjectBit,
   ProjectWithBits,
@@ -206,13 +208,19 @@ export function useImportBits(projectId: number | null) {
 
 /**
  * Apply the PM-confirmed resolutions → the resulting bits. A multi-row write, so
- * refresh the project detail and toast; failures toast (§16.3).
+ * refresh the project detail and toast; failures toast (§16.3). Threads the
+ * merge-on-complete provenance (source "merged" + the source ticket id) when the
+ * resolve screen passes it (spec T13); the import/manual resolve omits both and is
+ * unchanged.
  */
 export function useApplyResolutions(projectId: number | null) {
   const queryClient = useQueryClient();
   return useMutation<ProjectBit[], ApiError, ApplyResolutionsInput>({
     mutationFn: (input) =>
-      applyResolutions(projectId as number, input.candidates, input.resolutions),
+      applyResolutions(projectId as number, input.candidates, input.resolutions, {
+        source: input.source,
+        sourceTicketId: input.sourceTicketId,
+      }),
     onSuccess: () => {
       if (projectId !== null) {
         void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.project(projectId) });
@@ -221,6 +229,22 @@ export function useApplyResolutions(projectId: number | null) {
     },
     onError: (error) => {
       toast.error(error.message || "Could not apply the changes.");
+    },
+  });
+}
+
+/**
+ * Merge-on-complete (spec T13): distill the session's finalized ticket into
+ * candidate bits and diff them against the project's active bits → a plan to
+ * resolve. Keyed by sessionId (the endpoint hangs off the session resource). No
+ * writes happen here, so there is nothing to invalidate; failures toast (§16.3).
+ * The 409 NO_PROJECT / NO_FINAL_TICKET preconditions surface as the toast message.
+ */
+export function useProposeBits(sessionId: number | null) {
+  return useMutation<MergeProposal, ApiError, void>({
+    mutationFn: () => proposeBitsFromTicket(sessionId as number),
+    onError: (error) => {
+      toast.error(error.message || "Could not propose bits from the ticket.");
     },
   });
 }

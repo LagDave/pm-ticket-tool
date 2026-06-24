@@ -32,6 +32,28 @@ export const candidateBitSchema = z.object({
 });
 export type CandidateBitBody = z.infer<typeof candidateBitSchema>;
 
+/** Bounds for a merge-on-complete proposal (spec T13). Named, not magic (§4.2). */
+const PROPOSAL_MIN_BITS = 1;
+const PROPOSAL_MAX_BITS = 4;
+
+/**
+ * Boundary re-validation of the bit-PROPOSAL agent's structured output (spec T13,
+ * §11.2). The proposal agent turns one finalized ticket into 1-4 candidate bits;
+ * its output is re-validated here against this plain-`zod` schema before any of
+ * the candidates reach the reconciliation step — a loose or off-schema proposal
+ * is rejected, never reconciled or applied. Mirrors reconciliationPlanSchema's
+ * role as the trusted boundary for an agent's raw output. Each bit reuses
+ * candidateBitSchema so the proposal and the import/manual paths share one
+ * candidate shape (§4.2).
+ */
+export const bitProposalOutputSchema = z.object({
+  bits: z
+    .array(candidateBitSchema)
+    .min(PROPOSAL_MIN_BITS, "a proposal must contain at least one bit.")
+    .max(PROPOSAL_MAX_BITS, "a proposal may contain at most four bits."),
+});
+export type BitProposalOutput = z.infer<typeof bitProposalOutputSchema>;
+
 /** Partial update of one stored bit. */
 export const updateBitSchema = z
   .object({
@@ -100,6 +122,15 @@ export const reconciliationPlanSchema = z.object({
  * Body for POST /projects/:id/bits/apply — the human-confirmed resolutions from
  * the resolve screen, paired with the candidates they resolve. Applied in a
  * transaction (§10.5); `force` choices override conflict/similar flags.
+ *
+ * Provenance (spec T13 — merge-on-complete): the resolve screen reached from a
+ * finalized ticket carries `source: "merged"` + the `sourceTicketId` it came
+ * from, so the applied bits are stamped with their origin (an audit trail, spec
+ * R2). Both are OPTIONAL: the existing import/manual resolve sends neither, and
+ * the service then defaults source to "imported" with a null ticket id, so those
+ * callers are unchanged. Only "merged" is accepted on the wire — the other
+ * sources ("manual"/"imported") are set by their own server paths, never chosen
+ * by a client (§5.4).
  */
 const RESOLUTION_CHOICES = ["insert", "merge", "keep_both", "skip", "force"] as const;
 export const applyResolutionsSchema = z.object({
@@ -114,5 +145,9 @@ export const applyResolutionsSchema = z.object({
       }),
     )
     .min(1),
+  /** Merge-on-complete provenance (spec T13); only "merged" is client-settable. */
+  source: z.literal("merged").optional(),
+  /** The finalized ticket these merged bits derive from (spec T13). */
+  sourceTicketId: z.number().int().positive().optional(),
 });
 export type ApplyResolutionsBody = z.infer<typeof applyResolutionsSchema>;

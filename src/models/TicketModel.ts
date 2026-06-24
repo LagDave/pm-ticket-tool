@@ -102,6 +102,32 @@ export class TicketModel extends BaseModel {
     return row ? this.deserialize(row) : null;
   }
 
+  /**
+   * The latest FINAL ticket for a session (highest version among status='final'),
+   * owner-scoped (spec T13 — merge-on-complete reads off the finalized ticket).
+   * Returns null when the session has no finalized ticket OR belongs to another
+   * owner — indistinguishable, never leaked (§11.7, §5.5). Distinct from
+   * findLatestBySessionForOwner, which returns the latest of ANY status.
+   */
+  static async findLatestFinalBySessionForOwner(
+    sessionId: number,
+    owner: OwnerContext,
+    trx?: QueryContext,
+  ): Promise<ITicket | null> {
+    const row = await this.table(trx)
+      .join(
+        "interview_sessions",
+        "interview_sessions.id",
+        "tickets.session_id",
+      )
+      .where("tickets.session_id", sessionId)
+      .where("tickets.status", "final")
+      .where("interview_sessions.owner_user_id", owner.ownerUserId)
+      .orderBy("tickets.version", "desc")
+      .first("tickets.*");
+    return row ? this.deserialize(row) : null;
+  }
+
   /** Tickets for a session, newest version first. Caller owner-verifies the session. */
   static async listBySession(
     sessionId: number,

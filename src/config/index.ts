@@ -112,6 +112,30 @@ export const BIT_RECONCILIATION = {
 } as const;
 
 /**
+ * Bit proposal constants (spec project-context-bits, T13 — merge-on-complete).
+ * One bounded structured-output call turns a FINALIZED ticket (its user story,
+ * acceptance criteria, context summary, effort tier, and the session's settled
+ * decisions) into 1-4 CANDIDATE bits capturing the durable facts the completed
+ * feature establishes about the app. No magic values in the proposal logic
+ * (§4.2). MEDIUM effort (like the ticket generator + the reconciler, vs the
+ * engine/triage's LOW): distilling a whole ticket down to a few durable,
+ * correctly-kinded project facts is synthesis, not a cheap split, so it gets a
+ * touch more reasoning budget — still bounded by MAX_TOKENS so the single call
+ * stays short-lived under a serverless timeout. The candidates are then run
+ * through BitReconciliationService (the agent proposes; the human disposes), so
+ * a loose proposal is never silently applied (spec R2).
+ */
+export const BIT_PROPOSAL = {
+  /** Primary model; falls back to FALLBACK_MODEL if the key rejects it. */
+  MODEL: "claude-opus-4-8",
+  FALLBACK_MODEL: "claude-sonnet-4-6",
+  /** Medium reasoning effort for the ticket-to-bits synthesis call (spec T13). */
+  EFFORT: "medium",
+  /** Bounded output so a single proposal call stays short-lived (serverless). */
+  MAX_TOKENS: 2_048,
+} as const;
+
+/**
  * Triage constants (spec 7). One cheap, low-effort structured-output call labels
  * the original request `simple` or `scoped` (spec T1). No magic values in the
  * triage logic (§4.2). LOW effort (like the engine, vs the ticket generator's

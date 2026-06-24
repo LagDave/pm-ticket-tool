@@ -12,6 +12,10 @@ import { InterviewSessionModel } from "../../../models/InterviewSessionModel";
 import { TicketCommentModel } from "../../../models/TicketCommentModel";
 import { TicketModel } from "../../../models/TicketModel";
 import { TitleService } from "../../interview/feature-services/TitleService";
+import {
+  BitReconciliationService,
+  type MergeProposal,
+} from "../../project/feature-services/BitReconciliationService";
 import { TicketMarkdownService } from "./TicketMarkdownService";
 import type {
   ITicket,
@@ -136,6 +140,64 @@ export class TicketService {
 
     const comments = await TicketCommentModel.listByTicket(ticketId);
     return { ticket: finalized, comments };
+  }
+
+  /**
+   * Merge-on-complete (spec T13): turn a session's FINALIZED ticket into candidate
+   * project-context bits and preview how they reconcile against the project. This
+   * is the ticket-domain entry point for POST /sessions/:id/propose-bits — it lives
+   * here (not in the project domain) because the trigger is a finalized TICKET and
+   * the gate is the SESSION's project attachment, both owned by this domain; it then
+   * delegates the project-side work (proposal agent + reconciliation) to
+   * BitReconciliationService (§7.1 — services call services, no cross-domain DB).
+   *
+   * Owner-scoped throughout (§11.7):
+   *  - owner-verify the session (SESSION_NOT_FOUND when absent/foreign, never leaked);
+   *  - require a project attachment, else NO_PROJECT (mapped to 409 — the session is
+   *    not in a state to merge; spec: typed error → 409/400);
+   *  - require a finalized ticket, else NO_FINAL_TICKET (the feature is not complete).
+   *
+   * READ-ONLY: nothing is written here. The returned candidates + plan go to the
+   * resolve screen, which applies them with source "merged" + the ticket id.
+   */
+  static async proposeBitsFromSession(
+    sessionId: number,
+    owner: OwnerContext,
+  ): Promise<MergeProposal> {
+    const session = await InterviewSessionModel.findByIdForOwner(sessionId, owner);
+    if (!session) {
+      throw new TicketError(
+        "SESSION_NOT_FOUND",
+        `Session ${sessionId} was not found.`,
+        { sessionId },
+      );
+    }
+    if (session.project_id === null) {
+      // The session is not attached to a project, so there is nowhere to merge the
+      // bits. A typed conflict (NO_PROJECT → 409): the resource is not in a state
+      // for this operation. The frontend only shows the trigger for attached
+      // sessions, so this is a server-side backstop (§5.4), not the happy path.
+      throw new TicketError(
+        "NO_PROJECT",
+        "This session is not attached to a project, so there is no project context to merge into.",
+        { sessionId },
+      );
+    }
+
+    const ticket = await TicketModel.findLatestFinalBySessionForOwner(sessionId, owner);
+    if (!ticket) {
+      throw new TicketError(
+        "NO_FINAL_TICKET",
+        "Finalize the ticket before merging it into project context.",
+        { sessionId },
+      );
+    }
+
+    return BitReconciliationService.proposeFromTicket(
+      session.project_id,
+      owner,
+      ticket.id,
+    );
   }
 
   /* ----------------------------- private helpers ------------------------- */

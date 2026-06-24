@@ -163,11 +163,16 @@ export class ProjectController {
       const owner = requireOwner(req);
       const { id } = req.params as unknown as ProjectIdParam;
       const body = req.body as ApplyResolutionsBody;
+      // Thread the merge-on-complete provenance through when present (spec T13):
+      // source "merged" + the originating ticket id stamp the applied bits. The
+      // import/manual resolve sends neither, so the service defaults to "imported"
+      // with a null ticket id — those callers are unchanged.
       const bits = await BitReconciliationService.applyResolutions(
         id,
         owner,
         body.candidates,
         body.resolutions,
+        { source: body.source, sourceTicketId: body.sourceTicketId },
       );
       return ok(res, bits);
     } catch (error) {

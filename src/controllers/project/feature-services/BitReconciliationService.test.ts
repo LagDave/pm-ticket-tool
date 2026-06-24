@@ -13,16 +13,25 @@
  */
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock the agent module BEFORE importing anything that pulls it in.
+// Mock the agent modules BEFORE importing anything that pulls them in. The
+// reconciliation agent is mocked for every path; the PROPOSAL agent is mocked for
+// the merge-on-complete (proposeFromTicket) tests (spec T13) — both seams stay
+// deterministic and free, synthetic data only (§20.4).
 vi.mock("../../../agents/bitReconciliationAgent", () => ({
   generateReconciliationPlan: vi.fn(),
 }));
+vi.mock("../../../agents/bitProposalAgent", () => ({
+  generateBitProposal: vi.fn(),
+}));
 
+import { generateBitProposal } from "../../../agents/bitProposalAgent";
 import { generateReconciliationPlan } from "../../../agents/bitReconciliationAgent";
 import { db } from "../../../database/connection";
+import { InterviewSessionModel } from "../../../models/InterviewSessionModel";
 import { ProjectBitModel } from "../../../models/ProjectBitModel";
 import { ProjectModel } from "../../../models/ProjectModel";
-import { makeOwner, makeProjectName } from "../../../test/factories";
+import { TicketModel } from "../../../models/TicketModel";
+import { makeGeneratedTicket, makeOwner, makeProjectName } from "../../../test/factories";
 import type { OwnerContext } from "../../../types/interview";
 import type {
   CandidateBit,
@@ -32,6 +41,7 @@ import type {
 import { BitReconciliationService } from "./BitReconciliationService";
 
 const mockGenerate = vi.mocked(generateReconciliationPlan);
+const mockPropose = vi.mocked(generateBitProposal);
 
 /** A synthetic candidate-bit batch (defaults to one feature bit). */
 function makeCandidates(overrides: CandidateBit[] = []): CandidateBit[] {
@@ -58,14 +68,44 @@ async function seedBit(
   });
 }
 
+/**
+ * Seed an owner-owned session attached to a project, plus a FINALIZED ticket on
+ * it (merge-on-complete reads off a finalized ticket, spec T13). Returns the
+ * session id + the finalized ticket id. Synthetic data only (§20.4).
+ */
+async function seedSessionWithFinalTicket(
+  owner: OwnerContext,
+  projectId: number | null,
+): Promise<{ sessionId: number; ticketId: number }> {
+  const session = await InterviewSessionModel.create(owner, {
+    originalRequest: "Add Google sign-in.",
+    projectId,
+  });
+  const generated = makeGeneratedTicket();
+  const ticket = await TicketModel.create({
+    sessionId: session.id,
+    userStory: generated.user_story,
+    acceptanceCriteria: generated.acceptance_criteria,
+    effort: generated.effort,
+    contextSummary: generated.context_summary,
+    renderedMarkdown: "# Ticket",
+  });
+  // Flip the draft to final so findLatestFinalBySessionForOwner sees it.
+  await TicketModel.finalizeForOwner(ticket.id, ticket.version);
+  return { sessionId: session.id, ticketId: ticket.id };
+}
+
 describe("BitReconciliationService", () => {
   beforeEach(() => {
     mockGenerate.mockReset();
+    mockPropose.mockReset();
   });
 
   afterAll(async () => {
-    // Projects own their bits (CASCADE); delete the synthetic owners' projects.
+    // Projects own their bits (CASCADE); sessions own their tickets (CASCADE).
+    // Delete the synthetic owners' rows in both trees (owner_user_id > 1000).
     await db("projects").where("owner_user_id", ">", 1000).del();
+    await db("interview_sessions").where("owner_user_id", ">", 1000).del();
   });
 
   /* ------------------------------- reconcile ----------------------------- */
@@ -338,6 +378,137 @@ describe("BitReconciliationService", () => {
       const all = await ProjectBitModel.listByProject(projectId);
       const superseded = all.find((b) => b.id === old.id);
       expect(superseded?.status).toBe("superseded");
+    });
+  });
+
+  /* ---------------------------- proposeFromTicket ------------------------ */
+
+  describe("proposeFromTicket (merge-on-complete, spec T13)", () => {
+    it("returns the proposed candidates + the reconciliation plan, writing nothing", async () => {
+      const owner = makeOwner();
+      const projectId = await seedProject(owner);
+      await seedBit(projectId, { summary: "Email/password auth." });
+      const { ticketId } = await seedSessionWithFinalTicket(owner, projectId);
+
+      // The proposal agent distills the finalized ticket into one candidate bit;
+      // the reconciliation agent then diffs it against the project's active bits.
+      mockPropose.mockResolvedValueOnce({
+        bits: [{ kind: "feature", bit_key: "auth", summary: "Google sign-in." }],
+      });
+      mockGenerate.mockResolvedValueOnce({
+        actions: [
+          { incomingIndex: 0, action: "update", targetBitId: null, reason: "Merges auth." },
+        ],
+      });
+
+      const result = await BitReconciliationService.proposeFromTicket(
+        projectId,
+        owner,
+        ticketId,
+      );
+
+      // Both agents ran once (propose, then reconcile), and the shape is the
+      // candidates the agent proposed plus the plan to resolve.
+      expect(mockPropose).toHaveBeenCalledTimes(1);
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+      expect(result.candidates).toHaveLength(1);
+      expect(result.candidates[0].summary).toBe("Google sign-in.");
+      expect(result.plan.actions).toHaveLength(1);
+      expect(result.plan.actions[0].action).toBe("update");
+      // Read-only: still exactly the one seeded active bit.
+      const active = await ProjectBitModel.listActiveByProject(projectId);
+      expect(active).toHaveLength(1);
+    });
+
+    it("rejects an off-schema proposal at the boundary, before reconciling (§11.2)", async () => {
+      const owner = makeOwner();
+      const projectId = await seedProject(owner);
+      const { ticketId } = await seedSessionWithFinalTicket(owner, projectId);
+      // `kind` is not a valid bit kind → boundary validation fails.
+      mockPropose.mockResolvedValueOnce({
+        bits: [{ kind: "nonsense", bit_key: "x", summary: "y" }],
+      });
+
+      await expect(
+        BitReconciliationService.proposeFromTicket(projectId, owner, ticketId),
+      ).rejects.toMatchObject({ code: "BIT_PROPOSAL_INVALID" });
+      // The reconciliation agent was never reached — the bad proposal stopped first.
+      expect(mockGenerate).not.toHaveBeenCalled();
+    });
+
+    it("retries the proposal with the fallback model, then surfaces a typed failure", async () => {
+      const owner = makeOwner();
+      const projectId = await seedProject(owner);
+      const { ticketId } = await seedSessionWithFinalTicket(owner, projectId);
+      mockPropose.mockRejectedValue(new Error("model down")); // primary + fallback
+
+      await expect(
+        BitReconciliationService.proposeFromTicket(projectId, owner, ticketId),
+      ).rejects.toMatchObject({ code: "BIT_PROPOSAL_FAILED" });
+      expect(mockPropose).toHaveBeenCalledTimes(2); // primary then fallback
+    });
+
+    it("hides another owner's ticket (NOT_FOUND, §11.7)", async () => {
+      const ownerA = makeOwner();
+      const ownerB = makeOwner();
+      const projectId = await seedProject(ownerB); // B owns the project...
+      const { ticketId } = await seedSessionWithFinalTicket(ownerA, null); // ...A owns the ticket
+      mockPropose.mockResolvedValueOnce({
+        bits: [{ kind: "feature", bit_key: "auth", summary: "Google sign-in." }],
+      });
+
+      await expect(
+        BitReconciliationService.proposeFromTicket(projectId, ownerB, ticketId),
+      ).rejects.toMatchObject({ code: "TICKET_NOT_FOUND" });
+      // The proposal agent is never called — the ticket scope is checked first.
+      expect(mockPropose).not.toHaveBeenCalled();
+    });
+  });
+
+  /* -------------------- applyResolutions provenance (T13) ---------------- */
+
+  describe("applyResolutions provenance (merge-on-complete, spec T13)", () => {
+    it("stamps source 'merged' and source_ticket_id when provenance is passed", async () => {
+      const owner = makeOwner();
+      const projectId = await seedProject(owner);
+      const { ticketId } = await seedSessionWithFinalTicket(owner, projectId);
+      const candidates = makeCandidates([
+        { kind: "feature", bit_key: "auth", summary: "Google sign-in." },
+      ]);
+      const resolutions: ResolvedAction[] = [{ incomingIndex: 0, choice: "insert" }];
+
+      const bits = await BitReconciliationService.applyResolutions(
+        projectId,
+        owner,
+        candidates,
+        resolutions,
+        { source: "merged", sourceTicketId: ticketId },
+      );
+
+      expect(bits).toHaveLength(1);
+      expect(bits[0].source).toBe("merged");
+      expect(bits[0].source_ticket_id).toBe(ticketId);
+      expect(bits[0].status).toBe("active");
+    });
+
+    it("defaults to source 'imported' with a null ticket id when no provenance is passed", async () => {
+      const owner = makeOwner();
+      const projectId = await seedProject(owner);
+      const candidates = makeCandidates([
+        { kind: "constraint", bit_key: "platform", summary: "Web only." },
+      ]);
+      const resolutions: ResolvedAction[] = [{ incomingIndex: 0, choice: "insert" }];
+
+      const bits = await BitReconciliationService.applyResolutions(
+        projectId,
+        owner,
+        candidates,
+        resolutions,
+      );
+
+      // The existing import/manual apply path is unchanged.
+      expect(bits[0].source).toBe("imported");
+      expect(bits[0].source_ticket_id).toBeNull();
     });
   });
 });

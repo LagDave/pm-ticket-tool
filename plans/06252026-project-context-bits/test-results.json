@@ -1,0 +1,140 @@
+{
+  "plan": "plans/06252026-project-context-bits",
+  "generatedAt": "2026-06-25",
+  "status": "Not Run",
+  "notes": "Layer 2 — behavioral validation against the running app. Layer 1 (automated) is already green: 164 backend tests pass, both trees type-check, check:conventions --strict has 0 backend hard violations. These items need the worktree app running (backend on the project DB + Vite SPA) and a human or computer-use run to fill status/evidence.",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Create a project and add bits (Projects manager)",
+      "surface": "ui",
+      "precondition": "App running; dev owner (x-dev-user-id: 1).",
+      "steps": ["1. Open the Projects screen from the nav.", "2. Create a project (name + description).", "3. Open it; add a few bits across kinds, including a `constraint` bit 'web only' and an `inventory` bit listing the real screens."],
+      "expected": "Project is created and listed; bits appear grouped by kind on the project detail.",
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "T2",
+      "title": "Grounded interview anchors options to real app facts",
+      "surface": "ui",
+      "precondition": "A project with bits exists (T1).",
+      "steps": ["1. Start a new interview and attach it to that project via the picker.", "2. Generate the first batch for a request like 'redesign the dashboard'."],
+      "expected": "Options reference real app facts (no invented screens like a 'Puzzle page'); grounded options show the 'verify with engineering' note.",
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "T3",
+      "title": "Settled-kind bit suppresses a question, visibly, with override",
+      "surface": "ui",
+      "precondition": "Project has a settled bit (e.g. constraint 'web only'); interview attached to it; request is a styling/revamp (not a platform change).",
+      "steps": ["1. Generate a batch where a platform question would normally appear.", "2. Observe the 'Skipped — based on your project context' notice.", "3. Click 'Answer anyway' on the skipped item and submit a free-text answer."],
+      "expected": "The platform question is not asked; it appears in the skipped notice with a reason; 'Answer anyway' records an override decision visible in the resulting ticket.",
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "T4",
+      "title": "Suppression is conditional on the request",
+      "surface": "ui",
+      "precondition": "Same 'web only' project.",
+      "steps": ["1. Start an interview whose request is 'expand the app to mobile'.", "2. Generate a batch."],
+      "expected": "The platform question IS asked (the request is about changing that fact), i.e. the settled bit does not suppress it.",
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "T5",
+      "title": "Cached grounding prefix (R4)",
+      "surface": "api",
+      "precondition": "A grounded session with a project that has enough bits to exceed the cache minimum.",
+      "steps": ["1. Generate batch 1, then batch 2 for the same grounded session.", "2. Inspect the model usage for batch 2 (server logs / response usage)."],
+      "expected": "usage.cache_read_input_tokens > 0 on batch 2 (the rules+bits system prefix is read from cache).",
+      "status": "pending",
+      "evidence": "",
+      "notes": "Requires surfacing usage; may need a temporary log."
+    },
+    {
+      "id": "T6",
+      "title": "Generate-bits prompt popup",
+      "surface": "ui",
+      "precondition": "A project exists.",
+      "steps": ["1. On the project detail, click 'Generate prompt'.", "2. Click Copy."],
+      "expected": "A prompt is shown that embeds the bit JSON schema and instructs a separate Claude Code session to recon the repo at the product level and write a JSON file; Copy puts it on the clipboard.",
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "T7",
+      "title": "Import → reconcile → resolve a conflict (additive)",
+      "surface": "ui",
+      "precondition": "A project with some existing bits.",
+      "steps": ["1. Click 'Import bits'; paste a JSON file of bits, some overlapping/contradicting existing ones; leave force OFF.", "2. Review the reconciliation plan (conflicts/similars surfaced first).", "3. Resolve a conflict (merge / keep both); apply."],
+      "expected": "A plan is shown; nothing is written until you resolve+apply; existing bits are NOT cleared; resolved bits land; superseded bits remain for audit.",
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "T8",
+      "title": "Force import replaces existing bits",
+      "surface": "ui",
+      "precondition": "A project with existing bits.",
+      "steps": ["1. Import with the 'Replace existing (force)' checkbox ON."],
+      "expected": "Existing active bits are superseded and the imported set becomes the active bits (the only path that clears).",
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "T9",
+      "title": "Ticket grounded in project bits",
+      "surface": "ui",
+      "precondition": "A grounded session reaches ticket generation.",
+      "steps": ["1. Complete an interview on a project-attached session and generate the ticket."],
+      "expected": "The ticket's context_summary / acceptance criteria reflect real app facts from the bits (no invented requirements beyond the decisions).",
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "T10",
+      "title": "Merge-on-complete proposes bits from a finalized ticket (T13)",
+      "surface": "ui",
+      "precondition": "A finalized ticket on a project-attached session.",
+      "steps": ["1. On the finalized ticket, click 'Merge to project context'.", "2. Review the proposed candidate bits + reconciliation plan; resolve; apply."],
+      "expected": "Candidate bits are proposed from the ticket, reconciled against the project, and on apply land with source 'merged' + the source ticket id.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "Depends on T13 landing."
+    },
+    {
+      "id": "T11",
+      "title": "Code scout is fully removed",
+      "surface": "api",
+      "precondition": "Worktree backend running.",
+      "steps": ["1. Request a former scout route, e.g. POST /sessions/1/scout and POST /internal/scout/process.", "2. Boot the server with no GITHUB_TOKEN / SCOUT_WORKER_SECRET / RUN_SCOUT_WORKER set."],
+      "expected": "Former scout routes 404; the server boots cleanly with no scout env; scout_cache/scout_jobs tables no longer exist.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "Code-level already verified: 24 scout files deleted, app/index/config unwired, drop_scout migration applied (batch 8)."
+    },
+    {
+      "id": "T12",
+      "title": "Ungrounded interview still works (no project attached)",
+      "surface": "ui",
+      "precondition": "App running.",
+      "steps": ["1. Start an interview WITHOUT selecting a project.", "2. Generate a batch and proceed to a ticket."],
+      "expected": "The interview runs on the unchanged ungrounded path (no grounding, nothing suppressed) and produces a ticket — grounding is purely additive.",
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    }
+  ]
+}

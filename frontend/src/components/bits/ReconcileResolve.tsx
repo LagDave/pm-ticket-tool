@@ -32,6 +32,14 @@ interface ReconcileResolveProps {
   plan: ReconciliationPlan;
   /** Resolutions applied successfully — close the resolve view and return to the list. */
   onDone: () => void;
+  /**
+   * Merge-on-complete provenance (spec T13). OPTIONAL — when the resolve screen is
+   * reached from a finalized ticket, the caller passes { source: "merged",
+   * sourceTicketId } so the applied bits are stamped with their origin (an audit
+   * trail, spec R2). Omitted (the import/manual resolve) leaves the apply
+   * unchanged: the server defaults the source to "imported" with no ticket id.
+   */
+  provenance?: { source: "merged"; sourceTicketId: number };
 }
 
 /** The PM's working decision for one action: a choice plus the editable final summary. */
@@ -133,6 +141,7 @@ export function ReconcileResolve({
   candidates,
   plan,
   onDone,
+  provenance,
 }: ReconcileResolveProps) {
   const apply = useApplyResolutions(projectId);
 
@@ -179,7 +188,12 @@ export function ReconcileResolve({
         };
       });
 
-    apply.mutate({ candidates, resolutions }, { onSuccess: () => onDone() });
+    // Spread the merge-on-complete provenance when present (spec T13); for the
+    // import/manual resolve it is undefined and the apply is unchanged.
+    apply.mutate(
+      { candidates, resolutions, ...provenance },
+      { onSuccess: () => onDone() },
+    );
   };
 
   return (

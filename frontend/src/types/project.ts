@@ -149,6 +149,27 @@ export interface ReconcileInput {
 export interface ApplyResolutionsInput {
   candidates: CandidateBit[];
   resolutions: Resolution[];
+  /**
+   * Merge-on-complete provenance (spec T13). When the resolve screen was reached
+   * from a finalized ticket, `source: "merged"` + `sourceTicketId` stamp the
+   * applied bits with their origin. The import/manual resolve omits both, so the
+   * server defaults to "imported" with no ticket — those callers are unchanged.
+   */
+  source?: "merged";
+  sourceTicketId?: number;
+}
+
+/**
+ * What POST /sessions/:id/propose-bits returns (spec T13 — merge-on-complete):
+ * the candidate bits distilled from the session's finalized ticket, plus the
+ * reconciliation plan diffing them against the project's active bits. The PM
+ * resolves the plan with the SAME candidates array (the resolve screen reuses
+ * ReconcileResolve, then applies with source "merged"). Mirrors the backend
+ * MergeProposal.
+ */
+export interface MergeProposal {
+  candidates: CandidateBit[];
+  plan: ReconciliationPlan;
 }
 
 /** POST /projects/:id/bits/import request body. `force` replaces existing bits. */

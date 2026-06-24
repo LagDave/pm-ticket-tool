@@ -11,6 +11,7 @@ import type {
   CreateBitInput,
   CreateProjectInput,
   ImportResult,
+  MergeProposal,
   Project,
   ProjectBit,
   ProjectWithBits,
@@ -97,17 +98,37 @@ export async function reconcileBits(
 /**
  * POST /projects/:id/bits/apply - apply the PM-confirmed resolutions for the
  * given candidates → the resulting project bits. Multi-row write, transactional
- * on the server (spec T9).
+ * on the server (spec T9). `provenance` carries the merge-on-complete origin when
+ * the resolve screen was reached from a finalized ticket (source "merged" + the
+ * ticket id, spec T13); omitted for the import/manual resolve, which the server
+ * then stamps "imported" — unchanged.
  */
 export async function applyResolutions(
   projectId: number,
   candidates: CandidateBit[],
   resolutions: Resolution[],
+  provenance: { source?: "merged"; sourceTicketId?: number } = {},
 ): Promise<ProjectBit[]> {
   return apiPost<ProjectBit[]>(`/projects/${projectId}/bits/apply`, {
     candidates,
     resolutions,
+    source: provenance.source,
+    sourceTicketId: provenance.sourceTicketId,
   });
+}
+
+/**
+ * POST /sessions/:id/propose-bits - merge-on-complete (spec T13). Distill the
+ * session's finalized ticket into candidate bits and diff them against the
+ * project's active bits → the candidates + a reconciliation plan to resolve. No
+ * writes happen here; the PM resolves the plan, then applies with source
+ * "merged". The endpoint hangs off the session resource (the session owns the
+ * ticket and the project attachment), so it is keyed by sessionId, not projectId.
+ */
+export async function proposeBitsFromTicket(
+  sessionId: number,
+): Promise<MergeProposal> {
+  return apiPost<MergeProposal>(`/sessions/${sessionId}/propose-bits`);
 }
 
 /**

@@ -27,6 +27,13 @@ export interface InterviewSession {
   status: SessionStatus;
   original_request: string;
   /**
+   * The project this session is grounded against (project context bits), or null
+   * when ungrounded. Surfaced so the finalized-ticket view can show the "Merge to
+   * project context" trigger only for attached sessions (spec T13). Mirrors the
+   * backend interview_sessions.project_id column.
+   */
+  project_id: number | null;
+  /**
    * Concise generated display title for the dashboard (User QA: auto-generated
    * session title). Generated from original_request at create and replaced from
    * the finalized ticket after finalize. Null until generated, or if generation
