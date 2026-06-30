@@ -286,6 +286,12 @@
         <p><strong>Verification:</strong> <code>tsc --noEmit</code> clean · <code>npm run build</code> passes · <code>check:conventions</code> backend 0 violations · frontend lint 0 errors / 4 advisory warnings.</p>
         <p><strong>Updated Done criteria:</strong> the build/typecheck/check items are met; the manual UI items remain to be run against the live app (see <code>test.html</code>).</p>
       </article>
+      <article class="revision-entry">
+        <h3>Rev 2 - 2026-07-01</h3>
+        <p><strong>Change:</strong> Post-execution polish from the owner's dev-server review — (1) removed the "Back to dashboard" / "Start over" buttons from the wizard steps (the sidebar now owns navigation); (2) added top + side padding to the wizard pane so the step rail no longer sits flush against the top; (3) retuned the accent to DevEasy's amber-orange hue (<code>#ff9f43</code>) in dark, with a same-hue darker shade for the light theme.</p>
+        <p><strong>Reason:</strong> User QA: visual refinements to match DevEasy more closely.</p>
+        <p><strong>Files:</strong> <code>frontend/src/pages/InterviewWizard.tsx</code> (drop buttons + <code>restart</code> + unused <code>onExit</code>, add wrapper padding), <code>frontend/src/components/shell/AppShell.tsx</code> (drop the now-dead <code>onExit</code> pass), <code>frontend/src/index.css</code> (accent tokens, both themes).</p>
+      </article>
     </section>
   </main>
 </body>

@@ -82,7 +82,6 @@ export function AppShell() {
             initialSessionId={view.session?.id ?? null}
             initialStep={view.step}
             initialProjectId={view.projectId}
-            onExit={() => setView({ kind: "empty" })}
           />
         )}
 

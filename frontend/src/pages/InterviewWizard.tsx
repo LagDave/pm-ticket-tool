@@ -11,8 +11,8 @@
  * Spec 4 (dashboard): the wizard is launchable from the dashboard for an existing
  * session at a chosen step (resume). `initialSessionId`/`initialStep` seed the
  * position; resume on the interview step lands on the next unanswered batch
- * because QuestionBatch replays the persisted turns (spec 2). `onExit` returns to
- * the dashboard.
+ * because QuestionBatch replays the persisted turns (spec 2). The app shell owns
+ * navigation (the sidebar), so the wizard has no exit button of its own.
  */
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -55,15 +55,12 @@ interface InterviewWizardProps {
    * "new session"). Only used on the request step of a fresh flow.
    */
   initialProjectId?: number | null;
-  /** Return to the dashboard (spec 4). When absent, the wizard runs standalone. */
-  onExit?: () => void;
 }
 
 export function InterviewWizard({
   initialSessionId = null,
   initialStep = WIZARD_STEP.request,
   initialProjectId = null,
-  onExit,
 }: InterviewWizardProps = {}) {
   const [stepIndex, setStepIndex] = useState<WizardStep>(initialStep);
   const [sessionId, setSessionId] = useState<number | null>(initialSessionId);
@@ -89,18 +86,8 @@ export function InterviewWizard({
     setStepIndex(WIZARD_STEP.ticket);
   };
 
-  const restart = (): void => {
-    // From the dashboard, "start over" returns there; standalone, it resets.
-    if (onExit) {
-      onExit();
-      return;
-    }
-    setStepIndex(WIZARD_STEP.request);
-    setSessionId(null);
-  };
-
   return (
-    <main className="mx-auto w-full max-w-[760px]">
+    <main className="mx-auto w-full max-w-[760px] px-6 pt-10 pb-16">
       <header className="mb-6">
         {/* Brand masthead removed — the app shell owns the header now. Only the
             step rail remains as the wizard's own progress chrome. */}
@@ -163,11 +150,6 @@ export function InterviewWizard({
                 </blockquote>
               )}
               <TriageBranch sessionId={sessionId} onRouted={handleRouted} />
-              <div className="mt-5 flex flex-wrap items-center gap-3">
-                <button type="button" className="btn" onClick={restart}>
-                  {onExit ? "Back to dashboard" : "Start over"}
-                </button>
-              </div>
             </>
           )}
 
@@ -182,22 +164,12 @@ export function InterviewWizard({
                 sessionId={sessionId}
                 onComplete={handleInterviewComplete}
               />
-              <div className="mt-5 flex flex-wrap items-center gap-3">
-                <button type="button" className="btn" onClick={restart}>
-                  {onExit ? "Back to dashboard" : "Start over"}
-                </button>
-              </div>
             </>
           )}
 
           {stepIndex === WIZARD_STEP.ticket && sessionId !== null && (
             <>
               <TicketStep sessionId={sessionId} />
-              <div className="mt-5 flex flex-wrap items-center gap-3">
-                <button type="button" className="btn" onClick={restart}>
-                  {onExit ? "Back to dashboard" : "Start over"}
-                </button>
-              </div>
             </>
           )}
         </motion.div>

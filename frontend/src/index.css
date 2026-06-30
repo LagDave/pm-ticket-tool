@@ -42,13 +42,13 @@
   --color-muted: #9aa0b0;
   --color-faint: #686e7e;
 
-  /* The one vivid accent — orange (#ff751f), used sparingly for the recommended
-   * card, the single primary action, and the active/selected indicator. Soft and
-   * deep are derived shades of the same orange (no second hue). Cold dark canvas
-   * + one warm accent = the studio feel. */
-  --color-accent: #ff751f;
-  --color-accent-soft: #ff8f47;
-  --color-accent-deep: #c2541a;
+  /* The one vivid accent — DevEasy's amber-orange (#ff9f43), used sparingly for
+   * the recommended card, the single primary action, and the active/selected
+   * indicator. Soft (hover) and deep are derived shades of the same hue (no second
+   * hue). Cold dark canvas + one warm accent = the studio feel. */
+  --color-accent: #ff9f43;
+  --color-accent-soft: #ffb160;
+  --color-accent-deep: #e08a2e;
   --color-success: #2faf74;
   --color-danger: #e5484d;
 
@@ -79,11 +79,11 @@
   --muted: #9aa0b0;
   --faint: #686e7e;
 
-  --accent: #ff751f;
-  --accent-soft: #ff8f47;
-  --accent-deep: #c2541a;
-  --accent-tint: rgba(255, 117, 31, 0.12);
-  --accent-tint-strong: rgba(255, 117, 31, 0.18);
+  --accent: #ff9f43;
+  --accent-soft: #ffb160;
+  --accent-deep: #e08a2e;
+  --accent-tint: rgba(255, 159, 67, 0.12);
+  --accent-tint-strong: rgba(255, 159, 67, 0.18);
   --success: #2faf74;
   --danger: #e5484d;
 
@@ -98,7 +98,7 @@
   --shell-width: 880px;
 
   --shadow-card: 0 24px 60px -30px rgba(0, 0, 0, 0.9);
-  --shadow-accent: 0 12px 30px -12px rgba(255, 117, 31, 0.55);
+  --shadow-accent: 0 12px 30px -12px rgba(255, 159, 67, 0.55);
 }
 
 /* Light theme — a true editorial off-white (near-zero chroma), NOT cream/sand.
@@ -119,16 +119,16 @@
   --muted: #5b5d66;
   --faint: #83858d;
 
-  --accent: #e05c12;
-  --accent-soft: #c64f0d;
-  --accent-deep: #a84309;
-  --accent-tint: rgba(224, 92, 18, 0.10);
-  --accent-tint-strong: rgba(224, 92, 18, 0.16);
+  --accent: #c2740f;
+  --accent-soft: #a8640c;
+  --accent-deep: #8f5408;
+  --accent-tint: rgba(194, 116, 15, 0.10);
+  --accent-tint-strong: rgba(194, 116, 15, 0.16);
   --success: #1f8f5a;
   --danger: #cf3a3f;
 
   --shadow-card: 0 22px 50px -30px rgba(20, 22, 30, 0.30);
-  --shadow-accent: 0 12px 28px -14px rgba(224, 92, 18, 0.45);
+  --shadow-accent: 0 12px 28px -14px rgba(194, 116, 15, 0.45);
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
