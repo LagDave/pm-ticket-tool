@@ -86,10 +86,10 @@ export function InterviewWizard({
     setStepIndex(WIZARD_STEP.ticket);
   };
 
+  // One constant max-width across every step so the panel never changes width as
+  // the PM moves between steps (the interview's 2-column deck needs the room;
+  // request + ticket simply share it — no layout shift).
   return (
-    {/* One constant max-width across every step so the panel never changes width
-        as the PM moves between steps (the interview's 2-column deck needs the
-        room; request + ticket simply share it — no layout shift). */}
     <main className="mx-auto w-full max-w-[1080px] px-6 pt-10 pb-16">
       <header className="mb-6">
         {/* Brand masthead removed — the app shell owns the header now. Only the
