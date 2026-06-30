@@ -27,17 +27,20 @@ export function TicketComments({ ticketId, comments }: TicketCommentsProps) {
   };
 
   return (
-    <section className="ticket-comments">
-      <h3 className="ticket-section-heading">Comments</h3>
+    <section className="mt-6 pt-5 border-t border-line">
+      <h3 className="eyebrow mb-3">Comments</h3>
 
       {comments.length === 0 ? (
-        <p className="field-hint">No comments yet.</p>
+        <p className="text-sm text-muted">No comments yet.</p>
       ) : (
-        <ul className="comment-list">
+        <ul className="list-none m-0 mb-4 p-0 flex flex-col gap-2">
           {comments.map((comment) => (
-            <li key={comment.id} className="comment-item">
-              <p className="comment-body">{comment.body}</p>
-              <span className="comment-meta">
+            <li
+              key={comment.id}
+              className="surface-2 px-3.5 py-2.5"
+            >
+              <p className="m-0 mb-1 text-sm text-ink leading-snug">{comment.body}</p>
+              <span className="eyebrow text-faint">
                 user {comment.author_user_id} ·{" "}
                 {new Date(comment.created_at).toLocaleString()}
               </span>
@@ -46,21 +49,21 @@ export function TicketComments({ ticketId, comments }: TicketCommentsProps) {
         </ul>
       )}
 
-      <form className="comment-form" onSubmit={handleSubmit}>
-        <label className="field-label" htmlFor={`comment-${ticketId}`}>
+      <form className="flex flex-col gap-2" onSubmit={handleSubmit}>
+        <label className="eyebrow" htmlFor={`comment-${ticketId}`}>
           Add a comment
         </label>
         <textarea
           id={`comment-${ticketId}`}
-          className="request-input"
+          className="field"
           rows={3}
           placeholder="Note a refinement or a question for engineering…"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           disabled={addComment.isPending}
         />
-        <div className="step-actions">
-          <button type="submit" className="secondary-button" disabled={!canSubmit}>
+        <div className="flex flex-wrap items-center gap-2 mt-1">
+          <button type="submit" className="btn" disabled={!canSubmit}>
             {addComment.isPending ? "Adding…" : "Add comment"}
           </button>
         </div>

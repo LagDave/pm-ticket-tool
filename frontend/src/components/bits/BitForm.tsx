@@ -44,10 +44,10 @@ export function BitForm({ bit, isSaving, onSubmit, onCancel }: BitFormProps) {
   };
 
   return (
-    <form className="bit-form" onSubmit={handleSubmit}>
-      <div className="bit-form-row">
-        <label className="bit-field">
-          <span className="bit-field-label">Kind</span>
+    <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <label className="flex flex-col gap-1.5 sm:w-44">
+          <span className="eyebrow">Kind</span>
           <Select
             value={kind}
             options={KIND_OPTIONS}
@@ -56,10 +56,10 @@ export function BitForm({ bit, isSaving, onSubmit, onCancel }: BitFormProps) {
             ariaLabel="Bit kind"
           />
         </label>
-        <label className="bit-field bit-field-grow">
-          <span className="bit-field-label">Key</span>
+        <label className="flex flex-1 flex-col gap-1.5">
+          <span className="eyebrow">Key</span>
           <input
-            className="request-input"
+            className="field"
             type="text"
             placeholder="e.g. auth"
             value={bitKey}
@@ -68,10 +68,10 @@ export function BitForm({ bit, isSaving, onSubmit, onCancel }: BitFormProps) {
           />
         </label>
       </div>
-      <label className="bit-field">
-        <span className="bit-field-label">Summary</span>
+      <label className="flex flex-col gap-1.5">
+        <span className="eyebrow">Summary</span>
         <textarea
-          className="request-input"
+          className="field"
           rows={3}
           placeholder="The fact, in plain language. e.g. Email/password login plus Google SSO."
           value={summary}
@@ -79,13 +79,13 @@ export function BitForm({ bit, isSaving, onSubmit, onCancel }: BitFormProps) {
           disabled={isSaving}
         />
       </label>
-      <div className="step-actions">
-        <button type="submit" className="primary-button" disabled={!canSubmit}>
+      <div className="mt-1 flex items-center gap-2">
+        <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
           {isSaving ? "Saving…" : bit ? "Save bit" : "Add bit"}
         </button>
         <button
           type="button"
-          className="secondary-button"
+          className="btn"
           onClick={onCancel}
           disabled={isSaving}
         >

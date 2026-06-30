@@ -38,9 +38,9 @@ export function TicketView({ ticketId }: TicketViewProps) {
   // The proposed candidates + plan to resolve; null until the PM clicks merge.
   const [proposal, setProposal] = useState<MergeProposal | null>(null);
 
-  if (isLoading) return <p className="field-hint">Loading ticket…</p>;
+  if (isLoading) return <p className="text-sm text-muted">Loading ticket…</p>;
   if (error || !data) {
-    return <p className="field-hint">Could not load the ticket. Try again.</p>;
+    return <p className="text-sm text-muted">Could not load the ticket. Try again.</p>;
   }
 
   const { ticket, comments } = data;
@@ -70,10 +70,10 @@ export function TicketView({ ticketId }: TicketViewProps) {
   }
 
   return (
-    <section className="step-panel ticket-view">
-      <header className="ticket-header">
-        <h2 className="step-heading">Ticket</h2>
-        <span className={`ticket-status ticket-status-${ticket.status}`}>
+    <section className="surface rounded-card p-6">
+      <header className="flex items-center justify-between gap-3 mb-4">
+        <h2 className="font-display text-xl text-ink m-0">Ticket</h2>
+        <span className={isFinal ? "pill pill-success" : "pill"}>
           {ticket.status} · v{ticket.version}
         </span>
       </header>
@@ -85,11 +85,11 @@ export function TicketView({ ticketId }: TicketViewProps) {
       )}
 
       {!isEditing && (
-        <div className="step-actions">
+        <div className="flex flex-wrap items-center gap-2 mt-5">
           {!isFinal && (
             <button
               type="button"
-              className="secondary-button"
+              className="btn"
               onClick={() => setIsEditing(true)}
             >
               Edit
@@ -99,7 +99,7 @@ export function TicketView({ ticketId }: TicketViewProps) {
           {!isFinal && (
             <button
               type="button"
-              className="primary-button"
+              className="btn btn-primary"
               onClick={() => finalize.mutate(ticket.version)}
               disabled={finalize.isPending}
             >
@@ -109,7 +109,7 @@ export function TicketView({ ticketId }: TicketViewProps) {
           {canMerge && (
             <button
               type="button"
-              className="secondary-button"
+              className="btn"
               onClick={handleMerge}
               disabled={propose.isPending}
             >

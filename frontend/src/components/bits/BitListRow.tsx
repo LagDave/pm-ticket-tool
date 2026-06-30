@@ -40,7 +40,7 @@ export function BitListRow({
 
   if (isEditing) {
     return (
-      <li className="bit-row bit-row-editing">
+      <li className="surface-2 p-3">
         <BitForm
           bit={bit}
           isSaving={isSaving}
@@ -55,18 +55,18 @@ export function BitListRow({
   }
 
   return (
-    <li className="bit-row">
-      <div className="bit-row-main">
-        <div className="bit-row-head">
-          <span className="bit-key">{bit.bit_key}</span>
-          <span className="bit-source">{SOURCE_LABEL[bit.source]}</span>
+    <li className="surface card-hover flex flex-wrap items-start justify-between gap-3 p-3">
+      <div className="min-w-0 flex-1">
+        <div className="mb-1 flex items-center gap-2">
+          <span className="font-mono text-sm font-semibold text-ink">{bit.bit_key}</span>
+          <span className="pill">{SOURCE_LABEL[bit.source]}</span>
         </div>
-        <p className="bit-summary">{bit.summary}</p>
+        <p className="text-sm text-muted">{bit.summary}</p>
       </div>
-      <div className="bit-row-actions">
+      <div className="flex shrink-0 items-center gap-2">
         <button
           type="button"
-          className="secondary-button"
+          className="btn"
           onClick={() => setIsEditing(true)}
         >
           Edit
@@ -75,7 +75,7 @@ export function BitListRow({
           <>
             <button
               type="button"
-              className="danger-button"
+              className="btn btn-danger"
               onClick={() => {
                 onDelete();
                 setIsConfirmingDelete(false);
@@ -86,7 +86,7 @@ export function BitListRow({
             </button>
             <button
               type="button"
-              className="secondary-button"
+              className="btn"
               onClick={() => setIsConfirmingDelete(false)}
               disabled={isDeleting}
             >
@@ -96,7 +96,7 @@ export function BitListRow({
         ) : (
           <button
             type="button"
-            className="session-delete"
+            className="btn btn-ghost"
             onClick={() => setIsConfirmingDelete(true)}
             aria-label={`Delete bit: ${bit.bit_key}`}
           >

@@ -50,6 +50,11 @@ interface InterviewWizardProps {
   initialSessionId?: number | null;
   /** Step to open on when resuming; defaults to the request step for a new flow. */
   initialStep?: WizardStep;
+  /**
+   * Pre-attach a new session to this project (the shell sidebar's per-project
+   * "new session"). Only used on the request step of a fresh flow.
+   */
+  initialProjectId?: number | null;
   /** Return to the dashboard (spec 4). When absent, the wizard runs standalone. */
   onExit?: () => void;
 }
@@ -57,6 +62,7 @@ interface InterviewWizardProps {
 export function InterviewWizard({
   initialSessionId = null,
   initialStep = WIZARD_STEP.request,
+  initialProjectId = null,
   onExit,
 }: InterviewWizardProps = {}) {
   const [stepIndex, setStepIndex] = useState<WizardStep>(initialStep);
@@ -94,33 +100,42 @@ export function InterviewWizard({
   };
 
   return (
-    <main className="wizard">
-      <header className="wizard-header">
-        <div className="wizard-topline">
-          <div className="wizard-brand">
-            <img className="wizard-logo" src="/logo.webp" alt="" aria-hidden width={40} height={40} />
-            <h1 className="wizard-title">PM Ticket Tool</h1>
-          </div>
-          {onExit && (
-            <button type="button" className="link-button" onClick={onExit}>
-              ← Dashboard
-            </button>
-          )}
-        </div>
-        <ol className="step-rail">
-          {STEPS.map((label, index) => (
-            <li
-              key={label}
-              className={
-                "step-dot" +
-                (index === railIndex ? " is-active" : "") +
-                (index < railIndex ? " is-done" : "")
-              }
-            >
-              <span className="step-number">{index + 1}</span>
-              <span className="step-name">{label}</span>
-            </li>
-          ))}
+    <main className="mx-auto w-full max-w-[760px]">
+      <header className="mb-6">
+        {/* Brand masthead removed — the app shell owns the header now. Only the
+            step rail remains as the wizard's own progress chrome. */}
+        <ol className="m-0 flex list-none items-center gap-2 p-0">
+          {STEPS.map((label, index) => {
+            const isActive = index === railIndex;
+            const isDone = index < railIndex;
+            return (
+              <li
+                key={label}
+                className={
+                  "inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-1 font-mono text-xs transition-colors " +
+                  (isActive
+                    ? "border-accent/55 bg-accent/10 text-ink"
+                    : isDone
+                      ? "border-line-2 text-ink"
+                      : "border-line bg-surface text-muted")
+                }
+              >
+                <span
+                  className={
+                    "grid h-5 w-5 place-items-center rounded-full border text-[0.7rem] font-bold " +
+                    (isActive
+                      ? "border-accent bg-accent text-canvas"
+                      : isDone
+                        ? "border-line-2 bg-surface-2 text-accent"
+                        : "border-line-2 bg-surface-2 text-muted")
+                  }
+                >
+                  {index + 1}
+                </span>
+                <span className={isActive ? "inline" : "hidden sm:inline"}>{label}</span>
+              </li>
+            );
+          })}
         </ol>
       </header>
 
@@ -137,19 +152,19 @@ export function InterviewWizard({
         animate={{ opacity: 1, y: 0, transition: SPRING_SOFT }}
       >
           {stepIndex === WIZARD_STEP.request && (
-            <RequestEntry onCreated={handleCreated} />
+            <RequestEntry onCreated={handleCreated} initialProjectId={initialProjectId} />
           )}
 
           {stepIndex === WIZARD_STEP.triage && sessionId !== null && (
             <>
               {session && (
-                <blockquote className="request-echo">
+                <blockquote className="mb-4 rounded-md border border-line bg-canvas-2 px-4 py-3 text-sm italic text-muted">
                   {session.original_request}
                 </blockquote>
               )}
               <TriageBranch sessionId={sessionId} onRouted={handleRouted} />
-              <div className="step-actions">
-                <button type="button" className="secondary-button" onClick={restart}>
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                <button type="button" className="btn" onClick={restart}>
                   {onExit ? "Back to dashboard" : "Start over"}
                 </button>
               </div>
@@ -159,7 +174,7 @@ export function InterviewWizard({
           {stepIndex === WIZARD_STEP.interview && sessionId !== null && (
             <>
               {session && (
-                <blockquote className="request-echo">
+                <blockquote className="mb-4 rounded-md border border-line bg-canvas-2 px-4 py-3 text-sm italic text-muted">
                   {session.original_request}
                 </blockquote>
               )}
@@ -167,8 +182,8 @@ export function InterviewWizard({
                 sessionId={sessionId}
                 onComplete={handleInterviewComplete}
               />
-              <div className="step-actions">
-                <button type="button" className="secondary-button" onClick={restart}>
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                <button type="button" className="btn" onClick={restart}>
                   {onExit ? "Back to dashboard" : "Start over"}
                 </button>
               </div>
@@ -178,8 +193,8 @@ export function InterviewWizard({
           {stepIndex === WIZARD_STEP.ticket && sessionId !== null && (
             <>
               <TicketStep sessionId={sessionId} />
-              <div className="step-actions">
-                <button type="button" className="secondary-button" onClick={restart}>
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                <button type="button" className="btn" onClick={restart}>
                   {onExit ? "Back to dashboard" : "Start over"}
                 </button>
               </div>

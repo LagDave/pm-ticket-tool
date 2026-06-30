@@ -41,14 +41,14 @@ export function CopyTicketButton({ ticket }: CopyTicketButtonProps) {
     <>
       <button
         type="button"
-        className="secondary-button"
+        className="btn"
         onClick={() => void copy("short", buildShortTicketMarkdown(ticket))}
       >
         {copied === "short" ? "Copied!" : "Copy ticket + link"}
       </button>
       <button
         type="button"
-        className="secondary-button"
+        className="btn"
         onClick={() => void copy("full", ticket.rendered_markdown)}
         disabled={!ticket.rendered_markdown}
       >

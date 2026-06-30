@@ -86,11 +86,13 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   };
 
   return (
-    <main className="dashboard">
-      <header className="dashboard-header">
-        <div className="wizard-brand">
-          <img className="wizard-logo" src="/logo.webp" alt="" aria-hidden width={32} height={32} />
-          <h1 className="wizard-title">{data?.project.name ?? "Project"}</h1>
+    <main className="mx-auto w-full max-w-3xl px-5 py-6">
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="eyebrow">Project</p>
+          <h1 className="font-display text-lg font-semibold text-ink">
+            {data?.project.name ?? "Project"}
+          </h1>
         </div>
         <BitsToolbar
           isAdding={isAdding}
@@ -102,7 +104,9 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
       </header>
 
       {data?.project.description && (
-        <blockquote className="request-echo">{data.project.description}</blockquote>
+        <blockquote className="surface-2 mb-5 border-l-2 border-accent px-4 py-3 text-sm text-muted">
+          {data.project.description}
+        </blockquote>
       )}
 
       {/* The resolve view takes over the main area so the PM focuses on one task (R2). */}
@@ -116,17 +120,17 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
       ) : (
         <>
           {isLoading && <ThinkingLoader subtitle="Loading project bits" />}
-          {error && <p className="field-hint">Could not load this project. Try again.</p>}
+          {error && <p className="text-sm text-muted">Could not load this project. Try again.</p>}
 
           {data && groups.length === 0 && (
-            <p className="field-hint">No bits yet. Add one above, or import from your repo.</p>
+            <p className="text-sm text-muted">No bits yet. Add one above, or import from your repo.</p>
           )}
 
           {data &&
             groups.map((group) => (
-              <section key={group.kind} className="bit-group">
-                <h2 className="bit-group-heading">{BIT_KIND_LABEL[group.kind]}</h2>
-                <ul className="bit-list">
+              <section key={group.kind} className="mb-6">
+                <h2 className="eyebrow mb-2">{BIT_KIND_LABEL[group.kind]}</h2>
+                <ul className="flex flex-col gap-2">
                   {group.bits.map((bit) => (
                     <BitListRow
                       key={bit.id}

@@ -2,6 +2,25 @@
 
 All notable changes to PM Ticket Tool are documented here.
 
+## [0.1.2] - July 2026
+
+### DevEasy-Style Two-Pane Shell
+
+Restructures the app to match the sibling DevEasy tool: a persistent sidebar of sessions next to a main pane showing the current session, with a tighter, more compact UI throughout.
+
+**Key Changes:**
+- Replaced the full-screen view-swap navigation with a persistent two-pane shell (`AppShell` + `SessionSidebar`). The sidebar lists sessions **grouped by project**, with a "No project" group for ungrounded sessions, plus search and a status filter. Selecting a session opens it in the main pane; a complete session opens straight to its ticket.
+- Sidebar data is sourced from the existing list endpoint at `limit=100` (the backend's max) and grouped client-side; a "showing recent 100" note appears past the cap. The public `/?ticket=` shared view stays outside the shell — no sidebar for anonymous viewers.
+- Full migration to a DevEasy-style utility kit (`.eyebrow`/`.btn`/`.field`/`.pill`/`.surface`/`.card-hover`) defined in `index.css` and wired to the existing themeable CSS variables, so **light and dark both still work** (the toggle moved into the sidebar). Every screen's JSX moved off the legacy semantic classes; `index.css` shrank from ~2040 to ~380 lines.
+- Typography switched to Hanken Grotesk (body) + JetBrains Mono (labels/headings); Fraunces and Sora removed.
+
+**Commits:**
+- `feat: DevEasy-style two-pane shell + compact utility-kit migration` (LagDave): new `components/shell/` (AppShell, SessionSidebar); rewritten `App.tsx`; font + token + kit changes in `index.css`; `Button` and all interview/ticket/projects/bits/ui components restyled to the kit; `Dashboard.tsx` + `dashboard/SessionList.tsx` removed; `InterviewWizard`/`RequestEntry` gained an `initialProjectId` for per-project new sessions. Plan: `plans/07012026-deveasy-style-two-pane-shell`.
+
+**Verification:**
+- `tsc --noEmit` clean; frontend production build succeeds; `check:conventions` reports 0 backend hard violations; frontend lint 0 errors (4 advisory warnings); 2/2 frontend tests pass.
+- The 10 in-app UI acceptance items (`test.html`) were waived to a manual pass in the dev server — they require the running app/DB, which this environment did not have.
+
 ## [0.1.1] - June 2026
 
 ### Rich Ticket + Shareable Link

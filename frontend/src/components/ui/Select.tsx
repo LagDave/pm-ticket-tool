@@ -60,21 +60,30 @@ export function Select<T extends string>({
   };
 
   return (
-    <div className="select" ref={rootRef}>
+    <div className="relative" ref={rootRef}>
       <button
         type="button"
-        className={"select-trigger" + (open ? " is-open" : "")}
+        className="field flex items-center justify-between gap-2 text-left disabled:cursor-not-allowed disabled:opacity-50"
         onClick={() => setOpen((prev) => !prev)}
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={ariaLabel}
       >
-        <span>{selected?.label ?? ""}</span>
-        <ChevronDown size={16} className="select-caret shrink-0" aria-hidden />
+        <span className="min-w-0 flex-1 truncate">{selected?.label ?? ""}</span>
+        <ChevronDown
+          size={14}
+          className={
+            "shrink-0 text-faint transition-transform" + (open ? " rotate-180" : "")
+          }
+          aria-hidden
+        />
       </button>
       {open && (
-        <ul className="select-menu" role="listbox">
+        <ul
+          className="surface absolute left-0 top-full z-30 mt-1 w-full max-h-56 overflow-y-auto p-1.5"
+          role="listbox"
+        >
           {options.map((option) => (
             <li key={option.value}>
               <button
@@ -82,7 +91,8 @@ export function Select<T extends string>({
                 role="option"
                 aria-selected={option.value === value}
                 className={
-                  "select-option" + (option.value === value ? " is-selected" : "")
+                  "flex w-full items-center rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 " +
+                  (option.value === value ? "text-accent" : "text-muted")
                 }
                 onClick={() => pick(option.value)}
               >

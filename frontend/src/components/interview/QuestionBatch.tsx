@@ -324,20 +324,22 @@ function OpenBatchView({
 }) {
   return (
     <motion.section
-      className="step-panel"
+      className="surface p-5"
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0, transition: SPRING_SOFT }}
       exit={{ opacity: 0, y: -14, transition: { duration: 0.18 } }}
     >
       <BatchProgress answered={answered} current={batchNumber} />
-      <h2 className="step-heading">A few questions</h2>
-      <p className="field-hint">
+      <h2 className="mb-2 font-display text-xl font-semibold leading-tight text-ink">
+        A few questions
+      </h2>
+      <p className="mb-4 text-sm text-muted">
         One at a time. Swipe or use the arrows and dots to move between them.
         Answer what you can; when you have enough, stop and we&apos;ll draft the
         ticket.
       </p>
       {isGrounded && (
-        <p className="field-hint grounding-note">
+        <p className="mb-4 rounded-md border border-line bg-canvas-2 px-4 py-3 text-xs text-muted">
           Some options are grounded in your project context and tagged with a
           rough build-speed tier. These are orientation only. Verify with
           engineering before committing.
@@ -359,10 +361,10 @@ function OpenBatchView({
 
       <SkippedNotice skipped={skipped} disabled={isBusy || isOverriding} onOverride={onOverride} />
 
-      <div className="step-actions is-end">
+      <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
         <button
           type="button"
-          className="primary-button"
+          className="btn btn-primary"
           onClick={() => onSubmit(false)}
           disabled={!allAnswered || isBusy}
         >
@@ -370,7 +372,7 @@ function OpenBatchView({
         </button>
         <button
           type="button"
-          className="secondary-button"
+          className="btn"
           onClick={() => onSubmit(true)}
           disabled={!allAnswered || isBusy}
         >
@@ -398,11 +400,11 @@ function SkippedNotice({
 }) {
   if (skipped.length === 0) return null;
   return (
-    <section className="skipped-notice">
-      <p className="skipped-notice-title">
+    <section className="mt-4 surface-2 p-4">
+      <p className="eyebrow mb-2">
         Skipped, based on your project context ({skipped.length})
       </p>
-      <ul className="skipped-list">
+      <ul className="m-0 flex list-none flex-col p-0">
         {skipped.map((item) => (
           <SkippedRow
             key={item.decisionKey}
@@ -438,16 +440,16 @@ function SkippedRow({
   };
 
   return (
-    <li className="skipped-row">
-      <div className="skipped-reason">
-        <span className="skipped-key">{item.decisionKey}</span>
+    <li className="flex flex-col gap-1.5 border-t border-line py-2.5 first:border-t-0 first:pt-0">
+      <div className="flex flex-wrap items-baseline gap-2 text-sm text-ink">
+        <span className="font-mono text-xs text-accent">{item.decisionKey}</span>
         <span>{item.reason}</span>
       </div>
       {open ? (
-        <div className="skipped-override">
+        <div className="flex gap-2">
           <input
             type="text"
-            className="text-input"
+            className="field flex-1"
             placeholder="Your answer instead…"
             value={answer}
             disabled={disabled}
@@ -458,7 +460,7 @@ function SkippedRow({
           />
           <button
             type="button"
-            className="secondary-button"
+            className="btn"
             onClick={submit}
             disabled={disabled || answer.trim().length === 0}
           >
@@ -468,7 +470,7 @@ function SkippedRow({
       ) : (
         <button
           type="button"
-          className="link-button"
+          className="self-start border-0 bg-transparent p-0 text-xs font-semibold text-accent disabled:opacity-50"
           onClick={() => setOpen(true)}
           disabled={disabled}
         >
@@ -498,37 +500,44 @@ function BatchProgress({
 
   return (
     <div>
-      <div className="batch-bar">
-        <p className="batch-eyebrow">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+        <p className="eyebrow m-0">
           Feature Scope
           {current !== null && (
             <>
               {" · "}
-              <span className="batch-n">Batch {current}</span>
+              <span className="text-accent">Batch {current}</span>
             </>
           )}
         </p>
-        <span className="batch-count">
+        <span className="font-mono text-[0.7rem] text-faint">
           {answered === 0
             ? "No batches answered yet"
             : `${answered} ${answered === 1 ? "batch" : "batches"} answered`}
         </span>
       </div>
       <div
-        className="batch-stepper"
+        className="mb-5 flex items-center gap-1.5"
         role="img"
         aria-label={`${answered} of ${pipCount} batches answered`}
       >
-        {pips.map((n) => (
-          <span
-            key={n}
-            className={
-              "batch-pip" +
-              (n <= answered ? " is-answered" : "") +
-              (current !== null && n === current ? " is-current" : "")
-            }
-          />
-        ))}
+        {pips.map((n) => {
+          const isAnsweredPip = n <= answered;
+          const isCurrent = current !== null && n === current;
+          return (
+            <span
+              key={n}
+              className={
+                "h-1.5 w-9 rounded-full transition-colors " +
+                (isCurrent
+                  ? "bg-accent"
+                  : isAnsweredPip
+                    ? "bg-accent/70"
+                    : "bg-line")
+              }
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -552,23 +561,23 @@ function GenerateBatchPanel({
 }) {
   return (
     <motion.section
-      className="step-panel"
+      className="surface p-5"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0, transition: SPRING_SOFT }}
     >
       <BatchProgress answered={answered} current={null} />
-      <h2 className="step-heading">
+      <h2 className="mb-2 font-display text-xl font-semibold leading-tight text-ink">
         {answered === 0 ? "Ready when you are" : `Batch ${answered} answered`}
       </h2>
-      <p className="field-hint">
+      <p className="mb-4 text-sm text-muted">
         {answered === 0
           ? "We'll ask a few dependency-ordered questions at a time, grounded in your request, and stop once there's enough to draft a good ticket."
           : "Nice, those are saved. Generate the next batch, or stop here and draft the ticket from what we have."}
       </p>
-      <div className="step-actions">
+      <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
-          className="primary-button"
+          className="btn btn-primary"
           onClick={onGenerate}
           disabled={disabled}
         >

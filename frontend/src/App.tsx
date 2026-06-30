@@ -1,107 +1,37 @@
 /**
- * App root. Mounts the React Query provider (§15.1) and the shared toast
- * container (§16.3), then switches between the dashboard (the landing screen),
- * the interview wizard (new session or resume), a read-only ticket view, and the
- * public shared-ticket view reached via the /?ticket=<token> deep link (spec What).
+ * App root. Mounts the React Query provider (§15.1), the theme provider, and the
+ * shared toast container (§16.3), then chooses between two top-level surfaces:
  *
- * View routing is plain UI state (§15.2) - no router library is added (§15.4); this
- * mirrors how the wizard already switches steps with local state. The only URL the
- * app reads is the `?ticket=` deep link, parsed once on mount to seed the initial
- * view; everything else is in-memory navigation. The dashboard hands a session +
- * step to the wizard for resume (spec 4 T5) and a ticket id to the ticket view (T6).
+ *   1. the public read-only shared-ticket view, reached via the /?ticket=<token>
+ *      deep link — rendered standalone, OUTSIDE the app shell, so anonymous
+ *      viewers get no sidebar or auth chrome (spec What, plan
+ *      07012026-deveasy-style-two-pane-shell);
+ *   2. the authenticated AppShell — the persistent sidebar + main pane.
+ *
+ * The only URL the app reads is the `?ticket=` deep link, parsed once on mount.
+ * Everything else is in-memory navigation owned by AppShell (§15.2, §15.4 — no
+ * router library). Typed, no any (§17.2).
  */
 import { useState } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
+import { AppShell } from "./components/shell/AppShell";
 import { SharedTicketView } from "./components/ticket/SharedTicketView";
-import { TicketView } from "./components/ticket/TicketView";
-import { ThemeToggle } from "./components/ui/ThemeToggle";
 import { queryClient } from "./lib/queryClient";
 import { ThemeProvider } from "./lib/theme";
-import { Dashboard } from "./pages/Dashboard";
-import { InterviewWizard, type WizardStep } from "./pages/InterviewWizard";
-import { ProjectDetail } from "./pages/ProjectDetail";
-import { ProjectsManager } from "./pages/ProjectsManager";
 
-/** Which top-level screen is showing. UI state only (§15.2). */
-type View =
-  | { name: "dashboard" }
-  | { name: "wizard"; sessionId: number | null; step: WizardStep }
-  | { name: "ticket"; ticketId: number }
-  | { name: "projects" }
-  | { name: "projectDetail"; projectId: number }
-  | { name: "shared"; token: string };
-
-/**
- * Seed the initial view from the URL: a `?ticket=<token>` deep link opens the
- * public read-only shared ticket (spec What); anything else lands on the dashboard.
- * Read once at mount - the app does not otherwise use URL routing (§15.4).
- */
-function initialView(): View {
-  const token = new URLSearchParams(window.location.search).get("ticket");
-  return token ? { name: "shared", token } : { name: "dashboard" };
+/** The shared-ticket deep-link token, read once at mount (§15.4 — no router). */
+function initialSharedToken(): string | null {
+  return new URLSearchParams(window.location.search).get("ticket");
 }
 
 export default function App() {
-  const [view, setView] = useState<View>(initialView);
-
-  const goDashboard = (): void => setView({ name: "dashboard" });
+  const [sharedToken] = useState<string | null>(initialSharedToken);
 
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <ThemeToggle />
-      {view.name === "dashboard" && (
-        <Dashboard
-          onOpenSession={(sessionId, step) =>
-            setView({ name: "wizard", sessionId, step })
-          }
-          onViewTicket={(ticketId) => setView({ name: "ticket", ticketId })}
-          onOpenProjects={() => setView({ name: "projects" })}
-        />
-      )}
-
-      {view.name === "projects" && (
-        <ProjectsManager
-          onOpenProject={(projectId) => setView({ name: "projectDetail", projectId })}
-          onExit={goDashboard}
-        />
-      )}
-
-      {view.name === "projectDetail" && (
-        <ProjectDetail
-          projectId={view.projectId}
-          onBack={() => setView({ name: "projects" })}
-        />
-      )}
-
-      {view.name === "wizard" && (
-        <InterviewWizard
-          initialSessionId={view.sessionId}
-          initialStep={view.step}
-          onExit={goDashboard}
-        />
-      )}
-
-      {view.name === "ticket" && (
-        <main className="wizard">
-          <header className="wizard-header">
-            <div className="wizard-topline">
-              <div className="wizard-brand">
-                <img className="wizard-logo" src="/logo.webp" alt="" aria-hidden width={40} height={40} />
-                <h1 className="wizard-title">PM Ticket Tool</h1>
-              </div>
-              <button type="button" className="link-button" onClick={goDashboard}>
-                ← Dashboard
-              </button>
-            </div>
-          </header>
-          <TicketView ticketId={view.ticketId} />
-        </main>
-      )}
-
-      {view.name === "shared" && <SharedTicketView token={view.token} />}
-
+        {sharedToken ? <SharedTicketView token={sharedToken} /> : <AppShell />}
         <Toaster position="top-right" />
       </QueryClientProvider>
     </ThemeProvider>

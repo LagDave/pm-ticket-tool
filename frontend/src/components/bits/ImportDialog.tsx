@@ -151,16 +151,21 @@ export function ImportDialog({ projectId, onClose, onPlan }: ImportDialogProps) 
   };
 
   return createPortal(
-    <div className="bit-overlay" role="dialog" aria-modal="true" aria-label="Import bits">
-      <div className="bit-overlay-card is-modal">
-        <header className="bit-overlay-head">
-          <h2 className="step-heading">Import bits</h2>
-          <button type="button" className="link-button" onClick={onClose} disabled={importBits.isPending}>
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-canvas/70 p-4 backdrop-blur-sm sm:p-8"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Import bits"
+    >
+      <div className="surface my-auto w-full max-w-2xl p-5">
+        <header className="mb-3 flex items-start justify-between gap-3">
+          <h2 className="font-display text-base font-semibold text-ink">Import bits</h2>
+          <button type="button" className="btn btn-ghost" onClick={onClose} disabled={importBits.isPending}>
             Close
           </button>
         </header>
         {importBits.isPending ? (
-          <div className="bit-import-progress">
+          <div className="py-6">
             <ThinkingLoader
               subtitle={
                 force
@@ -171,15 +176,15 @@ export function ImportDialog({ projectId, onClose, onPlan }: ImportDialogProps) 
           </div>
         ) : (
           <>
-            <p className="field-hint">
+            <p className="mb-4 text-sm text-muted">
               Paste the JSON a Claude Code session wrote for this repo, or choose the
               file it saved.
             </p>
 
-            <label className="bit-field">
-              <span className="bit-field-label">Bits JSON</span>
+            <label className="mb-3 flex flex-col gap-1.5">
+              <span className="eyebrow">Bits JSON</span>
               <textarea
-                className="request-input"
+                className="field font-mono text-xs"
                 rows={9}
                 placeholder='{ "bits": [ { "kind": "feature", "bit_key": "auth", "summary": "…" } ] }'
                 value={text}
@@ -187,12 +192,15 @@ export function ImportDialog({ projectId, onClose, onPlan }: ImportDialogProps) 
               />
             </label>
 
-            <div className="bit-dropzone-field">
-              <span className="bit-field-label">…or upload a file</span>
+            <div className="mb-3 flex flex-col gap-1.5">
+              <span className="eyebrow">…or upload a file</span>
               {/* A <label> wrapping the input opens the picker natively (no JS
                   click, which can be blocked); it is also a drag-and-drop target. */}
               <label
-                className={"bit-dropzone" + (isDragging ? " is-dragging" : "")}
+                className={
+                  "surface-2 flex cursor-pointer flex-col items-center gap-1 rounded-card border-dashed px-4 py-6 text-center transition-colors " +
+                  (isDragging ? "border-accent bg-surface-2" : "")
+                }
                 onDragOver={(event) => {
                   event.preventDefault();
                   setIsDragging(true);
@@ -201,21 +209,21 @@ export function ImportDialog({ projectId, onClose, onPlan }: ImportDialogProps) 
                 onDrop={handleDrop}
               >
                 <input
-                  className="bit-dropzone-input"
+                  className="hidden"
                   type="file"
                   accept="application/json,.json"
                   onChange={handleFile}
                 />
-                <span className="bit-dropzone-title">
+                <span className="text-sm text-ink">
                   {fileName ?? "Drag a .json file here, or click to browse"}
                 </span>
                 {fileName && (
-                  <span className="bit-dropzone-hint">Click to choose a different file</span>
+                  <span className="text-xs text-muted">Click to choose a different file</span>
                 )}
               </label>
             </div>
 
-            <label className="bit-force-toggle">
+            <label className="mb-2 flex items-center gap-2 text-sm text-ink">
               <input
                 type="checkbox"
                 checked={force}
@@ -225,21 +233,21 @@ export function ImportDialog({ projectId, onClose, onPlan }: ImportDialogProps) 
             </label>
 
             {force && (
-              <p className="field-hint bit-force-warning">
+              <p className="mb-2 text-sm text-danger">
                 Force replaces every existing bit on this project — no reconciliation step.
               </p>
             )}
 
-            <div className="step-actions">
+            <div className="mt-4 flex items-center gap-2">
               <button
                 type="button"
-                className="primary-button"
+                className="btn btn-primary"
                 onClick={handleImport}
                 disabled={text.trim().length === 0}
               >
                 {force ? "Replace bits" : "Reconcile import"}
               </button>
-              <button type="button" className="secondary-button" onClick={onClose}>
+              <button type="button" className="btn" onClick={onClose}>
                 Cancel
               </button>
             </div>

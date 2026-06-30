@@ -73,7 +73,7 @@ export function OptionDeck({
 
   return (
     <fieldset className="m-0 border-0 p-0">
-      <legend className="mb-5 block font-display text-[1.4rem] font-semibold leading-tight text-ink">
+      <legend className="mb-4 block font-display text-lg font-semibold leading-tight text-ink">
         {question.text}
       </legend>
 
@@ -81,7 +81,7 @@ export function OptionDeck({
         variants={staggerContainer}
         initial="hidden"
         animate="show"
-        className="grid gap-4 sm:grid-cols-2"
+        className="grid gap-3 sm:grid-cols-2"
       >
         {ordered.map(({ option, id }) => (
           <OptionCard
@@ -146,7 +146,7 @@ function OtherCard({
       }}
       transition={SPRING_SOFT}
       className={
-        "relative flex min-w-0 flex-col gap-3 rounded-2xl border border-dashed p-5 transition-colors " +
+        "relative flex min-w-0 flex-col gap-2.5 rounded-card border border-dashed p-4 transition-colors " +
         (isSelected
           ? "z-10 border-accent bg-accent/[0.08] shadow-[0_12px_34px_-20px_rgba(255,117,31,0.5)]"
           : "border-line-2 bg-surface/40")
@@ -176,14 +176,14 @@ function OtherCard({
           </motion.span>
         </span>
         <PenLine size={16} aria-hidden />
-        <span className="text-[0.95rem] font-medium">Something else</span>
+        <span className="text-sm font-medium">Something else</span>
       </div>
       <input
         type="text"
         className={
-          "w-full rounded-xl border bg-canvas-2 px-3.5 py-2.5 text-[0.95rem] text-ink " +
+          "w-full rounded-sm border bg-canvas px-3 py-2 text-sm text-ink " +
           "placeholder:text-faint transition-colors focus:border-accent focus:outline-none " +
-          (isSelected ? "border-accent/60" : "border-line")
+          (isSelected ? "border-accent/60" : "border-line-2")
         }
         placeholder="Describe your own answer…"
         value={otherText}

@@ -22,19 +22,19 @@ export function BitsToolbar({
   onBack,
 }: BitsToolbarProps) {
   return (
-    <div className="dashboard-header-actions">
-      <button type="button" className="secondary-button" onClick={onGeneratePrompt}>
+    <div className="flex flex-wrap items-center gap-2">
+      <button type="button" className="btn" onClick={onGeneratePrompt}>
         Generate prompt
       </button>
-      <button type="button" className="secondary-button" onClick={onImport}>
+      <button type="button" className="btn" onClick={onImport}>
         Import bits
       </button>
       {!isAdding && (
-        <button type="button" className="primary-button" onClick={onAdd}>
+        <button type="button" className="btn btn-primary" onClick={onAdd}>
           Add bit
         </button>
       )}
-      <button type="button" className="link-button" onClick={onBack}>
+      <button type="button" className="btn btn-ghost" onClick={onBack}>
         ← Projects
       </button>
     </div>

@@ -87,16 +87,19 @@ export function QuestionCarousel({
 
   return (
     <div>
-      <p className="carousel-position">
+      <p className="eyebrow mb-3.5">
         Question {index + 1} of {total}
       </p>
 
       {/* Drag lives on this STABLE wrapper (not the presence-keyed slide):
           putting `drag` on the keyed child wedges AnimatePresence `mode="wait"`,
-          so the slide would never swap. The keyed child only slides. */}
+          so the slide would never swap. The keyed child only slides. The padding
+          + matching negative margin keep the option-card hover tilt + speed meter
+          from being clipped while leaving the visual width unchanged. */}
       <motion.div
         className={
-          "carousel-stage" + (total > 1 ? " cursor-grab active:cursor-grabbing" : "")
+          "relative -mx-3.5 -my-2 overflow-visible px-3.5 py-2" +
+          (total > 1 ? " cursor-grab active:cursor-grabbing" : "")
         }
         drag={total > 1 ? "x" : false}
         dragConstraints={{ left: 0, right: 0 }}
@@ -155,12 +158,15 @@ function CarouselPager({
   onSubmit: () => void;
 }) {
   const total = questions.length;
+  const arrowBase =
+    "grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line-2 bg-surface text-ink " +
+    "transition-colors hover:enabled:border-faint hover:enabled:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-30";
 
   return (
-    <div className="carousel-pager">
+    <div className="mt-5 flex items-center justify-center gap-4">
       <button
         type="button"
-        className="carousel-arrow"
+        className={arrowBase}
         onClick={() => onJump(index - 1)}
         disabled={index === 0}
         aria-label="Previous question"
@@ -168,32 +174,42 @@ function CarouselPager({
         <ChevronLeft size={18} aria-hidden />
       </button>
 
-      <div className="carousel-dots" role="tablist" aria-label="Questions in this batch">
-        {questions.map((question, i) => (
-          <motion.button
-            key={question.id}
-            type="button"
-            layout
-            transition={SPRING_SOFT}
-            className={
-              "carousel-dot" +
-              (i === index ? " is-active" : "") +
-              (i !== index && isAnswered(question.id) ? " is-answered" : "")
-            }
-            onClick={() => onJump(i)}
-            role="tab"
-            aria-selected={i === index}
-            aria-label={
-              `Question ${i + 1}` + (isAnswered(question.id) ? " (answered)" : "")
-            }
-          />
-        ))}
+      <div className="flex items-center gap-2.5" role="tablist" aria-label="Questions in this batch">
+        {questions.map((question, i) => {
+          const isActive = i === index;
+          const answered = i !== index && isAnswered(question.id);
+          return (
+            <motion.button
+              key={question.id}
+              type="button"
+              layout
+              transition={SPRING_SOFT}
+              className={
+                "h-2 rounded-full p-0 transition-colors " +
+                (isActive
+                  ? "w-6 bg-accent"
+                  : answered
+                    ? "w-2 bg-muted"
+                    : "w-2 bg-line-2")
+              }
+              onClick={() => onJump(i)}
+              role="tab"
+              aria-selected={isActive}
+              aria-label={
+                `Question ${i + 1}` + (isAnswered(question.id) ? " (answered)" : "")
+              }
+            />
+          );
+        })}
       </div>
 
       {index === total - 1 ? (
         <button
           type="button"
-          className="carousel-arrow is-submit"
+          className={
+            arrowBase +
+            " enabled:border-accent enabled:bg-accent enabled:text-canvas hover:enabled:border-accent-soft hover:enabled:bg-accent-soft"
+          }
           onClick={onSubmit}
           disabled={!canSubmit}
           aria-label="Submit answers"
@@ -204,7 +220,7 @@ function CarouselPager({
       ) : (
         <button
           type="button"
-          className="carousel-arrow"
+          className={arrowBase}
           onClick={() => onJump(index + 1)}
           aria-label="Next question"
         >

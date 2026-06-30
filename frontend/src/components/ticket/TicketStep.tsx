@@ -31,24 +31,24 @@ export function TicketStep({ sessionId }: TicketStepProps) {
   // "Generating…" button label (Rev 2), matching every other wait in the app.
   if (generate.isPending) {
     return (
-      <section className="step-panel">
-        <h2 className="step-heading">Draft the ticket</h2>
+      <section className="surface rounded-card p-6">
+        <h2 className="font-display text-xl text-ink mb-3">Draft the ticket</h2>
         <ThinkingLoader subtitle="Drafting your ticket" />
       </section>
     );
   }
 
   return (
-    <section className="step-panel">
-      <h2 className="step-heading">Draft the ticket</h2>
-      <p className="field-hint">
+    <section className="surface rounded-card p-6">
+      <h2 className="font-display text-xl text-ink mb-2">Draft the ticket</h2>
+      <p className="text-sm text-muted leading-relaxed">
         We have enough decisions to draft a ticket: a user story, Given/When/Then
         acceptance criteria, an effort tier, and a short context summary.
       </p>
-      <div className="step-actions">
+      <div className="flex flex-wrap items-center gap-2 mt-4">
         <button
           type="button"
-          className="primary-button"
+          className="btn btn-primary"
           onClick={handleGenerate}
         >
           Generate ticket

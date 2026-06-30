@@ -37,7 +37,7 @@ export function Modal({ title, hint, busy = false, onClose, children }: ModalPro
 
   return createPortal(
     <div
-      className="bit-overlay"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-canvas/70 p-4 backdrop-blur-sm sm:p-8"
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -46,14 +46,14 @@ export function Modal({ title, hint, busy = false, onClose, children }: ModalPro
         if (event.target === event.currentTarget && !busy) onClose();
       }}
     >
-      <div className="bit-overlay-card is-modal">
-        <header className="bit-overlay-head">
-          <h2 className="step-heading">{title}</h2>
-          <button type="button" className="link-button" onClick={onClose} disabled={busy}>
+      <div className="surface my-auto w-full max-w-xl p-5">
+        <header className="mb-3 flex items-start justify-between gap-3">
+          <h2 className="font-display text-base font-semibold text-ink">{title}</h2>
+          <button type="button" className="btn btn-ghost" onClick={onClose} disabled={busy}>
             Close
           </button>
         </header>
-        {hint && <p className="field-hint">{hint}</p>}
+        {hint && <p className="mb-4 text-sm text-muted">{hint}</p>}
         {children}
       </div>
     </div>,

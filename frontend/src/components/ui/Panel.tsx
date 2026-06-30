@@ -18,12 +18,7 @@ export function Panel({ children, className = "" }: PanelProps) {
       variants={stepIn}
       initial="hidden"
       animate="show"
-      className={
-        "relative overflow-hidden rounded-[var(--radius-card)] border border-line " +
-        "bg-surface/70 p-7 backdrop-blur-sm " +
-        "shadow-[0_24px_60px_-30px_rgba(0,0,0,0.9)] " +
-        className
-      }
+      className={"surface relative overflow-hidden p-5 " + className}
     >
       {/* A hairline top highlight so the card edge catches the atmosphere light. */}
       <span

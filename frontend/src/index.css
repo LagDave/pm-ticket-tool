@@ -4,37 +4,30 @@
  * (#ff751f) reserved sparingly for the recommended option, the single primary
  * action, and the active/selected indicator — everything else stays neutral on
  * the dark canvas, so the orange reads as a rare, intentional highlight rather
- * than colour-on-everything. A characterful type
- * pairing (Fraunces display + Sora body — deliberately not Inter/Roboto/system)
- * loaded locally from @fontsource so there is no FOUT/network race.
+ * than colour-on-everything. Typography matches the sibling DevEasy app: Hanken
+ * Grotesk for body, JetBrains Mono for labels + headings (no serif display) —
+ * loaded locally as variable fonts from @fontsource so there is no FOUT/race.
  *
  * This file owns three things:
  *   1. the design tokens, exposed BOTH to Tailwind v4's @theme (so utility
  *      classes like `bg-surface/70`, `text-ink`, `border-accent` resolve) AND
- *      on :root as plain CSS vars (so the hand-written component classes below
- *      can use them);
- *   2. the canvas atmosphere (body + a fixed radial-tint layer);
- *   3. the semantic component classes the app shell, wizard, request entry,
- *      interview, ticket, dashboard, and triage render with (`.wizard`,
- *      `.step-panel`, `.primary-button`, `.session-row`, …). These were the gap:
- *      the components referenced them but nothing defined them, so the shell
- *      rendered as unstyled default-chrome HTML on the dark body. Defining them
- *      here is what makes the whole app genuinely dark, not just the <body>.
+ *      on :root as plain CSS vars (so the kit classes use them);
+ *   2. the DevEasy-style component KIT (`.eyebrow`/`.btn`/`.field`/`.pill`/
+ *      `.surface`/`.card-hover`) — wired to the themeable CSS vars so light AND
+ *      dark both resolve. The shell and all migrated components render with this
+ *      kit plus Tailwind theme-token utilities (plan 07012026-deveasy-style-two-pane-shell);
+ *   3. the canvas atmosphere + a few global helpers (body, scrollbar, focus ring,
+ *      theme toggle, toast font). The legacy semantic component classes were
+ *      removed once every screen migrated to the kit.
  *
  * Component motion lives in the React components via Framer Motion.
  */
 @import "tailwindcss";
 
-/* Characterful display + clean body. Loaded locally so no FOUT/network race. */
-@import "@fontsource/fraunces/400.css";
-@import "@fontsource/fraunces/500.css";
-@import "@fontsource/fraunces/600.css";
-@import "@fontsource/fraunces/700.css";
-@import "@fontsource/sora/300.css";
-@import "@fontsource/sora/400.css";
-@import "@fontsource/sora/500.css";
-@import "@fontsource/sora/600.css";
-@import "@fontsource/sora/700.css";
+/* Variable fonts loaded locally so no FOUT/network race. Hanken Grotesk = body;
+ * JetBrains Mono = labels + headings (matches DevEasy). */
+@import "@fontsource-variable/hanken-grotesk";
+@import "@fontsource-variable/jetbrains-mono";
 
 /* Expose the design tokens to Tailwind v4's theme so utilities like
  * `bg-surface/70`, `text-accent`, `font-display` resolve to these values. */
@@ -56,12 +49,17 @@
   --color-accent: #ff751f;
   --color-accent-soft: #ff8f47;
   --color-accent-deep: #c2541a;
+  --color-success: #2faf74;
+  --color-danger: #e5484d;
 
-  --font-display: "Fraunces", ui-serif, Georgia, serif;
-  --font-body: "Sora", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", Menlo, "Cascadia Mono", monospace;
+  /* DevEasy typography: clean grotesk body, mono for labels + headings. No serif
+   * display — the `display` slot now points at the mono stack so existing
+   * `font-display` / var(--font-display) references render as mono. */
+  --font-display: "JetBrains Mono Variable", ui-monospace, "SF Mono", monospace;
+  --font-body: "Hanken Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
-  --radius-card: 18px;
+  --radius-card: 14px;
 }
 
 /* The same tokens as plain CSS custom properties, so the hand-written component
@@ -86,12 +84,16 @@
   --accent-deep: #c2541a;
   --accent-tint: rgba(255, 117, 31, 0.12);
   --accent-tint-strong: rgba(255, 117, 31, 0.18);
+  --success: #2faf74;
+  --danger: #e5484d;
 
-  --font-mono: ui-monospace, "SFMono-Regular", Menlo, "Cascadia Mono", monospace;
+  --font-body: "Hanken Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "JetBrains Mono Variable", ui-monospace, "SF Mono", monospace;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
-  --radius-card: 18px;
-  --radius-md: 12px;
-  --radius-sm: 9px;
+  --radius-card: 14px;
+  --radius-md: 10px;
+  --radius-sm: 8px;
 
   --shell-width: 880px;
 
@@ -122,9 +124,159 @@
   --accent-deep: #a84309;
   --accent-tint: rgba(224, 92, 18, 0.10);
   --accent-tint-strong: rgba(224, 92, 18, 0.16);
+  --success: #1f8f5a;
+  --danger: #cf3a3f;
 
   --shadow-card: 0 22px 50px -30px rgba(20, 22, 30, 0.30);
   --shadow-accent: 0 12px 28px -14px rgba(224, 92, 18, 0.45);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * DevEasy-style component KIT (plan 07012026-deveasy-style-two-pane-shell).
+ * Adopted from ~/Desktop/deveasy/frontend/src/index.css but every color is bound
+ * to THIS repo's themeable CSS vars (never deveasy's hardcoded dark hex) so the
+ * light + dark palettes both resolve. The migrated shell, sidebar, and feature
+ * components render with these classes + Tailwind utilities.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@layer components {
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  .surface {
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+  .surface-2 {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 0.5rem 0.9rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line-2);
+    background: var(--surface-2);
+    color: var(--ink);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease,
+      transform 0.08s ease, color 0.15s ease;
+  }
+  .btn:hover:not(:disabled) {
+    background: var(--surface-3);
+    border-color: var(--faint);
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--canvas);
+    border-color: transparent;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--accent-soft);
+    border-color: transparent;
+  }
+  .btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--muted);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+  .btn-danger {
+    color: var(--danger);
+    border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+    background: transparent;
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--danger) 14%, transparent);
+  }
+
+  .field {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    color: var(--ink);
+    background: var(--canvas);
+    border: 1px solid var(--line-2);
+    border-radius: var(--radius-sm);
+    padding: 0.55rem 0.7rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .field::placeholder {
+    color: var(--faint);
+  }
+  .field:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-tint);
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.18rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--line-2);
+    color: var(--muted);
+    background: var(--surface-2);
+  }
+  .pill-accent {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    background: var(--accent-tint);
+  }
+  .pill-success {
+    color: var(--success);
+    border-color: color-mix(in srgb, var(--success) 40%, transparent);
+    background: color-mix(in srgb, var(--success) 12%, transparent);
+  }
+  .pill-danger {
+    color: var(--danger);
+    border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+  }
+
+  .card-hover {
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .card-hover:hover {
+    border-color: var(--line-2);
+    background: var(--surface-2);
+  }
 }
 
 * {
@@ -215,16 +367,11 @@ body::before {
   outline-offset: 2px;
 }
 
-/* Display headings use the serif; the rest stays on the body sans. Editorial
- * voice: tight (not touching) tracking + balanced wrap so headlines set evenly. */
+/* Display/heading helper — the mono stack (DevEasy typography). Tight tracking +
+ * balanced wrap so headings set evenly. Components opt in via `font-display`. */
 .font-display {
   font-family: var(--font-display);
-}
-.wizard-title,
-.step-heading,
-.bit-overlay-head .step-heading,
-h1.wizard-title {
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   text-wrap: balance;
 }
 
@@ -233,1655 +380,3 @@ h1.wizard-title {
   font-family: var(--font-body);
 }
 
-/* ===========================================================================
- * App shell + wizard
- * Centered column shared by the dashboard, the wizard, and the ticket view.
- * ======================================================================== */
-
-.wizard,
-.dashboard {
-  width: min(var(--shell-width), calc(100% - 40px));
-  margin: 0 auto;
-  padding: 56px 0 96px;
-  animation: shell-fade 0.5s ease both;
-}
-
-@keyframes shell-fade {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.wizard-header {
-  margin-bottom: 32px;
-}
-
-.wizard-topline,
-.dashboard-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 28px;
-}
-
-.dashboard-header {
-  margin-bottom: 22px;
-}
-
-.wizard-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: clamp(1.5rem, 3.1vw, 2.05rem);
-  line-height: 1.06;
-  letter-spacing: -0.015em;
-  color: var(--ink);
-}
-
-/* Brand lockup in the header: the logo mark beside the wordmark. */
-.wizard-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.wizard-logo {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: 8px;
-  object-fit: contain;
-}
-
-/* The quiet back-to-dashboard link in the topline. */
-.link-button {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.92rem;
-  cursor: pointer;
-  padding: 6px 8px;
-  border-radius: var(--radius-sm);
-  transition: color 0.18s ease, background 0.18s ease;
-}
-.link-button:hover {
-  color: var(--ink);
-  background: var(--surface);
-}
-
-/* ---- Step rail -------------------------------------------------------- */
-
-.step-rail {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.step-dot {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 14px 7px 8px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-weight: 500;
-  white-space: nowrap;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-}
-
-.step-number {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  border: 1px solid var(--line-2);
-  font-size: 0.74rem;
-  font-weight: 700;
-  color: var(--muted);
-  transition: inherit;
-}
-
-.step-dot.is-active {
-  color: var(--ink);
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
-  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
-}
-.step-dot.is-active .step-number {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--canvas);
-}
-
-.step-dot.is-done {
-  color: var(--ink);
-  border-color: var(--line-2);
-}
-.step-dot.is-done .step-number {
-  background: color-mix(in srgb, var(--accent) 22%, var(--surface-2));
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--line-2));
-  color: var(--accent-soft);
-}
-
-/* ===========================================================================
- * Panels / cards — the surface every step and section sits on
- * ======================================================================== */
-
-.step-panel {
-  position: relative;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 120px),
-    var(--surface);
-  padding: 30px 30px 28px;
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-}
-
-/* Hairline top highlight so the card edge catches the atmosphere light. */
-.step-panel::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--line-2), transparent);
-  pointer-events: none;
-}
-
-.step-heading {
-  margin: 0 0 8px;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 1.5rem;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-}
-
-/* The echoed original request above interview/triage. */
-.request-echo {
-  margin: 0 0 18px;
-  padding: 14px 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--canvas-2);
-  color: var(--muted);
-  font-size: 0.95rem;
-  font-style: italic;
-}
-
-/* ===========================================================================
- * Typography helpers used across steps
- * ======================================================================== */
-
-.field-label {
-  display: block;
-  margin-bottom: 6px;
-  font-family: var(--font-display);
-  font-size: 1.18rem;
-  font-weight: 600;
-  line-height: 1.25;
-  color: var(--ink);
-}
-
-.field-hint {
-  margin: 0 0 18px;
-  color: var(--muted);
-  font-size: 0.96rem;
-  line-height: 1.55;
-}
-
-.field-hint.grounding-note {
-  padding: 12px 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--canvas-2);
-  color: var(--muted);
-  font-size: 0.88rem;
-}
-
-/* ===========================================================================
- * Form controls — inputs, textareas, selects
- * ======================================================================== */
-
-.request-input,
-.criterion-input,
-.ticket-effort-select {
-  width: 100%;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--canvas-2);
-  color: var(--ink);
-  font: inherit;
-  font-size: 0.98rem;
-  padding: 13px 15px;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-}
-
-textarea.request-input {
-  resize: vertical;
-  min-height: 84px;
-  line-height: 1.5;
-}
-
-.request-input::placeholder,
-.criterion-input::placeholder {
-  color: var(--faint);
-}
-
-.request-input:focus,
-.criterion-input:focus,
-.ticket-effort-select:focus {
-  outline: none;
-  border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
-  box-shadow: 0 0 0 3px var(--accent-tint);
-  background: var(--surface);
-}
-
-.request-input:disabled,
-.criterion-input:disabled,
-.ticket-effort-select:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.ticket-effort-select {
-  width: auto;
-  min-width: 140px;
-  cursor: pointer;
-}
-
-/* ===========================================================================
- * Buttons — primary (amber), secondary (outline), and step actions row
- * ======================================================================== */
-
-.step-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-top: 24px;
-}
-/* Right-aligned variant: the batch submit/stop group sits at the trailing edge. */
-.step-actions.is-end {
-  justify-content: flex-end;
-}
-
-.primary-button,
-.secondary-button {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font: inherit;
-  font-size: 0.96rem;
-  font-weight: 600;
-  padding: 11px 20px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: transform 0.12s ease, background 0.18s ease,
-    border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.primary-button {
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: var(--canvas);
-  box-shadow: var(--shadow-accent);
-}
-.primary-button:hover:not(:disabled) {
-  background: var(--accent-soft);
-  border-color: var(--accent-soft);
-  transform: translateY(-1px);
-}
-.primary-button:active:not(:disabled) {
-  transform: translateY(0) scale(0.985);
-}
-
-/* Secondary = neutral white/outline on the dark canvas. Deliberately NOT tinted
- * with the accent (even on hover) — the orange is reserved for the single primary
- * action so it stays a rare highlight. */
-.secondary-button {
-  border: 1px solid var(--line-2);
-  background: var(--surface);
-  color: var(--ink);
-}
-.secondary-button:hover:not(:disabled) {
-  border-color: var(--faint);
-  background: var(--surface-2);
-  transform: translateY(-1px);
-}
-.secondary-button:active:not(:disabled) {
-  transform: translateY(0) scale(0.985);
-}
-
-.primary-button:disabled,
-.secondary-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-/* ===========================================================================
- * Interview — batch progress, stepper, loading
- * ======================================================================== */
-
-/* The "Interview · Batch N" topline above the open batch. */
-.batch-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 8px;
-}
-
-.batch-eyebrow {
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.batch-eyebrow .batch-n {
-  color: var(--accent-soft);
-}
-
-/* Count of answered batches, right-aligned in the bar. */
-.batch-count {
-  font-size: 0.82rem;
-  color: var(--faint);
-}
-
-/* The stepper of batch dots — one filled per answered batch, the current one
- * outlined in accent, future (capacity) dots faint. */
-.batch-stepper {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-bottom: 22px;
-}
-
-.batch-pip {
-  width: 38px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--line);
-  /* Scale instead of animating width — width is a layout property and thrashes;
-   * transform is composited. Base scaleX(0.68) ≈ the old 26px resting width. */
-  transform: scaleX(0.68);
-  transform-origin: left center;
-  transition: background 0.3s ease, box-shadow 0.3s ease,
-    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.batch-pip.is-answered {
-  background: color-mix(in srgb, var(--accent) 70%, var(--surface-2));
-}
-.batch-pip.is-current {
-  transform: scaleX(1);
-  background: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-tint);
-}
-
-/* ---------------------------------------------------------------------------
- * Question carousel (one question per screen). The pager controls are
- * deliberately NEUTRAL — arrows and inactive dots are off-white/faint on the
- * dark canvas; only the ACTIVE dot carries the orange accent. Restraint by
- * design: the accent stays reserved for the recommended badge, the single
- * primary action, and the active/selected indicator.
- * ------------------------------------------------------------------------- */
-
-/* The drag/slide stage. With AnimatePresence mode="wait" only one slide is ever
- * mounted, so the stage itself does not need to clip a sibling — the parent
- * .step-panel (overflow:hidden, 30px padding) catches any slide overshoot. The
- * stage stays overflow:visible with a little horizontal padding (matched by a
- * negative margin so the visual width is unchanged) so an option card's
- * hover/select scale + tilt — and the build-speed meter at its right edge — are
- * never clipped (Item 7: options + meter must render fully within the slide). */
-.carousel-stage {
-  position: relative;
-  overflow: visible;
-  padding: 8px 14px;
-  margin: -8px -14px;
-}
-
-/* The pager row beneath the question: prev arrow · dots · next arrow. */
-.carousel-pager {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 22px;
-}
-
-/* Neutral round arrow buttons. White-ish on a subtle surface; never accent. */
-.carousel-arrow {
-  appearance: none;
-  display: inline-grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border: 1px solid var(--line-2);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--ink);
-  cursor: pointer;
-  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease,
-    transform 0.12s ease;
-}
-.carousel-arrow:hover:not(:disabled) {
-  border-color: var(--faint);
-  background: var(--surface-2);
-  transform: translateY(-1px);
-}
-.carousel-arrow:active:not(:disabled) {
-  transform: translateY(0) scale(0.96);
-}
-.carousel-arrow:disabled {
-  opacity: 0.32;
-  cursor: not-allowed;
-}
-/* On the last question the right control becomes a Submit (check) button: accent
- * when every question is answered, the standard disabled state otherwise. */
-.carousel-arrow.is-submit:not(:disabled) {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--canvas);
-}
-.carousel-arrow.is-submit:not(:disabled):hover {
-  border-color: var(--accent-soft);
-  background: var(--accent-soft);
-}
-
-/* The dot rail — one dot per question in the batch. */
-.carousel-dots {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-
-/* A single nav dot. Inactive = faint neutral; answered = a brighter neutral so
- * progress reads at a glance; active = the orange accent (the one highlight). */
-.carousel-dot {
-  appearance: none;
-  width: 9px;
-  height: 9px;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  background: var(--line-2);
-  cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease,
-    width 0.2s ease;
-}
-.carousel-dot:hover {
-  transform: scale(1.2);
-}
-.carousel-dot.is-answered {
-  background: var(--muted);
-}
-.carousel-dot.is-active {
-  width: 24px;
-  background: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-tint);
-}
-
-/* The current-question position read-out ("Question 2 of 3"), centred above
- * the deck. Quiet, neutral. */
-.carousel-position {
-  margin: 0 0 14px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-
-/* ---------------------------------------------------------------------------
- * ThinkingLoader: the ONE loading indicator for the whole app. An orange
- * dual-ring orb + a serif title that swaps through the Dave message pool + an
- * optional muted subtitle. When done it swaps the orb for a GREEN check (triage
- * uses this to resolve on a satisfying tick). One component used everywhere a
- * screen waits, so loading looks consistent (PM request).
- * ------------------------------------------------------------------------- */
-.thinking-loader {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 22px 22px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 120px),
-    var(--surface);
-  box-shadow: var(--shadow-card);
-}
-
-.thinking-loader-orb {
-  position: relative;
-  width: 26px;
-  height: 26px;
-  flex-shrink: 0;
-}
-.thinking-loader-orb::before,
-.thinking-loader-orb::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  border: 2px solid transparent;
-  border-top-color: var(--accent);
-  animation: orb-spin 0.9s linear infinite;
-}
-.thinking-loader-orb::after {
-  inset: 5px;
-  border-top-color: var(--accent-soft);
-  animation-duration: 1.4s;
-  animation-direction: reverse;
-}
-@keyframes orb-spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Done state: a green check that echoes COMPLETE, replacing the orb. */
-.thinking-loader-check {
-  display: inline-grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  flex-shrink: 0;
-  border-radius: 999px;
-  background: color-mix(in srgb, #3ddc97 18%, var(--surface-2));
-  border: 1px solid color-mix(in srgb, #3ddc97 50%, var(--line-2));
-  color: #6ee7b0;
-}
-
-.thinking-loader-label {
-  font-family: var(--font-display);
-  font-size: 1.12rem;
-  font-weight: 500;
-  color: var(--ink);
-}
-.thinking-loader-sub {
-  margin-top: 2px;
-  font-size: 0.85rem;
-  color: var(--faint);
-}
-
-/* ===========================================================================
- * Dashboard — filter bar, session list, pager
- * ======================================================================== */
-
-/* Masthead: a hairline rule under the page header sets the editorial baseline,
- * and the title scales up to a real display moment on the landing screens. */
-.dashboard .dashboard-header {
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 18px;
-}
-.dashboard .wizard-title {
-  font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 500;
-}
-/* Mono data caption under the masthead title — editorial instrument texture. */
-.dashboard-masthead-text {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 0;
-}
-.dashboard-count {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-
-.filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  margin-bottom: 22px;
-}
-
-/* Filters as mono instrument tabs, not SaaS pills: underline-on-active, the
- * accent spent only on the active rule. Editorial, not chrome. */
-.filter-chip {
-  appearance: none;
-  border: 0;
-  border-bottom: 1.5px solid transparent;
-  border-radius: 0;
-  background: transparent;
-  color: var(--faint);
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 4px 1px;
-  cursor: pointer;
-  transition: color 0.18s ease, border-color 0.18s ease;
-}
-.filter-chip:hover {
-  color: var(--ink);
-}
-.filter-chip.is-active {
-  color: var(--ink);
-  border-bottom-color: var(--accent);
-}
-
-/* Dashboard controls: the status filter row and the title search, on one line
- * (search drops below the chips on narrow screens). */
-.dashboard-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 22px;
-}
-.dashboard-controls .filter-bar {
-  margin-bottom: 0;
-}
-/* Minimal underline search — a quiet baseline field, not a pill. */
-.search-field {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 200px;
-  flex: 0 1 260px;
-  padding: 6px 2px;
-  border: 0;
-  border-bottom: 1px solid var(--line-2);
-  border-radius: 0;
-  background: transparent;
-  transition: border-color 0.18s ease;
-}
-.search-field:focus-within {
-  border-bottom-color: var(--accent);
-}
-.search-field-icon {
-  color: var(--faint);
-}
-.search-input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  background: transparent;
-  color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.02em;
-  outline: none;
-}
-.search-input::placeholder {
-  color: var(--muted);
-}
-/* Hide the native clear "x" so the field keeps its rounded look. */
-.search-input::-webkit-search-cancel-button {
-  -webkit-appearance: none;
-}
-
-.session-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-/* Editorial list, not a card grid: hairline-ruled rows, a real serif headline,
- * one mono meta line, and actions that resolve on hover (always shown on touch).
- * No per-row box — rhythm comes from the rules and the type. */
-.session-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 20px 14px;
-  border-bottom: 1px solid var(--line);
-  transition: background 0.18s ease;
-}
-.session-row:first-child {
-  border-top: 1px solid var(--line);
-}
-.session-row:hover {
-  background: var(--surface);
-}
-
-.session-main {
-  min-width: 0;
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* The primary row label: a real editorial serif headline. Single line —
- * ellipsis-truncates rather than wrapping (the actions never push it to wrap). */
-.session-title {
-  margin: 0;
-  color: var(--ink);
-  font-family: var(--font-display);
-  font-size: clamp(1.1rem, 2vw, 1.34rem);
-  font-weight: 500;
-  line-height: 1.22;
-  letter-spacing: -0.015em;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* One meta line under the title: status · request snippet · timestamp. */
-.session-sub {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  min-width: 0;
-}
-.session-snippet {
-  margin: 0;
-  flex: 1 1 auto;
-  min-width: 0;
-  color: var(--muted);
-  font-size: 0.82rem;
-  line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.session-meta {
-  flex-shrink: 0;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.01em;
-  color: var(--faint);
-}
-
-.session-actions {
-  display: flex;
-  gap: 5px;
-  flex-shrink: 0;
-  align-self: center;
-}
-/* Resting-clean: reveal the row actions on hover/focus where hover exists; on
- * touch devices (no hover) they stay visible. */
-@media (hover: hover) {
-  .session-actions {
-    opacity: 0;
-    transition: opacity 0.18s ease;
-  }
-  .session-row:hover .session-actions,
-  .session-row:focus-within .session-actions {
-    opacity: 1;
-  }
-}
-
-/* Compact icon-only row actions (dashboard). Square, neutral; the lucide glyph is
- * the affordance, with a title tooltip + aria-label for accessibility. */
-.icon-button {
-  appearance: none;
-  display: inline-grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  flex-shrink: 0;
-  border: 1px solid var(--line-2);
-  background: var(--surface);
-  color: var(--muted);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease,
-    transform 0.12s ease;
-}
-.icon-button:hover:not(:disabled) {
-  color: var(--ink);
-  border-color: var(--faint);
-  background: var(--surface-2);
-  transform: translateY(-1px);
-}
-.icon-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-/* Resume = the white primary row action (white, not orange, so the dashboard
- * stays restrained and the accent is spent only on New session). */
-.icon-button.is-resume {
-  border-color: #ffffff;
-  background: #ffffff;
-  color: #0a0b10;
-}
-.icon-button.is-resume:hover:not(:disabled) {
-  background: #e9ebf2;
-  border-color: #e9ebf2;
-  color: #0a0b10;
-}
-/* Delete trigger: quiet until hover, then red, signalling the destructive path. */
-.icon-button.is-delete:hover:not(:disabled) {
-  color: #ff7b72;
-  border-color: color-mix(in srgb, #ff7b72 45%, var(--line-2));
-  background: color-mix(in srgb, #ff7b72 12%, transparent);
-}
-/* Confirm-delete: filled red (the second step of the inline confirm). */
-.icon-button.is-danger {
-  border-color: #e5484d;
-  background: #e5484d;
-  color: #ffffff;
-}
-.icon-button.is-danger:hover:not(:disabled) {
-  background: #ec5d62;
-  border-color: #ec5d62;
-}
-
-/* Status badge — quiet by default, the active/awaiting states tinted. */
-/* Status as a plain mono instrument label — no boxed pill. Color carries state;
- * the default is quiet, complete reads positive, active reads full-ink. */
-.session-status {
-  flex-shrink: 0;
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-/* In-progress / awaiting input: a quiet translucent-white treatment (NOT the
- * accent) so the dashboard reads mostly neutral. The orange is reserved for the
- * active filter pill and the in-app recommended/selected/primary states. */
-.session-status-in_progress,
-.session-status-awaiting_input {
-  color: var(--ink);
-}
-.session-status-complete {
-  color: #2faf74;
-}
-
-.pager {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 26px;
-}
-.pager-status {
-  font-size: 0.86rem;
-  color: var(--muted);
-}
-
-/* ===========================================================================
- * Ticket view
- * ======================================================================== */
-
-.ticket-view .ticket-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 18px;
-}
-
-.ticket-status {
-  font-size: 0.74rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 4px 11px;
-  border-radius: 999px;
-  border: 1px solid var(--line-2);
-  background: var(--surface-2);
-  color: var(--muted);
-}
-.ticket-status-final {
-  border-color: color-mix(in srgb, #3ddc97 40%, var(--line-2));
-  background: color-mix(in srgb, #3ddc97 12%, var(--surface-2));
-  color: #6ee7b0;
-}
-
-.ticket-section-heading {
-  margin: 22px 0 8px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-
-.ticket-story {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.22rem;
-  line-height: 1.4;
-  color: var(--ink);
-}
-
-.criteria-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.criterion-item {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 13px 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--canvas-2);
-}
-.gwt {
-  font-size: 0.94rem;
-  color: var(--ink);
-}
-.gwt strong {
-  color: var(--accent-soft);
-  font-weight: 600;
-  margin-right: 5px;
-}
-
-.ticket-effort {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin: 0;
-}
-.ticket-effort > strong {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  color: var(--accent-soft);
-}
-.effort-note {
-  font-size: 0.83rem;
-  color: var(--faint);
-}
-
-.ticket-context {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.6;
-}
-
-/* Enrichment sections (spec What): problem/background prose, bullet lists, grounding. */
-.ticket-prose {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.6;
-}
-.ticket-bullets {
-  margin: 0;
-  padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  color: var(--ink);
-  font-size: 0.94rem;
-  line-height: 1.5;
-}
-.ticket-bullets strong {
-  color: var(--accent-soft);
-  font-weight: 600;
-}
-.ticket-grounding code {
-  font-size: 0.86rem;
-  padding: 1px 5px;
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  background: var(--canvas-2);
-  color: var(--ink);
-}
-
-/* Inline edit form */
-.ticket-edit,
-.ticket-criteria-edit {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  border: 0;
-  margin: 0;
-  padding: 0;
-}
-.ticket-criteria-edit {
-  gap: 10px;
-}
-.criterion-edit-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-}
-
-/* Comments */
-.ticket-comments {
-  margin-top: 30px;
-  padding-top: 24px;
-  border-top: 1px solid var(--line);
-}
-.comment-list {
-  list-style: none;
-  margin: 0 0 18px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.comment-item {
-  padding: 13px 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--canvas-2);
-}
-.comment-body {
-  margin: 0 0 5px;
-  color: var(--ink);
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-.comment-meta {
-  font-size: 0.76rem;
-  color: var(--faint);
-}
-.comment-form {
-  display: flex;
-  flex-direction: column;
-}
-
-/* ===========================================================================
- * Projects & bits — manager screens (project context grounding)
- * ======================================================================== */
-
-/* Right-aligned cluster of header actions (nav + primary), used by the dashboard
- * and the project screens so the topline can hold more than one button. */
-.dashboard-header-actions {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-/* Compact the dashboard header buttons into a single thin row — the page's top
- * actions read smaller than the in-flow primary/secondary buttons elsewhere
- * (pager, wizard). Scoped to the header so those other buttons keep their size. */
-.dashboard-header-actions .primary-button,
-.dashboard-header-actions .secondary-button {
-  font-size: 0.82rem;
-  font-weight: 600;
-  padding: 6px 12px;
-  gap: 6px;
-  border-radius: var(--radius-sm);
-}
-.dashboard-header-actions .link-button {
-  font-size: 0.82rem;
-  padding: 6px 4px;
-}
-
-.link-button.back-link {
-  color: #ffffff;
-}
-.link-button.back-link:hover {
-  color: #ff751f;
-  background: transparent;
-}
-
-/* The optional second line of the project form — sits under the name input. */
-.project-description-input {
-  margin-top: 12px;
-}
-
-/* The optional project picker on the request-entry step. */
-.project-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  margin-top: 18px;
-}
-.project-picker-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--muted);
-}
-/* Keep the picker from stretching the full panel width on wide screens. */
-.project-picker .select {
-  max-width: 360px;
-}
-
-/* A kind group on the project detail — heading + its bit rows. */
-.bit-group {
-  margin-top: 26px;
-}
-.bit-group-heading {
-  margin: 0 0 12px;
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.bit-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.bit-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  flex-wrap: wrap;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  padding: 16px 18px;
-  transition: border-color 0.2s ease, background 0.2s ease;
-}
-.bit-row:hover {
-  border-color: var(--line-2);
-  background: var(--surface-2);
-}
-/* While its inline edit form is open the row drops the hover/columns and lets the
- * form fill the width. */
-.bit-row-editing {
-  display: block;
-}
-
-.bit-row-main {
-  min-width: 0;
-  flex: 1 1 320px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-.bit-row-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.bit-key {
-  font-family: var(--font-display);
-  font-size: 1.02rem;
-  font-weight: 600;
-  color: var(--ink);
-}
-/* Quiet provenance badge: manual / imported / merged — keeps the audit visible. */
-.bit-source {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--line-2);
-  background: var(--surface-2);
-  color: var(--muted);
-}
-.bit-summary {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.94rem;
-  line-height: 1.5;
-}
-.bit-row-actions {
-  display: flex;
-  gap: 9px;
-  flex-shrink: 0;
-}
-
-/* The add/edit bit form — a compact stack of fields. */
-.bit-form {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.bit-form-row {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-.bit-field {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-.bit-field-grow {
-  flex: 1 1 220px;
-}
-.bit-field-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-/* ===========================================================================
- * Responsive
- * ======================================================================== */
-
-@media (max-width: 640px) {
-  .wizard,
-  .dashboard {
-    width: min(100% - 28px, var(--shell-width));
-    padding: 36px 0 72px;
-  }
-  .bit-row-actions {
-    width: 100%;
-  }
-  .step-panel {
-    padding: 22px 20px;
-  }
-  .step-rail {
-    gap: 8px;
-  }
-  .step-dot {
-    padding: 6px 11px 6px 7px;
-    font-size: 0.76rem;
-  }
-  .step-name {
-    display: none;
-  }
-  .step-dot.is-active .step-name {
-    display: inline;
-  }
-  .criterion-edit-row {
-    grid-template-columns: 1fr;
-  }
-  .session-actions {
-    width: 100%;
-  }
-}
-
-/* Respect reduced-motion: drop the shell + spin animations. */
-@media (prefers-reduced-motion: reduce) {
-  .wizard,
-  .dashboard {
-    animation: none;
-  }
-  .thinking-loader-orb::before,
-  .thinking-loader-orb::after {
-    animation-duration: 2.4s;
-  }
-}
-
-/* Suppressed-question notice (spec R3 — suppression is never silent) */
-.skipped-notice { margin-top: 18px; padding: 14px 16px; border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 10px; background: rgba(255, 255, 255, 0.03); }
-.skipped-notice-title { margin: 0 0 8px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; color: rgba(255, 255, 255, 0.55); }
-.skipped-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.skipped-row { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, 0.06); }
-.skipped-row:first-child { border-top: 0; padding-top: 0; }
-.skipped-reason { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; font-size: 0.9rem; color: rgba(255, 255, 255, 0.75); }
-.skipped-key { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.76rem; color: #ff751f; }
-.skipped-override { display: flex; gap: 8px; }
-.skipped-override input { flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(0, 0, 0, 0.25); color: #fff; font: inherit; }
-.link-button { align-self: flex-start; background: none; border: 0; padding: 0; color: #ff751f; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
-.link-button:disabled { opacity: 0.5; cursor: default; }
-
-/* ===========================================================================
- * Bits: generate-prompt + import overlays and the reconcile-resolve view
- * (project context grounding, spec T11). The prompt popup and import dialog are
- * modal overlays over a dim backdrop; the resolve view is a full step-panel that
- * replaces the bits list so the PM focuses on one task (R2).
- * ======================================================================== */
-
-/* Modal scaffold shared by the prompt popup + import dialog. */
-.bit-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 48px 18px;
-  overflow-y: auto;
-  background: rgba(4, 5, 9, 0.72);
-  backdrop-filter: blur(3px);
-}
-.bit-overlay-card {
-  width: min(640px, 100%);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  border: 1px solid var(--line-2);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  padding: 28px;
-  box-shadow: var(--shadow-card);
-}
-.bit-overlay-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-/* Popup forms (project edit/create, add-a-bit) animate in over the blurred
- * backdrop so they read as a deliberate overlay, not an inline panel. */
-.bit-overlay-card.is-modal {
-  animation: modal-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes modal-pop {
-  from { opacity: 0; transform: translateY(10px) scale(0.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .bit-overlay-card.is-modal { animation: none; }
-}
-
-/* ========================================================================
- * Custom animated dropdown (Select) — replaces the native <select> so the
- * open menu matches the dark theme. Trigger mirrors .request-input.
- * ======================================================================== */
-.select {
-  position: relative;
-  width: 100%;
-}
-.select-trigger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--canvas-2);
-  color: var(--ink);
-  font: inherit;
-  font-size: 0.98rem;
-  padding: 13px 15px;
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-}
-.select-trigger:hover:not(:disabled) {
-  border-color: var(--line-2);
-}
-.select-trigger.is-open,
-.select-trigger:focus-visible {
-  outline: none;
-  border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
-  box-shadow: 0 0 0 3px var(--accent-tint);
-  background: var(--surface);
-}
-.select-trigger:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-.select-caret {
-  color: var(--muted);
-  transition: transform 0.18s ease;
-}
-.select-trigger.is-open .select-caret {
-  transform: rotate(180deg);
-}
-.select-menu {
-  position: absolute;
-  z-index: 60;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  margin: 0;
-  padding: 6px;
-  list-style: none;
-  border: 1px solid var(--line-2);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  box-shadow: var(--shadow-card);
-  transform-origin: top center;
-  animation: select-open 0.14s ease;
-}
-@keyframes select-open {
-  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .select-menu { animation: none; }
-  .select-caret { transition: none; }
-}
-.select-option {
-  display: block;
-  width: 100%;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  font-size: 0.94rem;
-  text-align: left;
-  padding: 9px 11px;
-  cursor: pointer;
-  transition: background 0.14s ease, color 0.14s ease;
-}
-.select-option:hover {
-  background: var(--surface);
-}
-.select-option.is-selected {
-  background: color-mix(in srgb, var(--accent) 20%, var(--surface));
-  color: var(--ink);
-  font-weight: 600;
-}
-
-/* The read-only generate-bits prompt, monospace in a scrollable block. */
-.bit-prompt-block {
-  margin: 0;
-  max-height: 50vh;
-  overflow: auto;
-  padding: 16px 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--canvas-2);
-  color: var(--ink);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.82rem;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-/* Import dialog: the file picker + force toggle row. */
-.bit-import-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-}
-/* While the AI reconciliation runs, the dialog body is replaced by the standard
- * loader so the wait reads as deliberate work, not a frozen button. */
-.bit-import-progress {
-  display: flex;
-  justify-content: center;
-  padding: 28px 0 12px;
-}
-
-.bit-dropzone-field {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-/* Click-to-browse + drag-and-drop target. The native input is visually hidden
- * but kept in flow inside the <label>, so a click anywhere on the box opens the
- * picker via native label behavior (no JS .click(), which a browser can ignore).
- * Drops are handled by the label's onDrop. */
-.bit-dropzone {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  min-height: 96px;
-  padding: 20px 18px;
-  border: 1.5px dashed var(--line-2);
-  border-radius: var(--radius-md);
-  background: var(--canvas-2);
-  text-align: center;
-  cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease;
-}
-.bit-dropzone:hover {
-  border-color: var(--faint);
-  background: var(--surface);
-}
-.bit-dropzone.is-dragging {
-  border-color: var(--accent);
-  border-style: solid;
-  background: color-mix(in srgb, var(--accent) 12%, var(--canvas-2));
-}
-.bit-dropzone-input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
-  opacity: 0;
-}
-.bit-dropzone-title {
-  color: var(--ink);
-  font-size: 0.92rem;
-  font-weight: 600;
-  word-break: break-word;
-}
-.bit-dropzone-hint {
-  color: var(--muted);
-  font-size: 0.82rem;
-}
-.bit-force-toggle {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: var(--muted);
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-.bit-force-toggle input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-.bit-force-warning {
-  margin: 0;
-  color: var(--accent-soft);
-  font-size: 0.86rem;
-}
-
-/* The reconcile-resolve view — a panel that fills the main area. */
-.reconcile-panel {
-  margin-top: 4px;
-}
-.reconcile-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-}
-.reconcile-group {
-  margin-top: 22px;
-}
-.reconcile-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.reconcile-row {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--canvas-2);
-  padding: 16px 18px;
-}
-.reconcile-row-head {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.reconcile-target {
-  font-size: 0.78rem;
-  color: var(--faint);
-}
-.reconcile-reason {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.92rem;
-  line-height: 1.5;
-}
-
-/* The per-action choice pills — neutral by default, accent-tinted when selected
- * (the orange marks the active choice, consistent with the rest of the UI). */
-.reconcile-choices {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.reconcile-choice {
-  appearance: none;
-  padding: 7px 14px;
-  border: 1px solid var(--line-2);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
-}
-.reconcile-choice:hover:not(:disabled) {
-  border-color: var(--faint);
-  color: var(--ink);
-}
-.reconcile-choice.is-selected {
-  border-color: var(--accent);
-  background: var(--accent-tint);
-  color: var(--accent-soft);
-}
-.reconcile-choice:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-@media (max-width: 640px) {
-  .bit-overlay {
-    padding: 24px 12px;
-  }
-  .bit-overlay-card {
-    padding: 20px;
-  }
-  .bit-import-controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}

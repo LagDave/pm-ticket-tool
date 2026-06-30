@@ -55,19 +55,19 @@ export function ProjectsManager({ onOpenProject, onExit }: ProjectsManagerProps)
   };
 
   return (
-    <main className="dashboard">
-      <header className="dashboard-header">
-        <div className="wizard-brand">
-          <img className="wizard-logo" src="/logo.webp" alt="" aria-hidden width={32} height={32} />
-          <h1 className="wizard-title">Projects</h1>
+    <main className="mx-auto w-full max-w-3xl px-5 py-6">
+      <header className="mb-5 flex items-center justify-between gap-3">
+        <div>
+          <p className="eyebrow">Projects</p>
+          <h1 className="font-display text-lg font-semibold text-ink">Your projects</h1>
         </div>
-        <div className="dashboard-header-actions">
-          <button type="button" className="link-button back-link" onClick={onExit}>
+        <div className="flex items-center gap-2">
+          <button type="button" className="btn btn-ghost" onClick={onExit}>
             ← Dashboard
           </button>
           <button
             type="button"
-            className="primary-button"
+            className="btn btn-primary"
             onClick={() => setForm({ mode: "create" })}
           >
             New project
@@ -77,11 +77,11 @@ export function ProjectsManager({ onOpenProject, onExit }: ProjectsManagerProps)
 
       {isLoading && <ThinkingLoader subtitle="Loading your projects" />}
       {error && (
-        <p className="field-hint">Could not load your projects. Try again.</p>
+        <p className="text-sm text-muted">Could not load your projects. Try again.</p>
       )}
 
       {projects && projects.length === 0 && (
-        <p className="field-hint">No projects yet. Create one with “New project”.</p>
+        <p className="text-sm text-muted">No projects yet. Create one with “New project”.</p>
       )}
 
       {projects && projects.length > 0 && (

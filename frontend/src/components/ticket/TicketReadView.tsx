@@ -41,35 +41,35 @@ function hasText(value: string | null | undefined): boolean {
 export function TicketReadView({ ticket }: { ticket: ReadableTicket }) {
   const details = ticket.details;
   return (
-    <div className="ticket-read">
-      <h3 className="ticket-section-heading">User story</h3>
-      <p className="ticket-story">{ticket.user_story}</p>
+    <div className="flex flex-col gap-1">
+      <h3 className="eyebrow mt-4">User story</h3>
+      <p className="m-0 font-display text-lg leading-snug text-ink">{ticket.user_story}</p>
 
       {hasText(details?.problemBackground) && (
         <>
-          <h3 className="ticket-section-heading">Problem / Background</h3>
-          <p className="ticket-prose">{details!.problemBackground}</p>
+          <h3 className="eyebrow mt-4">Problem / Background</h3>
+          <p className="m-0 text-sm text-muted leading-relaxed">{details!.problemBackground}</p>
         </>
       )}
 
-      <h3 className="ticket-section-heading">Acceptance criteria</h3>
-      <ol className="criteria-list">
+      <h3 className="eyebrow mt-4">Acceptance criteria</h3>
+      <ol className="list-none m-0 p-0 flex flex-col gap-2">
         {(ticket.acceptance_criteria ?? []).map((criterion, index) => (
-          <li key={index} className="criterion-item">
-            <span className="gwt"><strong>Given</strong> {criterion.given}</span>
-            <span className="gwt"><strong>When</strong> {criterion.when}</span>
-            <span className="gwt"><strong>Then</strong> {criterion.then}</span>
+          <li key={index} className="surface-2 flex flex-col gap-0.5 px-3.5 py-2.5 text-sm text-ink">
+            <span><strong className="text-accent font-semibold mr-1.5">Given</strong> {criterion.given}</span>
+            <span><strong className="text-accent font-semibold mr-1.5">When</strong> {criterion.when}</span>
+            <span><strong className="text-accent font-semibold mr-1.5">Then</strong> {criterion.then}</span>
           </li>
         ))}
       </ol>
 
       {details?.keyDecisions?.length ? (
         <>
-          <h3 className="ticket-section-heading">Key decisions</h3>
-          <ul className="ticket-bullets">
+          <h3 className="eyebrow mt-4">Key decisions</h3>
+          <ul className="m-0 pl-4 flex flex-col gap-1.5 text-sm text-ink leading-snug">
             {details.keyDecisions.map((kd, index) => (
               <li key={index}>
-                <strong>{kd.label}</strong>
+                <strong className="text-accent font-semibold">{kd.label}</strong>
                 {hasText(kd.detail) ? `: ${kd.detail}` : ""}
               </li>
             ))}
@@ -79,8 +79,8 @@ export function TicketReadView({ ticket }: { ticket: ReadableTicket }) {
 
       {details?.openQuestions?.length ? (
         <>
-          <h3 className="ticket-section-heading">Open questions</h3>
-          <ul className="ticket-bullets">
+          <h3 className="eyebrow mt-4">Open questions</h3>
+          <ul className="m-0 pl-4 flex flex-col gap-1.5 text-sm text-ink leading-snug">
             {details.openQuestions.map((question, index) => (
               <li key={index}>{question}</li>
             ))}
@@ -90,8 +90,8 @@ export function TicketReadView({ ticket }: { ticket: ReadableTicket }) {
 
       {details?.successMetrics?.length ? (
         <>
-          <h3 className="ticket-section-heading">Success metrics</h3>
-          <ul className="ticket-bullets">
+          <h3 className="eyebrow mt-4">Success metrics</h3>
+          <ul className="m-0 pl-4 flex flex-col gap-1.5 text-sm text-ink leading-snug">
             {details.successMetrics.map((metric, index) => (
               <li key={index}>{metric}</li>
             ))}
@@ -101,8 +101,8 @@ export function TicketReadView({ ticket }: { ticket: ReadableTicket }) {
 
       {details?.dependencies?.length ? (
         <>
-          <h3 className="ticket-section-heading">Dependencies</h3>
-          <ul className="ticket-bullets">
+          <h3 className="eyebrow mt-4">Dependencies</h3>
+          <ul className="m-0 pl-4 flex flex-col gap-1.5 text-sm text-ink leading-snug">
             {details.dependencies.map((dependency, index) => (
               <li key={index}>{dependency}</li>
             ))}
@@ -112,35 +112,37 @@ export function TicketReadView({ ticket }: { ticket: ReadableTicket }) {
 
       {details?.codebaseGrounding?.length ? (
         <>
-          <h3 className="ticket-section-heading">Codebase grounding</h3>
-          <ul className="ticket-bullets ticket-grounding">
+          <h3 className="eyebrow mt-4">Codebase grounding</h3>
+          <ul className="m-0 pl-4 flex flex-col gap-1.5 text-sm text-ink leading-snug">
             {details.codebaseGrounding.map((item, index) => (
-              <li key={index}><code>{item.area}</code>: {item.note}</li>
+              <li key={index}>
+                <code className="font-mono text-xs px-1.5 py-0.5 rounded border border-line bg-canvas-2 text-ink">{item.area}</code>: {item.note}
+              </li>
             ))}
           </ul>
         </>
       ) : null}
 
-      <h3 className="ticket-section-heading">Effort</h3>
-      <p className="ticket-effort">
-        <strong>{ticket.effort}</strong>
-        <span className="effort-note">{EFFORT_NOTE}</span>
+      <h3 className="eyebrow mt-4">Effort</h3>
+      <p className="m-0 flex items-baseline gap-3">
+        <strong className="font-display text-xl text-accent">{ticket.effort}</strong>
+        <span className="text-xs text-faint">{EFFORT_NOTE}</span>
       </p>
 
       {ticket.priority && (
         <>
-          <h3 className="ticket-section-heading">Priority</h3>
-          <p className="ticket-effort">
-            <strong>{priorityLabel(ticket.priority)}</strong>
-            <span className="effort-note">{PRIORITY_NOTE}</span>
+          <h3 className="eyebrow mt-4">Priority</h3>
+          <p className="m-0 flex items-baseline gap-3">
+            <strong className="font-display text-xl text-accent">{priorityLabel(ticket.priority)}</strong>
+            <span className="text-xs text-faint">{PRIORITY_NOTE}</span>
           </p>
         </>
       )}
 
       {hasText(ticket.context_summary) && (
         <>
-          <h3 className="ticket-section-heading">Context</h3>
-          <p className="ticket-context">{ticket.context_summary}</p>
+          <h3 className="eyebrow mt-4">Context</h3>
+          <p className="m-0 text-sm text-muted leading-relaxed">{ticket.context_summary}</p>
         </>
       )}
     </div>

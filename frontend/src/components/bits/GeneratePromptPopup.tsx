@@ -39,32 +39,41 @@ export function GeneratePromptPopup({ projectId, onClose }: GeneratePromptPopupP
   };
 
   return createPortal(
-    <div className="bit-overlay" role="dialog" aria-modal="true" aria-label="Generate bits prompt">
-      <div className="bit-overlay-card is-modal">
-        <header className="bit-overlay-head">
-          <h2 className="step-heading">Generate bits from your repo</h2>
-          <button type="button" className="link-button" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-canvas/70 p-4 backdrop-blur-sm sm:p-8"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Generate bits prompt"
+    >
+      <div className="surface my-auto w-full max-w-2xl p-5">
+        <header className="mb-3 flex items-start justify-between gap-3">
+          <h2 className="font-display text-base font-semibold text-ink">
+            Generate bits from your repo
+          </h2>
+          <button type="button" className="btn btn-ghost" onClick={onClose}>
             Close
           </button>
         </header>
-        <p className="field-hint">
+        <p className="mb-4 text-sm text-muted">
           Paste this into a Claude Code session on your repo, then upload the JSON
           it writes with “Import bits”.
         </p>
 
-        {isLoading && <p className="field-hint">Loading the prompt…</p>}
+        {isLoading && <p className="text-sm text-muted">Loading the prompt…</p>}
         {error && (
-          <p className="field-hint">Could not load the prompt. Close this and try again.</p>
+          <p className="text-sm text-muted">Could not load the prompt. Close this and try again.</p>
         )}
 
         {data && (
           <>
-            <pre className="bit-prompt-block">{data.prompt}</pre>
-            <div className="step-actions">
-              <button type="button" className="primary-button" onClick={handleCopy}>
+            <pre className="surface-2 max-h-80 overflow-auto whitespace-pre-wrap p-3 font-mono text-xs text-ink">
+              {data.prompt}
+            </pre>
+            <div className="mt-4 flex items-center gap-2">
+              <button type="button" className="btn btn-primary" onClick={handleCopy}>
                 {didCopy ? "Copied" : "Copy prompt"}
               </button>
-              <button type="button" className="secondary-button" onClick={onClose}>
+              <button type="button" className="btn" onClick={onClose}>
                 Done
               </button>
             </div>

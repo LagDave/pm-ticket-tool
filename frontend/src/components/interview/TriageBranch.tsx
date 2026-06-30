@@ -50,8 +50,10 @@ export function TriageBranch({ sessionId, onRouted }: TriageBranchProps) {
   // loader; when the outcome arrives, it flips to a green check (Item 3).
   if (triage.isPending || (!outcome && !triage.isError) || (outcome && !settled)) {
     return (
-      <section className="step-panel">
-        <h2 className="step-heading">Sizing up your request</h2>
+      <section className="surface p-5">
+        <h2 className="mb-2 font-display text-xl font-semibold leading-tight text-ink">
+          Sizing up your request
+        </h2>
         <ThinkingLoader
           done={Boolean(outcome)}
           doneLabel="Got it. Routing you now…"
@@ -64,16 +66,18 @@ export function TriageBranch({ sessionId, onRouted }: TriageBranchProps) {
   // Offer a retry and a manual route so the PM is never stuck.
   if (!outcome) {
     return (
-      <section className="step-panel">
-        <h2 className="step-heading">Triage didn&apos;t complete</h2>
-        <p className="field-hint">
+      <section className="surface p-5">
+        <h2 className="mb-2 font-display text-xl font-semibold leading-tight text-ink">
+          Triage didn&apos;t complete
+        </h2>
+        <p className="mb-4 text-sm text-muted">
           We couldn&apos;t classify the request. Retry, or start the full
           feature scope.
         </p>
-        <div className="step-actions">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            className="primary-button"
+            className="btn btn-primary"
             onClick={() => void triage.refetch()}
             disabled={triage.isFetching}
           >
@@ -81,7 +85,7 @@ export function TriageBranch({ sessionId, onRouted }: TriageBranchProps) {
           </button>
           <button
             type="button"
-            className="secondary-button"
+            className="btn"
             onClick={() => onRouted("interview")}
           >
             Start feature scoping
@@ -94,22 +98,22 @@ export function TriageBranch({ sessionId, onRouted }: TriageBranchProps) {
   const isSimple = outcome.result === "simple";
 
   return (
-    <section className="step-panel">
-      <h2 className="step-heading">
+    <section className="surface p-5">
+      <h2 className="mb-2 font-display text-xl font-semibold leading-tight text-ink">
         {isSimple ? "This looks straightforward" : "This needs a few decisions"}
       </h2>
-      <p className="field-hint">
+      <p className="mb-4 text-sm text-muted">
         {isSimple
           ? "We can draft a ticket from your request directly, no feature scope needed. You can still run the full feature scope if you'd rather."
           : "There are open product decisions here, so we'll walk through a short feature scope before drafting. You can skip straight to a draft if you prefer."}
       </p>
 
-      <div className="step-actions">
+      <div className="flex flex-wrap items-center gap-3">
         {isSimple ? (
           <>
             <button
               type="button"
-              className="primary-button"
+              className="btn btn-primary"
               onClick={() => onRouted("ticket")}
             >
               Draft the ticket
@@ -117,7 +121,7 @@ export function TriageBranch({ sessionId, onRouted }: TriageBranchProps) {
             {/* Override: force the full interview from a simple result (spec What). */}
             <button
               type="button"
-              className="secondary-button"
+              className="btn"
               onClick={() => onRouted("interview")}
             >
               Run the full feature scope instead
@@ -127,7 +131,7 @@ export function TriageBranch({ sessionId, onRouted }: TriageBranchProps) {
           <>
             <button
               type="button"
-              className="primary-button"
+              className="btn btn-primary"
               onClick={() => onRouted("interview")}
             >
               Start feature scoping
@@ -135,7 +139,7 @@ export function TriageBranch({ sessionId, onRouted }: TriageBranchProps) {
             {/* Override the other way: skip a scoped result straight to drafting. */}
             <button
               type="button"
-              className="secondary-button"
+              className="btn"
               onClick={() => onRouted("ticket")}
             >
               Skip to a draft anyway

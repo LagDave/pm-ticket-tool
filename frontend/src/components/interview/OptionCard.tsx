@@ -47,7 +47,7 @@ export function OptionCard({
       }}
       transition={SPRING_SOFT}
       className={
-        "group relative flex w-full min-w-0 flex-col gap-4 overflow-hidden rounded-2xl border p-5 text-left " +
+        "group relative flex w-full min-w-0 flex-col gap-3 overflow-hidden rounded-card border p-4 text-left " +
         "transition-colors cursor-pointer disabled:cursor-not-allowed " +
         (isSelected
           ? "z-10 border-accent bg-accent/[0.08] shadow-[0_12px_34px_-20px_rgba(255,117,31,0.5)]"
@@ -85,7 +85,7 @@ export function OptionCard({
         </span>
         <span
           className={
-            "text-[1.02rem] font-medium leading-snug " +
+            "text-sm font-medium leading-snug " +
             (isRecommended && !isSelected ? "pr-24" : "")
           }
         >

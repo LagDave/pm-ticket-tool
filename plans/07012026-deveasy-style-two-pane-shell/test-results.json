@@ -1,0 +1,138 @@
+{
+  "plan": "plans/07012026-deveasy-style-two-pane-shell",
+  "generatedAt": "2026-07-01",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Two-pane shell renders (persistent sidebar + main pane)",
+      "surface": "ui",
+      "precondition": "Logged in; app loaded at /",
+      "steps": ["1. Open the app", "2. Observe the layout"],
+      "expected": "A fixed left sidebar sits beside a main pane; the sidebar does not unmount when the pane content changes.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Not auto-run — no live app/DB in this environment.",
+      "waiver": "Deferred to manual verification by the owner in the dev server (2026-07-01)."
+    },
+    {
+      "id": "T2",
+      "title": "Sessions grouped by project, with a 'No project' group",
+      "surface": "ui",
+      "precondition": "At least one project with a session, and at least one ungrounded (no-project) session",
+      "steps": ["1. Look at the sidebar list"],
+      "expected": "Sessions appear under their project's name; ungrounded sessions appear under a 'No project' group.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Not auto-run — no live app/DB in this environment.",
+      "waiver": "Deferred to manual verification by the owner in the dev server (2026-07-01)."
+    },
+    {
+      "id": "T3",
+      "title": "Selecting a session opens it in the pane; row actions work",
+      "surface": "ui",
+      "precondition": "At least one existing session",
+      "steps": ["1. Click a session row", "2. Hover a row and click re-run", "3. Hover a row, click delete then confirm"],
+      "expected": "Clicking opens the session in the main pane (active row gets the accent bar). Re-run creates a clone and opens it at triage. Delete removes the session after the inline confirm.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Not auto-run — no live app/DB in this environment.",
+      "waiver": "Deferred to manual verification by the owner in the dev server (2026-07-01)."
+    },
+    {
+      "id": "T4",
+      "title": "Full session flow runs inside the shell",
+      "surface": "ui",
+      "precondition": "Logged in",
+      "steps": ["1. Click 'New session'", "2. Enter a request and submit", "3. Proceed through triage → interview → ticket"],
+      "expected": "Request → triage → interview → ticket all render inside the main pane with no brand masthead; the wizard step rail shows progress.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Not auto-run — no live app/DB in this environment.",
+      "waiver": "Deferred to manual verification by the owner in the dev server (2026-07-01)."
+    },
+    {
+      "id": "T5",
+      "title": "Per-project 'new session' pre-attaches the project",
+      "surface": "ui",
+      "precondition": "At least one project exists",
+      "steps": ["1. Click the + on a project group", "2. On the request step, check the Project selector"],
+      "expected": "The project picker is pre-selected to that project; the created session is grounded in it.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Not auto-run — no live app/DB in this environment.",
+      "waiver": "Deferred to manual verification by the owner in the dev server (2026-07-01)."
+    },
+    {
+      "id": "T6",
+      "title": "Projects entry opens manager + detail in the pane; bits editing works",
+      "surface": "ui",
+      "precondition": "Logged in",
+      "steps": ["1. Click the Projects (folder) button in the sidebar", "2. Open a project", "3. Add/edit a bit"],
+      "expected": "ProjectsManager renders in the pane; opening a project shows its detail + bits; create/edit/delete bit works.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Not auto-run — no live app/DB in this environment.",
+      "waiver": "Deferred to manual verification by the owner in the dev server (2026-07-01)."
+    },
+    {
+      "id": "T7",
+      "title": "Light AND dark themes both render correctly",
+      "surface": "ui",
+      "precondition": "App loaded",
+      "steps": ["1. Toggle the theme in the sidebar", "2. Inspect sidebar, wizard, ticket, projects in both themes"],
+      "expected": "Every surface renders correctly in both light and dark (kit colors flip via tokens; no unstyled or invisible elements).",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Not auto-run — no live app/DB in this environment.",
+      "waiver": "Deferred to manual verification by the owner in the dev server (2026-07-01)."
+    },
+    {
+      "id": "T8",
+      "title": "Public shared-ticket view is standalone (no sidebar)",
+      "surface": "ui",
+      "precondition": "A finalized ticket with a share token",
+      "steps": ["1. Open /?ticket=<token> (ideally in a logged-out / incognito window)"],
+      "expected": "The shared ticket renders full-screen with its own minimal header and NO app sidebar.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Not auto-run — no live app/DB in this environment.",
+      "waiver": "Deferred to manual verification by the owner in the dev server (2026-07-01)."
+    },
+    {
+      "id": "T9",
+      "title": "'Showing recent 100' note appears past the cap",
+      "surface": "ui",
+      "precondition": "More than 100 sessions exist for the active filter",
+      "steps": ["1. Scroll to the bottom of the sidebar list"],
+      "expected": "A subtle 'Showing the most recent 100 of N' note appears.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Not auto-run — no live app/DB in this environment.",
+      "waiver": "Deferred to manual verification by the owner in the dev server (2026-07-01)."
+    },
+    {
+      "id": "T10",
+      "title": "DevEasy typography is applied",
+      "surface": "ui",
+      "precondition": "App loaded",
+      "steps": ["1. Inspect body text and labels/headings"],
+      "expected": "Body uses Hanken Grotesk; labels/headings use JetBrains Mono. No Fraunces serif remains.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Not auto-run — no live app/DB in this environment.",
+      "waiver": "Deferred to manual verification by the owner in the dev server (2026-07-01)."
+    },
+    {
+      "id": "BUILD",
+      "title": "Build, typecheck, and convention checks pass",
+      "surface": "cli",
+      "precondition": "Repo checked out with this change",
+      "steps": ["1. cd frontend && npm run typecheck", "2. cd frontend && npm run build", "3. (root) bash scripts/check-conventions.sh", "4. cd frontend && npm test"],
+      "expected": "typecheck zero errors; build succeeds; backend hard violations 0; frontend tests pass.",
+      "status": "pass",
+      "evidence": "tsc --noEmit clean; vite build OK; check-conventions backend 0 violations; frontend lint 0 errors / 4 advisory warnings; 2/2 frontend tests pass.",
+      "notes": "Verified by the orchestrator during execution."
+    }
+  ]
+}

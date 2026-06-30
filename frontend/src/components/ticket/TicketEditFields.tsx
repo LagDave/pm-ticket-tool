@@ -48,25 +48,25 @@ export function TicketEditFields({ ticket, onDone }: TicketEditFieldsProps) {
   };
 
   return (
-    <div className="ticket-edit">
-      <label className="field-label" htmlFor="edit-story">
+    <div className="flex flex-col gap-3">
+      <label className="eyebrow" htmlFor="edit-story">
         User story
       </label>
       <textarea
         id="edit-story"
-        className="request-input"
+        className="field"
         rows={2}
         value={userStory}
         onChange={(event) => setUserStory(event.target.value)}
         disabled={update.isPending}
       />
 
-      <label className="field-label" htmlFor="edit-effort">
+      <label className="eyebrow" htmlFor="edit-effort">
         Effort tier
       </label>
       <select
         id="edit-effort"
-        className="ticket-effort-select"
+        className="field w-auto min-w-[140px] cursor-pointer"
         value={effort}
         onChange={(event) => setEffort(event.target.value as EffortTier)}
         disabled={update.isPending}
@@ -78,12 +78,12 @@ export function TicketEditFields({ ticket, onDone }: TicketEditFieldsProps) {
         ))}
       </select>
 
-      <label className="field-label" htmlFor="edit-priority">
+      <label className="eyebrow" htmlFor="edit-priority">
         Priority
       </label>
       <select
         id="edit-priority"
-        className="ticket-effort-select"
+        className="field w-auto min-w-[140px] cursor-pointer"
         value={priority}
         onChange={(event) => setPriority(event.target.value as TicketPriority)}
         disabled={update.isPending}
@@ -101,22 +101,22 @@ export function TicketEditFields({ ticket, onDone }: TicketEditFieldsProps) {
         onChange={setCriteria}
       />
 
-      <label className="field-label" htmlFor="edit-context">
+      <label className="eyebrow" htmlFor="edit-context">
         Context
       </label>
       <textarea
         id="edit-context"
-        className="request-input"
+        className="field"
         rows={3}
         value={contextSummary}
         onChange={(event) => setContextSummary(event.target.value)}
         disabled={update.isPending}
       />
 
-      <div className="step-actions">
+      <div className="flex flex-wrap items-center gap-2 mt-1">
         <button
           type="button"
-          className="primary-button"
+          className="btn btn-primary"
           onClick={handleSave}
           disabled={update.isPending || userStory.trim().length === 0}
         >
@@ -124,7 +124,7 @@ export function TicketEditFields({ ticket, onDone }: TicketEditFieldsProps) {
         </button>
         <button
           type="button"
-          className="secondary-button"
+          className="btn"
           onClick={onDone}
           disabled={update.isPending}
         >
@@ -154,14 +154,14 @@ function CriteriaEditor({
   };
 
   return (
-    <fieldset className="ticket-criteria-edit">
-      <legend className="field-label">Acceptance criteria</legend>
+    <fieldset className="flex flex-col gap-2 border-0 m-0 p-0">
+      <legend className="eyebrow mb-1">Acceptance criteria</legend>
       {criteria.map((criterion, index) => (
-        <div key={index} className="criterion-edit-row">
+        <div key={index} className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {(["given", "when", "then"] as const).map((field) => (
             <input
               key={field}
-              className="criterion-input"
+              className="field"
               aria-label={`Criterion ${index + 1} ${field}`}
               placeholder={`${field[0].toUpperCase()}${field.slice(1)}…`}
               value={criterion[field]}

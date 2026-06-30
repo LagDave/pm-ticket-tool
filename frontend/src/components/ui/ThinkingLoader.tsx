@@ -50,7 +50,7 @@ export function ThinkingLoader({
 
   return (
     <motion.div
-      className="thinking-loader"
+      className="surface flex items-center gap-3.5 p-4"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
@@ -60,7 +60,7 @@ export function ThinkingLoader({
     >
       {done ? (
         <motion.span
-          className="thinking-loader-check"
+          className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full border border-success/50 bg-success/15 text-success"
           aria-hidden
           initial={{ scale: 0, rotate: -25 }}
           animate={{ scale: 1, rotate: 0 }}
@@ -69,13 +69,26 @@ export function ThinkingLoader({
           <Check size={20} strokeWidth={3} />
         </motion.span>
       ) : (
-        <span className="thinking-loader-orb" aria-hidden />
+        <span className="relative h-[26px] w-[26px] shrink-0" aria-hidden>
+          {/* Dual-ring orb rebuilt with framer-motion (the old CSS pseudo-element
+              rings lived in index.css, which this migration no longer relies on). */}
+          <motion.span
+            className="absolute inset-0 rounded-full border-2 border-transparent border-t-accent"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 0.9, ease: "linear", repeat: Infinity }}
+          />
+          <motion.span
+            className="absolute inset-[5px] rounded-full border-2 border-transparent border-t-accent-soft"
+            animate={{ rotate: -360 }}
+            transition={{ duration: 1.4, ease: "linear", repeat: Infinity }}
+          />
+        </span>
       )}
       <div>
         <AnimatePresence mode="wait">
           <motion.div
             key={done ? "done" : phase}
-            className="thinking-loader-label"
+            className="font-display text-base font-medium text-ink"
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
@@ -84,7 +97,7 @@ export function ThinkingLoader({
             {label}
           </motion.div>
         </AnimatePresence>
-        {subtitle && <div className="thinking-loader-sub">{subtitle}</div>}
+        {subtitle && <div className="mt-0.5 text-sm text-faint">{subtitle}</div>}
       </div>
     </motion.div>
   );

@@ -11,15 +11,23 @@ import type { InterviewSession } from "../../types/interview";
 
 interface RequestEntryProps {
   onCreated: (session: InterviewSession) => void;
+  /**
+   * Pre-selected project for the new session (the shell sidebar's per-project
+   * "new session" passes the group's project). Omitted/null leaves it ungrounded.
+   */
+  initialProjectId?: number | null;
 }
 
 /** Sentinel <select> value for "no project" - the session stays ungrounded. */
 const NO_PROJECT = "";
 
-export function RequestEntry({ onCreated }: RequestEntryProps) {
+export function RequestEntry({ onCreated, initialProjectId = null }: RequestEntryProps) {
   const [request, setRequest] = useState("");
   // Which project the interview is attached to (optional). UI state only (§15.2).
-  const [projectChoice, setProjectChoice] = useState<string>(NO_PROJECT);
+  // Seeded from the sidebar group the "new session" was launched from.
+  const [projectChoice, setProjectChoice] = useState<string>(
+    initialProjectId == null ? NO_PROJECT : String(initialProjectId),
+  );
   const createSession = useCreateSession();
   const { data: projects } = useProjects();
 
@@ -37,17 +45,17 @@ export function RequestEntry({ onCreated }: RequestEntryProps) {
   };
 
   return (
-    <form className="step-panel" onSubmit={handleSubmit}>
-      <label className="field-label" htmlFor="request">
+    <form className="surface flex flex-col gap-3 p-5" onSubmit={handleSubmit}>
+      <label className="block text-base font-semibold text-ink" htmlFor="request">
         What do you want to build?
       </label>
-      <p className="field-hint">
+      <p className="text-sm text-muted">
         Describe the feature or change in plain language. We&apos;ll turn it into
         a structured ticket through a short feature scope.
       </p>
       <textarea
         id="request"
-        className="request-input"
+        className="field min-h-[84px] resize-y leading-relaxed"
         rows={6}
         placeholder="e.g. Add a magic-link login so users can sign in without a password."
         value={request}
@@ -55,25 +63,27 @@ export function RequestEntry({ onCreated }: RequestEntryProps) {
         disabled={createSession.isPending}
       />
       {projects && projects.length > 0 && (
-        <div className="project-picker">
-          <span className="project-picker-label">Project (optional)</span>
-          <Select
-            value={projectChoice}
-            options={[
-              { value: NO_PROJECT, label: "No project" },
-              ...projects.map((project) => ({
-                value: String(project.id),
-                label: project.name,
-              })),
-            ]}
-            onChange={setProjectChoice}
-            disabled={createSession.isPending}
-            ariaLabel="Project"
-          />
+        <div className="flex flex-col gap-1.5">
+          <span className="eyebrow">Project (optional)</span>
+          <div className="max-w-[360px]">
+            <Select
+              value={projectChoice}
+              options={[
+                { value: NO_PROJECT, label: "No project" },
+                ...projects.map((project) => ({
+                  value: String(project.id),
+                  label: project.name,
+                })),
+              ]}
+              onChange={setProjectChoice}
+              disabled={createSession.isPending}
+              ariaLabel="Project"
+            />
+          </div>
         </div>
       )}
-      <div className="step-actions">
-        <button type="submit" className="primary-button" disabled={!canSubmit}>
+      <div className="mt-1 flex flex-wrap items-center gap-3">
+        <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
           {createSession.isPending ? "Starting…" : "Start feature scoping"}
         </button>
       </div>

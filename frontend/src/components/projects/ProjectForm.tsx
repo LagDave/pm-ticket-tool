@@ -36,13 +36,13 @@ export function ProjectForm({ project, isSaving, onSubmit, onCancel }: ProjectFo
   };
 
   return (
-    <form className="bit-form" onSubmit={handleSubmit}>
-      <label className="bit-field-label" htmlFor="project-name">
+    <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
+      <label className="eyebrow" htmlFor="project-name">
         Project name
       </label>
       <input
         id="project-name"
-        className="request-input"
+        className="field"
         type="text"
         placeholder="e.g. PuzzleHR Web App"
         value={name}
@@ -51,20 +51,20 @@ export function ProjectForm({ project, isSaving, onSubmit, onCancel }: ProjectFo
       />
       <textarea
         id="project-description"
-        className="request-input project-description-input"
+        className="field"
         rows={3}
         placeholder="Optional: a one-line description of what this app is."
         value={description}
         onChange={(event) => setDescription(event.target.value)}
         disabled={isSaving}
       />
-      <div className="step-actions">
-        <button type="submit" className="primary-button" disabled={!canSubmit}>
+      <div className="mt-1 flex items-center gap-2">
+        <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
           {isSaving ? "Saving…" : project ? "Save project" : "Create project"}
         </button>
         <button
           type="button"
-          className="secondary-button"
+          className="btn"
           onClick={onCancel}
           disabled={isSaving}
         >

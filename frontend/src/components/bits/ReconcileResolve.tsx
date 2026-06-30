@@ -89,26 +89,24 @@ interface ResolveRowProps {
 function ResolveRow({ action, candidate, decision, disabled, onChange }: ResolveRowProps) {
   const isInsert = action.action === "insert";
   return (
-    <li className="reconcile-row">
-      <div className="reconcile-row-head">
-        <span className="bit-key">{candidate.bit_key}</span>
-        <span className="bit-source">{BIT_KIND_LABEL[candidate.kind]}</span>
+    <li className="surface flex flex-col gap-2 p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-mono text-sm font-semibold text-ink">{candidate.bit_key}</span>
+        <span className="pill">{BIT_KIND_LABEL[candidate.kind]}</span>
         {action.targetBitId != null && (
-          <span className="reconcile-target">vs. bit #{action.targetBitId}</span>
+          <span className="eyebrow">vs. bit #{action.targetBitId}</span>
         )}
       </div>
-      <p className="reconcile-reason">{action.reason}</p>
+      <p className="text-sm text-muted">{action.reason}</p>
 
       {!isInsert && (
-        <div className="reconcile-choices" role="group" aria-label="Resolution choice">
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Resolution choice">
           {NON_INSERT_CHOICES.map((option) => (
             <button
               key={option.value}
               type="button"
               className={
-                decision.choice === option.value
-                  ? "reconcile-choice is-selected"
-                  : "reconcile-choice"
+                "btn " + (decision.choice === option.value ? "btn-primary" : "")
               }
               aria-pressed={decision.choice === option.value}
               onClick={() => onChange({ ...decision, choice: option.value })}
@@ -121,10 +119,10 @@ function ResolveRow({ action, candidate, decision, disabled, onChange }: Resolve
       )}
 
       {decision.choice !== "skip" && (
-        <label className="bit-field">
-          <span className="bit-field-label">Summary to save</span>
+        <label className="flex flex-col gap-1.5">
+          <span className="eyebrow">Summary to save</span>
           <textarea
-            className="request-input"
+            className="field"
             rows={3}
             value={decision.summary}
             onChange={(event) => onChange({ ...decision, summary: event.target.value })}
@@ -197,22 +195,22 @@ export function ReconcileResolve({
   };
 
   return (
-    <div className="step-panel reconcile-panel">
-      <div className="reconcile-head">
-        <h2 className="step-heading">Review the import</h2>
-        <button type="button" className="link-button" onClick={onDone} disabled={apply.isPending}>
+    <div className="surface p-5">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h2 className="font-display text-base font-semibold text-ink">Review the import</h2>
+        <button type="button" className="btn btn-ghost" onClick={onDone} disabled={apply.isPending}>
           Cancel
         </button>
       </div>
-      <p className="field-hint">
+      <p className="mb-5 text-sm text-muted">
         Conflicts and similar bits come first. Pick what to do with each, edit the
         summary if needed, then apply.
       </p>
 
       {groups.map((group) => (
-        <section key={group.kind} className="reconcile-group">
-          <h3 className="bit-group-heading">{RECONCILIATION_ACTION_LABEL[group.kind]}</h3>
-          <ul className="reconcile-list">
+        <section key={group.kind} className="mb-6">
+          <h3 className="eyebrow mb-2">{RECONCILIATION_ACTION_LABEL[group.kind]}</h3>
+          <ul className="flex flex-col gap-2">
             {group.actions.map((action) => {
               const candidate = candidates[action.incomingIndex];
               const decision =
@@ -232,10 +230,10 @@ export function ReconcileResolve({
         </section>
       ))}
 
-      <div className="step-actions">
+      <div className="mt-2 flex items-center gap-2">
         <button
           type="button"
-          className="primary-button"
+          className="btn btn-primary"
           onClick={handleApply}
           disabled={apply.isPending}
         >
@@ -243,7 +241,7 @@ export function ReconcileResolve({
         </button>
         <button
           type="button"
-          className="secondary-button"
+          className="btn"
           onClick={onDone}
           disabled={apply.isPending}
         >

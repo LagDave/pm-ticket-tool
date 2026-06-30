@@ -23,18 +23,14 @@ interface ButtonProps {
   className?: string;
 }
 
-const BASE =
-  "inline-flex items-center justify-center gap-2 rounded-xl font-medium text-[0.95rem] " +
-  "px-5 py-2.5 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-40 " +
-  "select-none";
+// Render the shared DevEasy kit classes (defined in index.css, token-driven so
+// light + dark both resolve). `select-none` is the only extra; motion is below.
+const BASE = "btn select-none";
 
 const INTENT: Record<ButtonIntent, string> = {
-  primary:
-    "bg-accent text-canvas font-semibold shadow-[0_8px_24px_-8px_rgba(255,117,31,0.6)] " +
-    "hover:bg-accent-soft",
-  secondary:
-    "border border-line-2 bg-surface/60 text-ink hover:border-faint hover:bg-surface-2",
-  ghost: "text-muted hover:text-ink",
+  primary: "btn-primary",
+  secondary: "",
+  ghost: "btn-ghost",
 };
 
 export function Button({

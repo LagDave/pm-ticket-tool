@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DevEasy-Style Two-Pane Shell Spec</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #ffffff;
+      --ink: #080808;
+      --muted: #5f5f5f;
+      --line: #d8d8d8;
+      --soft: #f5f5f5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    .spec-shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0; }
+    .spec-hero, .spec-card, .task-card { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+    .spec-hero { border-color: var(--ink); padding: 32px; margin-bottom: 20px; }
+    .hero-topline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .spec-card { padding: 28px; margin-top: 16px; }
+    .task-card { padding: 20px; background: var(--soft); margin-top: 14px; }
+    .eyebrow, dt { color: var(--muted); font-size: 0.78rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
+    .eyebrow { margin: 0; }
+    .status-pill { display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 0.78rem; font-weight: 800; letter-spacing: 0; text-transform: uppercase; }
+    .status-card { border-color: var(--ink); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 840px; margin-bottom: 24px; font-size: clamp(2.25rem, 6vw, 5rem); line-height: 0.95; letter-spacing: 0; }
+    h2 { font-size: 1.35rem; letter-spacing: 0; }
+    h3 { font-size: 1rem; letter-spacing: 0; }
+    code { padding: 0.1rem 0.3rem; border: 1px solid var(--line); border-radius: 4px; background: var(--soft); font-size: 0.92em; }
+    .meta-grid, .split-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .meta-grid { margin: 0; }
+    .meta-grid div, .split-grid > div { border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    dd { margin: 4px 0 0; font-weight: 700; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
+    .tag { display: inline-block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; color: var(--muted); margin-left: 6px; }
+    @media (max-width: 640px) {
+      .spec-shell { width: min(100% - 20px, 1120px); padding: 24px 0; }
+      .spec-hero, .spec-card { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">PM Ticket Tool Plan Spec</p>
+        <span class="status-pill status-completed">Completed</span>
+      </div>
+      <h1>DevEasy-Style Two-Pane Shell</h1>
+      <dl class="meta-grid">
+        <div class="status-card"><dt>Status</dt><dd>Completed (pending UI acceptance)</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07012026-deveasy-style-two-pane-shell</dd></div>
+        <div><dt>Size</dt><dd>Large</dd></div>
+        <div><dt>Risk</dt><dd>Level 3</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>The PM tool navigates by full-screen view swaps (dashboard → wizard → ticket → projects) with a roomy, hand-written layout. The sibling app <code>~/Desktop/deveasy</code> uses a tighter, more productive shell: a persistent sidebar listing work grouped by project, and a main pane showing the current item. We want the PM tool to feel like deveasy — a persistent two-pane shell, sessions grouped by project in the sidebar, the current session/ticket in the main pane, and an overall more compact UI.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>Restructure the authenticated SPA into a deveasy-style two-pane shell and migrate its styling to deveasy's compact, utility-first kit. Concretely:</p>
+      <ul>
+        <li><strong>Persistent two-pane layout</strong> — a fixed left sidebar + a <code>flex-1</code> main pane that never fully unmounts. Replaces the full-screen <code>useState&lt;View&gt;</code> swap in <code>App.tsx</code>.</li>
+        <li><strong>Sidebar = sessions grouped by project</strong> — every project is a group; its sessions list beneath it, plus a dedicated <strong>"No project"</strong> group for ungrounded sessions (<code>project_id === null</code>). A "Projects" entry opens the projects manager in the main pane.</li>
+        <li><strong>Main pane = current session view</strong> — the wizard, ticket view, or projects screens render inside the pane under one slim shell header (eyebrow + title). Their own brand mastheads are removed. An empty state shows when nothing is selected.</li>
+        <li><strong>Full utility-kit migration</strong> — adopt deveasy's component kit (<code>.eyebrow</code>/<code>.btn</code>/<code>.field</code>/<code>.pill</code>/<code>.surface</code>) and compact spacing, rewriting component JSX from the semantic CSS classes to Tailwind utilities. The kit is wired to the PM tool's themeable CSS variables so <strong>light + dark both keep working</strong>.</li>
+        <li><strong>deveasy typography</strong> — switch fonts to Hanken Grotesk (body) + JetBrains Mono (labels/headings); drop Fraunces.</li>
+      </ul>
+      <p><strong>Done when:</strong> the authed app renders as a persistent sidebar (sessions grouped by project, incl. a "No project" group) + main pane; selecting a session opens it in the pane; the wizard/ticket/projects flows all work from inside the shell; light and dark themes both render correctly in the new compact style; the public <code>?ticket=</code> shared view still renders full-screen with no sidebar; <code>npx tsc --noEmit</code> and the build pass; no dead semantic CSS remains for migrated screens.</p>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <h3>Reference app (style source — read-only, do not edit)</h3>
+      <ul>
+        <li><code>~/Desktop/deveasy/frontend/src/App.tsx</code> — the two-pane shell: <code>aside</code> sidebar + <code>main</code> with slim header and animated panel swap.</li>
+        <li><code>~/Desktop/deveasy/frontend/src/components/Session/SessionSidebar.tsx</code> — sessions grouped by project, active-row treatment (left accent bar + <code>bg-surface-2</code>), per-project new + row actions.</li>
+        <li><code>~/Desktop/deveasy/frontend/src/index.css</code> — the token + kit reference: <code>@theme</code> tokens and the <code>@layer components</code> kit (<code>.eyebrow</code>/<code>.btn</code>/<code>.field</code>/<code>.pill</code>/<code>.surface</code>).</li>
+      </ul>
+      <h3>Files this work changes (PM tool)</h3>
+      <ul>
+        <li><code>frontend/src/index.css</code> — token layer (fonts + compact light/dark palettes), add the token-driven kit, remove semantic CSS as screens migrate. Near-total rewrite by the end.</li>
+        <li><code>frontend/package.json</code> — swap <code>@fontsource/fraunces</code> + <code>@fontsource/sora</code> for <code>@fontsource-variable/hanken-grotesk</code> + <code>@fontsource-variable/jetbrains-mono</code>.</li>
+        <li><code>frontend/src/App.tsx</code> — replace full-screen view swap with the two-pane shell; keep <code>SharedTicketView</code> outside the shell.</li>
+        <li>New: <code>frontend/src/components/shell/AppShell.tsx</code>, <code>SessionSidebar.tsx</code> (PM-tool sidebar grouped by project), shell header + empty state.</li>
+        <li><code>frontend/src/pages/Dashboard.tsx</code> — its list moves to the sidebar; its filter/search become sidebar controls; the page is reduced to (or replaced by) the pane empty/landing state.</li>
+        <li><code>frontend/src/components/dashboard/SessionList.tsx</code> — folded into the sidebar's grouped rows.</li>
+        <li><code>frontend/src/pages/InterviewWizard.tsx</code> + <code>components/interview/*</code> + <code>components/ticket/*</code> + <code>pages/ProjectsManager.tsx</code> + <code>pages/ProjectDetail.tsx</code> + <code>components/projects/*</code> + <code>components/bits/*</code> + <code>components/ui/*</code> — JSX migrated to the utility kit; brand mastheads removed where the shell now owns the header.</li>
+        <li><code>frontend/src/lib/theme.tsx</code> + <code>components/ui/ThemeToggle.tsx</code> — retained; toggle relocates into the sidebar. Both themes restyled.</li>
+      </ul>
+      <h3>Patterns to follow (Code Constitution — frontend, Part III)</h3>
+      <ul>
+        <li><strong>§12.1 / §14.2</strong> — all data goes through the <code>api/</code> client + hooks; the sidebar reads sessions/projects via <code>useSessions</code>/<code>useProjects</code>, never <code>fetch</code>/<code>axios</code>.</li>
+        <li><strong>§14.3 / §15.1</strong> — server data stays React Query; the sidebar's grouping/filtering is derived from cached query data, not mirrored into <code>useState</code>.</li>
+        <li><strong>§15.2 / §15.4</strong> — shell selection (active session, active pane view) is UI state (local/Context); no new state library.</li>
+        <li><strong>§12.3</strong> — new shell components live in a <code>components/shell/</code> feature folder.</li>
+        <li><strong>§13.1 / §13.2</strong> — keep files under the size tiers; AppShell stays lean (selection state in a small hook if it grows).</li>
+        <li><strong>§16.3 / §17.1 / §17.2</strong> — errors via <code>lib/toast</code>; no <code>console.*</code>; no <code>any</code>.</li>
+      </ul>
+      <p><strong>Reference analog (in-repo):</strong> for the sidebar's data + grouping, mirror the existing <code>Dashboard.tsx</code> hook usage (<code>useSessions</code>, <code>useProjects</code>) and <code>SessionList.tsx</code> row structure; for the kit, mirror deveasy's <code>index.css</code> classes rewired to this repo's <code>:root</code> / <code>[data-theme="light"]</code> tokens.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Wire the kit to the PM tool's <strong>existing CSS variables</strong> (<code>var(--accent)</code>, <code>var(--surface)</code>, …) so <strong>light AND dark both work</strong> — never hardcode deveasy's dark hex into kit classes.</li>
+            <li>Keep the public <code>?ticket=</code> <code>SharedTicketView</code> <strong>outside</strong> the shell — full-screen, no sidebar, no auth chrome.</li>
+            <li>Group sidebar sessions by project with an explicit <strong>"No project"</strong> group for <code>project_id === null</code>.</li>
+            <li>Source sidebar data with <code>useSessions({ limit: 100 })</code> + <code>useProjects()</code>, grouped client-side; show a "recent 100" note when <code>total &gt; 100</code>.</li>
+            <li>Delete the semantic CSS for each screen <strong>in the same task</strong> that migrates that screen — no lingering parallel styling.</li>
+            <li>Preserve every existing behavior: triage routing, resume-at-step, re-run (clone), delete, view-ticket, project bits editing, theme persistence.</li>
+            <li>Route all data through hooks → <code>api/</code> (§14.x); UI selection state only in local/Context (§15.2).</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No backend changes (no new endpoints, no schema, no raising <code>MAX_LIMIT</code>) — frontend-only task.</li>
+            <li>No new dependencies beyond the two font packages (and removal of the two old ones). No router library, no new state library (§15.4).</li>
+            <li>No <code>console.*</code> (§17.1), no <code>any</code> (§17.2), no raw <code>fetch</code>/<code>axios</code> (§14.2).</li>
+            <li>Do not add a session-rename UI — no backend rename endpoint exists.</li>
+            <li>Do not change ticket-generation, interview-engine, or triage logic — this is a shell + styling change only.</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out of scope</h3>
+      <ul>
+        <li>A per-project session-list backend endpoint or raising the 100 cap (future follow-up).</li>
+        <li>Inline session rename.</li>
+        <li>Any backend / API / DB work.</li>
+        <li>New product features — purely layout, density, and styling.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level:</strong> 3 (Structural — whole-frontend blast radius).</p>
+      <h3>Risks Identified</h3>
+      <ul>
+        <li><strong>Full utility migration touches nearly the entire frontend.</strong> <strong>Mitigation:</strong> phase execution into dependency groups (T1 foundation → T2 ui kit → parallel T3/T5/T6 → T4/T7 → T8 cleanup) with milestone commits; migrate + delete old CSS per screen so the two systems never coexist on a finished screen.</li>
+        <li><strong>deveasy's kit hardcodes dark colors; we keep light+dark.</strong> <strong>Mitigation (must):</strong> adopt the kit's structure but bind every color to this repo's themeable CSS vars. Verify both themes after T1.</li>
+        <li><strong>100-session sidebar ceiling + client-side filter.</strong> <strong>Mitigation:</strong> newest-100 ordering (already default), a subtle "showing recent 100" note when total exceeds 100, status/search filtering done client-side over the loaded set; note the backend follow-up.</li>
+        <li><strong>Shared public ticket view could lose its standalone layout.</strong> <strong>Mitigation:</strong> shell wraps only the authed tree; <code>SharedTicketView</code> branch in <code>App.tsx</code> renders before/outside the shell.</li>
+        <li><strong>Mid-migration regressions across screens.</strong> <strong>Mitigation:</strong> the acceptance artifact (test.html) exercises each surface; visual QA per phase in both themes.</li>
+      </ul>
+      <p><strong>Blast radius:</strong> <code>App.tsx</code>, <code>index.css</code> (near-total), <code>package.json</code>, <code>Dashboard</code>, <code>SessionList</code>, <code>InterviewWizard</code> + all <code>components/interview/*</code>, all <code>components/ticket/*</code> (incl. <code>SharedTicketView</code>), <code>ProjectsManager</code>, <code>ProjectDetail</code>, <code>components/projects/*</code>, <code>components/bits/*</code>, all <code>components/ui/*</code>, <code>lib/theme.tsx</code>. Effectively the whole <code>frontend/src</code> tree. No backend consumers.</p>
+      <h3>Pushback</h3>
+      <ul>
+        <li><strong>Full utility migration vs. retune:</strong> migrating deep internals (e.g. <code>OptionDeck</code>, <code>TicketEditFields</code>, <code>ReconcileResolve</code>) to utilities is high effort for marginal visual gain over simply retuning their semantic CSS. Recommended alternative was "retune + shell kit." You chose full migration knowingly — the phased plan contains the risk, but if time pressure appears, the high-traffic surfaces (shell, sidebar, wizard, ticket read view) deliver most of the perceived change; deep editors can be migrated last or deferred without blocking the shell.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+      <p class="eyebrow">Dependency order: T1 → T2 → { T3 · T5 · T6 } → { T4 · T7 } → T8. T5/T6 may run in parallel sub-agents after T2; T4 after T3; T7 after T3.</p>
+
+      <article class="task-card">
+        <h3>T1: Design foundation — tokens, fonts, kit</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Swap font packages (remove Fraunces/Sora, add <code>@fontsource-variable/hanken-grotesk</code> + <code>@fontsource-variable/jetbrains-mono</code>); update <code>--font-*</code> tokens (body = Hanken Grotesk, mono/headings = JetBrains Mono, no serif display). Retune the light + dark token palettes to deveasy's compact, cohesive values. Add the deveasy kit in <code>@layer components</code> (<code>.eyebrow</code>/<code>.btn</code>/<code>.btn-primary</code>/<code>.btn-ghost</code>/<code>.btn-danger</code>/<code>.field</code>/<code>.pill</code>/<code>.surface</code>/<code>.card-hover</code>) bound to <code>var(--*)</code> tokens so both themes resolve.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/index.css</code>, <code>frontend/package.json</code></dd></div>
+          <div><dt>Depends on</dt><dd>none (blocks all)</dd></div>
+          <div><dt>Verify</dt><dd><code>npm --prefix frontend run build</code>; toggle light/dark and confirm both palettes + new fonts render.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T2: Shared UI kit components</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Migrate <code>components/ui/*</code> (<code>Button</code>, <code>Modal</code>, <code>Select</code>, <code>Panel</code>, <code>ThemeToggle</code>) to the new kit/utilities so feature components inherit a consistent compact look. Keep component APIs unchanged.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ui/*.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd><code>npx tsc --noEmit</code>; buttons/modals/selects render in both themes.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T3: App shell — two-pane layout</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Create <code>components/shell/AppShell.tsx</code>: persistent <code>aside</code> + <code>flex-1</code> <code>main</code> with one slim header (eyebrow + title) and an empty/landing state. Rewrite <code>App.tsx</code> to mount the shell for the authed app and keep the <code>?ticket=</code> <code>SharedTicketView</code> branch <strong>outside</strong> the shell. Introduce shell selection state (active session id, active pane view: session | projects | empty) as local/Context UI state (§15.2). Relocate <code>ThemeToggle</code> into the sidebar.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/App.tsx</code>, <code>frontend/src/components/shell/AppShell.tsx</code> (+ small selection hook/context if needed)</dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Authed app shows sidebar+pane; empty state on load; <code>?ticket=&lt;token&gt;</code> renders full-screen with no sidebar.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T4: Sidebar — sessions grouped by project</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Create <code>components/shell/SessionSidebar.tsx</code> (PM-tool adaptation of deveasy's): load <code>useProjects()</code> + <code>useSessions({ limit: 100 })</code>, group sessions by <code>project_id</code> with a "No project" group; each project group has a "+ new session" action that pre-attaches its <code>projectId</code>, "No project" has one for ungrounded sessions. Session rows show the generated title + a <strong>status badge</strong> (remap deveasy's runtime dot to <code>SessionStatus</code>), an active-row treatment (left accent bar + <code>bg-surface-2</code>), and the existing actions: resume/finish, re-run (clone), view-ticket (when complete), delete (inline confirm). Move the status filter + title search here as client-side controls over the loaded set; show a "showing recent 100" note when <code>total &gt; 100</code>. Add a "Projects" entry that sets the pane view to projects (T7). Drop <code>SessionList.tsx</code> (folded in) and delete its semantic CSS.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/shell/SessionSidebar.tsx</code>, <code>frontend/src/pages/Dashboard.tsx</code> (reduced to pane empty/landing state), remove <code>frontend/src/components/dashboard/SessionList.tsx</code>, <code>frontend/src/index.css</code> (remove dashboard/session-list classes)</dd></div>
+          <div><dt>Depends on</dt><dd>T3</dd></div>
+          <div><dt>Verify</dt><dd>Sessions appear under their project + "No project"; selecting opens in the pane; new/resume/re-run/delete/view-ticket all work; filter+search narrow the list; both themes correct.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T5: Wizard + interview migration</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Migrate <code>InterviewWizard</code> and <code>components/interview/*</code> (<code>RequestEntry</code>, <code>TriageBranch</code>, <code>QuestionBatch</code>, <code>QuestionCarousel</code>, <code>OptionDeck</code>, <code>OptionCard</code>, <code>SpeedMeter</code>) + <code>ThinkingLoader</code> to the utility kit. Remove the wizard's brand masthead (shell owns the header); keep the step rail. Delete the corresponding semantic CSS. Behavior unchanged.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/InterviewWizard.tsx</code>, <code>frontend/src/components/interview/*.tsx</code>, <code>frontend/src/components/ui/ThinkingLoader.tsx</code>, <code>frontend/src/index.css</code> (remove wizard/interview classes)</dd></div>
+          <div><dt>Depends on</dt><dd>T1, T2</dd></div>
+          <div><dt>Verify</dt><dd>New session → request → triage → interview → ticket runs end to end inside the pane; both themes correct.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T6: Ticket components migration</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Migrate <code>components/ticket/*</code> (<code>TicketView</code>, <code>TicketStep</code>, <code>TicketReadView</code>, <code>TicketEditFields</code>, <code>TicketComments</code>, <code>CopyTicketButton</code>, <code>SharedTicketView</code>) to the kit. <strong>Keep <code>SharedTicketView</code> as a standalone full-screen layout</strong> (its own minimal header, no sidebar). Delete corresponding semantic CSS.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ticket/*.tsx</code>, <code>frontend/src/index.css</code> (remove ticket classes)</dd></div>
+          <div><dt>Depends on</dt><dd>T1, T2</dd></div>
+          <div><dt>Verify</dt><dd>Ticket view/edit/comments/copy work in the pane; <code>?ticket=&lt;token&gt;</code> shared view renders standalone in both themes.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T7: Projects pane integration + migration</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Render <code>ProjectsManager</code> and <code>ProjectDetail</code> (bits editing) inside the main pane via the sidebar "Projects" entry (replace <code>onExit</code>/<code>onBack</code> full-screen navigation with pane-view transitions). Migrate <code>components/projects/*</code> and <code>components/bits/*</code> to the kit. Delete corresponding semantic CSS. Project create → lands the new session in the sidebar/pane.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/ProjectsManager.tsx</code>, <code>frontend/src/pages/ProjectDetail.tsx</code>, <code>frontend/src/components/projects/*.tsx</code>, <code>frontend/src/components/bits/*.tsx</code>, <code>frontend/src/index.css</code> (remove projects/bits classes)</dd></div>
+          <div><dt>Depends on</dt><dd>T3 (pane), T2 (ui kit)</dd></div>
+          <div><dt>Verify</dt><dd>Projects entry opens manager in pane; create/rename/delete project, edit/import/reconcile bits all work; both themes correct.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T8: Cleanup + integration sweep</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Remove any remaining dead semantic CSS from <code>index.css</code>; confirm no orphaned class references; verify imports/exports resolve; run the full check pipeline. Confirm no parallel styling left on any finished screen.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/index.css</code>, any stragglers</dd></div>
+          <div><dt>Depends on</dt><dd>T1–T7</dd></div>
+          <div><dt>Verify</dt><dd><code>npx tsc --noEmit</code>; <code>npm --prefix frontend run build</code>; <code>npm run check:all</code>; grep for removed class names returns no JSX references.</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled> <code>npx tsc --noEmit</code> — zero errors from this work</li>
+        <li><input type="checkbox" disabled> <code>npm --prefix frontend run build</code> passes</li>
+        <li><input type="checkbox" disabled> <code>npm run check:all</code> — no new violations (no <code>console.*</code>/<code>any</code>/raw fetch)</li>
+        <li><input type="checkbox" disabled> Manual: authed app renders as persistent sidebar (sessions grouped by project + "No project") + main pane</li>
+        <li><input type="checkbox" disabled> Manual: selecting a session opens it in the pane; new/resume/re-run/delete/view-ticket all work</li>
+        <li><input type="checkbox" disabled> Manual: full session flow (request → triage → interview → ticket) works inside the shell</li>
+        <li><input type="checkbox" disabled> Manual: Projects entry opens manager/detail in the pane; bits editing works</li>
+        <li><input type="checkbox" disabled> Manual: light AND dark themes both render correctly in the new compact style</li>
+        <li><input type="checkbox" disabled> Manual: <code>?ticket=&lt;token&gt;</code> shared view renders full-screen with no sidebar</li>
+        <li><input type="checkbox" disabled> Manual: "showing recent 100" note appears when total sessions &gt; 100</li>
+        <li><input type="checkbox" disabled> No dead semantic CSS remains for migrated screens</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <article class="revision-entry">
+        <h3>Rev 1 - 2026-07-01</h3>
+        <p><strong>Change:</strong> Executed T1–T8. Foundation (tokens/kit/fonts) + shell + sidebar built directly; T5/T6/T7 styling migrations run as three parallel sub-agents over disjoint file sets; T8 cleanup swept the dead CSS.</p>
+        <p><strong>Reason:</strong> Execution deviation — several pragmatic decisions taken during the build, recorded here for spec-code parity:</p>
+        <ul>
+          <li><strong>CSS removal deferred to a single T8 sweep</strong> (not per-task as specced). The legacy CSS lives in one shared <code>index.css</code>; having three parallel agents each delete from it would conflict. Agents migrated JSX only; the orchestrator removed all now-dead classes at the end after verifying each was unreferenced. The "two systems never coexist on a finished screen" intent holds because the dead CSS was simply unused (overridden by utilities) until removed — <code>index.css</code> went 2039 → ~440 lines.</li>
+          <li><strong>"Resume" and "view ticket" unified into one "open session" action.</strong> Selecting any session opens the wizard at its resume step; a complete session opens straight to its ticket step (which renders the ticket). This removed the separate ticket-id resolution and the per-row view-ticket icon. Sidebar row actions are: open (click), re-run, delete.</li>
+          <li><strong>Inline session rename dropped</strong> — no backend rename endpoint exists (confirmed during planning); deveasy's rename row action was not ported.</li>
+          <li><strong>UI widgets fully migrated</strong> — Modal/Panel/Select were migrated to the kit by T7 (the spec had floated deferring them); no widget left on legacy CSS.</li>
+          <li><strong>ThinkingLoader spinner reimplemented in framer-motion</strong> — its animation previously lived in <code>index.css</code> keyframes being removed; behavior/appearance equivalent.</li>
+          <li><strong>Advisory lint left as-is:</strong> <code>max-lines-per-function</code> warnings on <code>ImportDialog</code> (158) and <code>InterviewWizard</code> (124) after the verbose-JSX migration, plus the pre-existing <code>theme.tsx</code> fast-refresh warnings and the §17.5 false-positive (the theme localStorage read, not a token). All advisory; backend hard violations: 0.</li>
+        </ul>
+        <p><strong>Verification:</strong> <code>tsc --noEmit</code> clean · <code>npm run build</code> passes · <code>check:conventions</code> backend 0 violations · frontend lint 0 errors / 4 advisory warnings.</p>
+        <p><strong>Updated Done criteria:</strong> the build/typecheck/check items are met; the manual UI items remain to be run against the live app (see <code>test.html</code>).</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

@@ -33,33 +33,36 @@ export function ProjectList({
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
 
   if (projects.length === 0) {
-    return <p className="field-hint">No projects yet. Create one above.</p>;
+    return <p className="text-sm text-muted">No projects yet. Create one above.</p>;
   }
 
   return (
-    <ul className="session-list">
+    <ul className="flex flex-col gap-2">
       {projects.map((project) => (
-        <li key={project.id} className="session-row">
-          <div className="session-main">
-            <p className="session-title">{project.name}</p>
+        <li
+          key={project.id}
+          className="surface card-hover flex flex-wrap items-center justify-between gap-3 p-3"
+        >
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-ink">{project.name}</p>
             {project.description && (
-              <p className="session-snippet">{project.description}</p>
+              <p className="truncate text-sm text-muted">{project.description}</p>
             )}
-            <span className="session-meta">
+            <span className="eyebrow mt-1 block">
               Updated {new Date(project.updated_at).toLocaleString()}
             </span>
           </div>
-          <div className="session-actions">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              className="light-button"
+              className="btn btn-primary"
               onClick={() => onOpen(project)}
             >
               Open
             </button>
             <button
               type="button"
-              className="secondary-button"
+              className="btn"
               onClick={() => onEdit(project)}
             >
               Edit
@@ -68,7 +71,7 @@ export function ProjectList({
               <>
                 <button
                   type="button"
-                  className="danger-button"
+                  className="btn btn-danger"
                   onClick={() => {
                     onDelete(project);
                     setConfirmingId(null);
@@ -79,7 +82,7 @@ export function ProjectList({
                 </button>
                 <button
                   type="button"
-                  className="secondary-button"
+                  className="btn"
                   onClick={() => setConfirmingId(null)}
                   disabled={isDeleting}
                 >
@@ -89,7 +92,7 @@ export function ProjectList({
             ) : (
               <button
                 type="button"
-                className="session-delete"
+                className="btn btn-ghost"
                 onClick={() => setConfirmingId(project.id)}
                 aria-label={`Delete project: ${project.name}`}
               >
