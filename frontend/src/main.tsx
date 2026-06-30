@@ -4,7 +4,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { readStoredTheme } from "./lib/theme";
 import "./index.css";
+
+// Apply the persisted theme before first paint so there's no flash of the wrong
+// palette before React mounts the ThemeProvider.
+document.documentElement.dataset.theme = readStoredTheme();
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {

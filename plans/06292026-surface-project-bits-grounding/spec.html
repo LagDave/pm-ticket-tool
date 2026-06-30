@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Surface & Fix Project-Bits Grounding Spec</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #ffffff;
+      --ink: #080808;
+      --muted: #5f5f5f;
+      --line: #d8d8d8;
+      --soft: #f5f5f5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    .spec-shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0; }
+    .spec-hero, .spec-card, .task-card { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+    .spec-hero { border-color: var(--ink); padding: 32px; margin-bottom: 20px; }
+    .hero-topline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .spec-card { padding: 28px; margin-top: 16px; }
+    .task-card { padding: 20px; background: var(--soft); margin-top: 14px; }
+    .eyebrow, dt { color: var(--muted); font-size: 0.78rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
+    .eyebrow { margin: 0; }
+    .status-pill { display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 0.78rem; font-weight: 800; letter-spacing: 0; text-transform: uppercase; }
+    .status-card { border-color: var(--ink); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 840px; margin-bottom: 24px; font-size: clamp(2.25rem, 6vw, 5rem); line-height: 0.95; letter-spacing: 0; }
+    h2 { font-size: 1.35rem; letter-spacing: 0; }
+    h3 { font-size: 1rem; letter-spacing: 0; }
+    code { padding: 0.1rem 0.3rem; border: 1px solid var(--line); border-radius: 4px; background: var(--soft); font-size: 0.92em; }
+    .meta-grid, .split-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .meta-grid { margin: 0; }
+    .meta-grid div, .split-grid > div { border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    dd { margin: 4px 0 0; font-weight: 700; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
+    .task-card dl > div { padding: 6px 0; border-top: 1px solid var(--line); }
+    .task-card dl > div:first-of-type { border-top: 0; }
+    .tag { display: inline-block; font-size: 0.66rem; font-weight: 800; text-transform: uppercase; border: 1px solid var(--ink); border-radius: 999px; padding: 1px 9px; }
+    @media (max-width: 640px) {
+      .spec-shell { width: min(100% - 20px, 1120px); padding: 24px 0; }
+      .spec-hero, .spec-card { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">PM Ticket Tool · Plan Spec</p>
+        <span class="status-pill status-pending">Pending Execution</span>
+      </div>
+      <h1>Surface &amp; Fix Project-Bits Grounding</h1>
+      <dl class="meta-grid">
+        <div class="status-card"><dt>Status</dt><dd>Pending Execution</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/06292026-surface-project-bits-grounding</dd></div>
+        <div><dt>Size</dt><dd>Medium (~10 files)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>
+        The interview engine is wired to ground questions in a project's bits (project-context snippets), but in
+        practice sessions keep running <strong>ungrounded</strong> — e.g. the scope flow asked
+        "What is the current login method being replaced?" when PuzzlePulse's bits already settle auth. Two real
+        gaps cause this: the re-run (clone) path silently drops the project link, and the project picker defaults to
+        "No project" so a session is created ungrounded by accident. On top of that, even when grounding <em>is</em>
+        present, the PM cannot see <strong>which bits informed this task</strong> — the grounding is invisible, so
+        there is no way to trust or verify it. We fix the passing and make the related bits visible.
+      </p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>Three outcomes, verifiable in the running app:</p>
+      <ul>
+        <li><strong>Bits are passed reliably.</strong> A re-run of a grounded session stays grounded
+          (<code>cloneSession</code> preserves <code>project_id</code>). The interview shows an explicit
+          <em>grounding-state</em> badge so an accidentally-ungrounded session is obvious, and it distinguishes
+          "no project attached" from "project attached but no active bits."</li>
+        <li><strong>Related bits are shown.</strong> During the feature-scope step, a read-only panel lists the
+          project bits <em>related to this request</em> — a model-selected subset — with a one-line "why," plus a
+          "show all project context" expander revealing every active bit. Each grounded option also names the bit it
+          came from inline.</li>
+        <li><strong>Done = you can see it.</strong> Done is verified by watching a grounded session surface its
+          related bits and an ungrounded session show the badge, against the running app
+          (<code>test.html</code>, Layer 2).</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <h3>Relevant Files</h3>
+      <ul>
+        <li><code>src/agents/interviewAgent.ts</code> — builds the batch prompt; already branches grounded vs ungrounded
+          (<code>buildBitsBlock</code>, <code>GROUNDED_OPTION_RULES</code>). Adds the <code>relatedBits</code> output field.</li>
+        <li><code>src/validation/interviewQuestions.ts</code> — <code>generatedBatchSchema</code> (zod) validates model output at the boundary (§11.2). Add <code>relatedBits</code>.</li>
+        <li><code>src/types/interview.ts</code> — <code>GeneratedBatch</code>, <code>InterviewState</code>, <code>QuestionOption.groundingRef</code>, <code>SkippedQuestion</code>. Add <code>relatedBits</code> + a grounding summary.</li>
+        <li><code>src/controllers/interview/feature-services/InterviewEngineService.ts</code> — <code>loadProjectGrounding</code> (already loads active bits), <code>generateAndPersistBatch</code>, <code>getState</code>, <code>parseBatchOrThrow</code>.</li>
+        <li><code>src/controllers/interview/feature-services/InterviewSessionService.ts</code> — <code>cloneSession</code> (the bug: drops <code>project_id</code>) and <code>getSessionState</code>.</li>
+        <li><code>src/models/ProjectBitModel.ts</code> — <code>listActiveByProject</code> (status = "active" only). Read path for the bit dictionary.</li>
+        <li><code>frontend/src/types/interview.ts</code> — mirrors the backend shapes (<code>PersistedBatch</code>, <code>InterviewState</code>, <code>QuestionOption</code>).</li>
+        <li><code>frontend/src/components/interview/QuestionBatch.tsx</code> — already renders skipped questions + detects grounded options; host for the new panel + badge.</li>
+        <li><code>frontend/src/components/interview/OptionCard.tsx</code> / <code>OptionDeck.tsx</code> — render options; <code>groundingRef</code> is <strong>not</strong> shown today.</li>
+      </ul>
+      <h3>Patterns To Follow</h3>
+      <ul>
+        <li><strong>Backend (§6.1, §7.1, §7.4):</strong> all DB stays in <code>models/</code> (<code>ProjectBitModel.listActiveByProject</code>); the service orchestrates; the agent owns prompt + structured output. Mirror the existing grounded path in <code>interviewAgent.ts</code> (<code>buildBitsBlock</code> / <code>GROUNDED_OPTION_RULES</code>).</li>
+        <li><strong>Boundary validation (§11.2):</strong> the new <code>relatedBits</code> field is validated in <code>generatedBatchSchema</code> before it is ever persisted — never trust raw model output.</li>
+        <li><strong>Frontend (§12.3, §14.3, §15.1):</strong> the panel is a presentational component in <code>components/interview/</code>; it reads server state from the <code>useInterview</code> hook — no <code>fetch</code> (§14.2), no business logic. Mirror the existing skipped-questions rendering in <code>QuestionBatch.tsx</code>.</li>
+        <li><strong>No <code>any</code> (§17.2):</strong> every new field is typed in <code>types/</code> on both sides.</li>
+      </ul>
+      <p><strong>Reference analogs:</strong> backend — the grounded path already in <code>src/agents/interviewAgent.ts</code> (the <code>skipped</code> field is the closest existing "model-emitted, schema-validated, persisted-in-batch, rendered-in-UI" feature — <code>relatedBits</code> mirrors it end to end). Frontend — the skipped-questions block in <code>QuestionBatch.tsx</code>.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Generation must still receive <strong>all</strong> active bits — the <code>relatedBits</code> subset is <em>display only</em> and must never change what is passed to suppression/grounding.</li>
+            <li><code>relatedBits</code> is nullable; ungrounded batches and all pre-existing persisted turns resolve to "no related bits" without error (backward compatible).</li>
+            <li>A failed/absent <code>relatedBits</code> must never block question generation — degrade to the existing behavior.</li>
+            <li>Validate the new field at the boundary (§11.2); type every field, no <code>any</code> (§17.2).</li>
+            <li>The grounding-state badge must distinguish: no project · project with no active bits · grounded.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No second/standalone LLM call for relevance — fold the field into the existing batch call (see Pushback).</li>
+            <li>No change to the project-picker <strong>default</strong> (decision: keep "No project", surface state instead).</li>
+            <li>No new dependencies. No DB queries outside <code>models/</code> (§7.4). No <code>fetch</code> outside <code>api/</code> (§14.2).</li>
+            <li>No drive-by refactors of the interview engine beyond these fields.</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li><strong>Ticket-draft "context used" surface</strong> — the ticket already has a <code>codebase_grounding</code> section (<code>ticketAgent.ts</code>) that maps the work to the project context. Not duplicated here.</li>
+        <li>Changing the project-picker default, or any bit-reconciliation / bit-authoring flow.</li>
+        <li>A schema migration — no new DB columns; <code>relatedBits</code> rides the existing batch JSONB, the grounding summary is computed on read.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level:</strong> 2 (Concern). Mitigations below keep it from rising.</p>
+      <h3>Risks Identified</h3>
+      <ul>
+        <li><strong>The relevance subset can wrongly hide a relevant bit (model error).</strong>
+          <strong>Mitigation:</strong> (a) generation still gets all bits, so suppression/grounding correctness is untouched; (b) the panel has a "show all project context" expander, so the subset is a highlight, never a gate.</li>
+        <li><strong>Adding a model output field could push the model off-schema and fail batch generation.</strong>
+          <strong>Mitigation:</strong> <code>relatedBits</code> is optional/nullable in <code>generatedBatchSchema</code>; on absence we persist <code>null</code> and the UI falls back. The boundary validator already rejects only truly malformed batches.</li>
+        <li><strong><code>getState</code> now loads the project + active bits on every state read (it is polled).</strong>
+          <strong>Mitigation:</strong> active-bit sets are small (project context, typically &lt;30 rows) and read through the indexed <code>listActiveByProject</code> (§10.4); only when <code>project_id</code> is set. Acceptable; revisit with caching only if profiling shows cost.</li>
+        <li><strong>An option's <code>groundingRef</code> may name a bit not in the related subset.</strong>
+          <strong>Mitigation:</strong> resolve <code>groundingRef</code> against the full active-bit dictionary in <code>InterviewState.grounding</code>; fall back to the raw key if unresolved.</li>
+      </ul>
+      <p><strong>Blast radius:</strong>
+        <code>parseBatchOrThrow</code> + <code>generatedBatchSchema</code> (batch parsing) · existing persisted turns (must stay readable with no <code>relatedBits</code>) · <code>getState</code> / <code>getSessionState</code> consumers (added <code>grounding</code> field) · the re-run path (<code>cloneSession</code> → controller/route → frontend <code>SessionList.onReRun</code>) · <code>QuestionBatch.tsx</code>, <code>OptionCard/OptionDeck</code> rendering.</p>
+      <h3>Pushback</h3>
+      <ul>
+        <li><strong>You chose "add a relevance step" over "highlight referenced."</strong> A separate relevance LLM call adds latency, cost, and a new failure path on every session, for a result the model can already produce in-line. Recommended approach (taken in this spec): honor the intent — a <em>model-selected</em> related subset — by adding a <code>relatedBits</code> field to the <em>existing</em> batch call, and pair it with the "show all" expander so nothing the model omits is ever lost. This gives the precision of a relevance step with the safety of show-all, at zero extra round-trips. If you truly want a pre-question, session-level relevance pass independent of batch 1, say so and we add a task — but it is strictly more expensive for little gain.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card">
+        <h3>T1: <span class="tag">backend</span> Emit a model-selected <code>relatedBits</code> subset on batch generation</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>relatedBits: { bitKey: string; why: string }[] | null</code> to <code>GeneratedBatch</code> and the persisted batch. In <code>interviewAgent.ts</code>, extend the <strong>grounded</strong> rules to instruct the model to return the subset of bits relevant to <em>this request</em> with a one-line <code>why</code>; ungrounded path returns <code>null</code>. Validate the field in <code>generatedBatchSchema</code> (nullable/optional, defensive). Generation input is unchanged — all active bits still passed.</dd></div>
+          <div><dt>Files</dt><dd><code>src/types/interview.ts</code>, <code>src/agents/interviewAgent.ts</code>, <code>src/validation/interviewQuestions.ts</code>, <code>src/controllers/interview/feature-services/InterviewEngineService.ts</code> (parse/persist)</dd></div>
+          <div><dt>Depends on</dt><dd>none</dd></div>
+          <div><dt>Verify</dt><dd><code>npx tsc --noEmit</code>; unit test asserts a grounded batch parses <code>relatedBits</code> and an ungrounded one yields <code>null</code>.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T2: <span class="tag">backend</span> Add a grounding summary + active-bit dictionary to <code>InterviewState</code></h3>
+        <dl>
+          <div><dt>Do</dt><dd>Extend <code>getState</code> to build <code>grounding: { status: "grounded" | "ungrounded_no_project" | "ungrounded_no_bits"; projectName: string | null; projectId: number | null; bits: { bitKey, kind, summary }[] }</code>. Read <code>session.project_id</code>; load project + <code>listActiveByProject</code> through the models (§7.4). <code>getSessionState</code> passes the field through unchanged. This drives both the badge and per-option/related-bit resolution.</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/interview/feature-services/InterviewEngineService.ts</code>, <code>src/controllers/interview/feature-services/InterviewSessionService.ts</code>, <code>src/types/interview.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>none</dd></div>
+          <div><dt>Verify</dt><dd><code>npx tsc --noEmit</code>; test: ungrounded session → <code>ungrounded_no_project</code>; project with 0 active bits → <code>ungrounded_no_bits</code>; project with bits → <code>grounded</code> + dictionary populated.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T3: <span class="tag">backend</span> Fix <code>cloneSession</code> to preserve <code>project_id</code> (the re-run bug)</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Pass <code>projectId: source.project_id ?? undefined</code> into the <code>InterviewSessionModel.create</code> call in <code>cloneSession</code> so a re-run of a grounded session stays grounded. Update the doc comment.</dd></div>
+          <div><dt>Files</dt><dd><code>src/controllers/interview/feature-services/InterviewSessionService.ts</code>, <code>src/controllers/interview/InterviewSessionController.test.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>none</dd></div>
+          <div><dt>Verify</dt><dd>Extend the existing clone test (line ~312) to assert the cloned session's <code>project_id</code> equals the source's.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T4: <span class="tag">frontend</span> Mirror the new types</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>relatedBits</code> to <code>PersistedBatch</code>, the <code>grounding</code> summary + bit-dictionary type to <code>InterviewState</code>, all nullable/back-compatible. No <code>any</code> (§17.2).</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/types/interview.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1, T2 (shape parity)</dd></div>
+          <div><dt>Verify</dt><dd><code>npx tsc --noEmit</code> in <code>frontend/</code>.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T5: <span class="tag">frontend</span> Grounding panel + grounding-state badge</h3>
+        <dl>
+          <div><dt>Do</dt><dd>New presentational component <code>GroundingPanel.tsx</code> in <code>components/interview/</code>: when grounded, render the open batch's <code>relatedBits</code> (resolved against <code>grounding.bits</code> for summaries) with the one-line "why", plus a collapsed "Show all project context" expander listing every active bit; when ungrounded, render the badge — "⚠ Ungrounded — no project context" (no project) or "⚠ No active bits for {project}" (no bits). Mount it in <code>QuestionBatch.tsx</code> above the carousel. Reads from the <code>useInterview</code> hook only (§14.3, §15.1) — no fetch.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/interview/GroundingPanel.tsx</code> (new), <code>frontend/src/components/interview/QuestionBatch.tsx</code>, <code>frontend/src/index.css</code> (styles)</dd></div>
+          <div><dt>Depends on</dt><dd>T4</dd></div>
+          <div><dt>Verify</dt><dd>Manual: grounded session shows related bits + expander; ungrounded shows the correct badge variant.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T6: <span class="tag">frontend</span> Inline per-option bit reference</h3>
+        <dl>
+          <div><dt>Do</dt><dd>In <code>OptionCard</code>/<code>OptionDeck</code>, when an option has a <code>groundingRef</code>, resolve it against <code>grounding.bits</code> and render a small "From project context: {bit summary}" affordance under the option (fall back to the raw key if unresolved). Keep it subtle — it reinforces the panel, does not clutter the deck.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/interview/OptionCard.tsx</code>, <code>frontend/src/components/interview/OptionDeck.tsx</code>, <code>frontend/src/index.css</code></dd></div>
+          <div><dt>Depends on</dt><dd>T4</dd></div>
+          <div><dt>Verify</dt><dd>Manual: a grounded option shows its backing bit; an ungrounded option shows nothing.</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled> <code>npx tsc --noEmit</code> (root + <code>frontend/</code>) — zero new errors</li>
+        <li><input type="checkbox" disabled> <code>npm run check:conventions --strict</code> — no new backend violations</li>
+        <li><input type="checkbox" disabled> <code>npx vitest</code> — interview engine + clone tests pass, incl. new <code>relatedBits</code> / grounding-summary / <code>project_id</code>-preservation cases</li>
+        <li><input type="checkbox" disabled> Manual: re-run (clone) a session attached to a project → the clone is still grounded (related bits show)</li>
+        <li><input type="checkbox" disabled> Manual: grounded session shows the related-bits panel with "why" + "show all" expander; grounded options name their bit inline</li>
+        <li><input type="checkbox" disabled> Manual: a no-project session shows the "Ungrounded" badge; a project-with-no-active-bits session shows the "no active bits" badge</li>
+        <li><input type="checkbox" disabled> No regression: ungrounded sessions and pre-existing persisted turns render with no errors (backward compatible)</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

@@ -15,7 +15,9 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 import { SharedTicketView } from "./components/ticket/SharedTicketView";
 import { TicketView } from "./components/ticket/TicketView";
+import { ThemeToggle } from "./components/ui/ThemeToggle";
 import { queryClient } from "./lib/queryClient";
+import { ThemeProvider } from "./lib/theme";
 import { Dashboard } from "./pages/Dashboard";
 import { InterviewWizard, type WizardStep } from "./pages/InterviewWizard";
 import { ProjectDetail } from "./pages/ProjectDetail";
@@ -46,7 +48,9 @@ export default function App() {
   const goDashboard = (): void => setView({ name: "dashboard" });
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeToggle />
       {view.name === "dashboard" && (
         <Dashboard
           onOpenSession={(sessionId, step) =>
@@ -98,7 +102,8 @@ export default function App() {
 
       {view.name === "shared" && <SharedTicketView token={view.token} />}
 
-      <Toaster position="top-right" />
-    </QueryClientProvider>
+        <Toaster position="top-right" />
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }

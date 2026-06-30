@@ -78,11 +78,11 @@ export class InterviewSessionService {
     owner: OwnerContext,
     query: ListSessionsQuery,
   ): Promise<PaginatedResult<IInterviewSession>> {
-    const { page, limit, status } = query;
+    const { page, limit, status, search } = query;
     const offset = (page - 1) * limit;
     const [items, total] = await Promise.all([
-      InterviewSessionModel.listPageForOwner(owner, { limit, offset, status }),
-      InterviewSessionModel.countForOwner(owner, { status }),
+      InterviewSessionModel.listPageForOwner(owner, { limit, offset, status, search }),
+      InterviewSessionModel.countForOwner(owner, { status, search }),
     ]);
     return {
       items,

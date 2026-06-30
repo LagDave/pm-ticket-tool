@@ -32,8 +32,29 @@ export function createApp(): Application {
     }),
   );
 
-  // Pino request logging — no console.* (§9.1).
-  app.use(pinoHttp({ logger }));
+  // Pino request logging — no console.* (§9.1). One concise line per request
+  // (method, url, status) instead of pino-http's full header/req/res dump, which
+  // buried real signal in noise. Errors (5xx) log at error, client errors (4xx)
+  // at warn, everything else at info. Health checks are dropped entirely.
+  app.use(
+    pinoHttp({
+      logger,
+      autoLogging: {
+        ignore: (req) => req.url === "/health" || req.url?.startsWith("/health") === true,
+      },
+      serializers: {
+        req: (req) => ({ method: req.method, url: req.url }),
+        res: (res) => ({ statusCode: res.statusCode }),
+      },
+      customLogLevel: (_req, res, err) => {
+        if (err || res.statusCode >= 500) return "error";
+        if (res.statusCode >= 400) return "warn";
+        return "info";
+      },
+      customSuccessMessage: (req, res) => `${req.method} ${req.url} → ${res.statusCode}`,
+      customErrorMessage: (req, res) => `${req.method} ${req.url} → ${res.statusCode}`,
+    }),
+  );
 
   app.use(express.json({ limit: "1mb" }));
 

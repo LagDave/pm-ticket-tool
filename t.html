@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Move Escalations Into Requests Tab Spec</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #ffffff;
+      --ink: #080808;
+      --muted: #5f5f5f;
+      --line: #d8d8d8;
+      --soft: #f5f5f5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    .spec-shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0; }
+    .spec-hero, .spec-card, .task-card { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+    .spec-hero { border-color: var(--ink); padding: 32px; margin-bottom: 20px; }
+    .hero-topline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .spec-card { padding: 28px; margin-top: 16px; }
+    .task-card { padding: 20px; background: var(--soft); margin-top: 14px; }
+    .eyebrow, dt { color: var(--muted); font-size: 0.78rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
+    .eyebrow { margin: 0; }
+    .status-pill { display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 0.78rem; font-weight: 800; letter-spacing: 0; text-transform: uppercase; }
+    .status-card { border-color: var(--ink); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 840px; margin-bottom: 24px; font-size: clamp(2.25rem, 6vw, 5rem); line-height: 0.95; letter-spacing: 0; }
+    h2 { font-size: 1.35rem; letter-spacing: 0; }
+    h3 { font-size: 1rem; letter-spacing: 0; }
+    code { padding: 0.1rem 0.3rem; border: 1px solid var(--line); border-radius: 4px; background: var(--soft); font-size: 0.92em; }
+    .meta-grid, .split-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .meta-grid { margin: 0; }
+    .meta-grid div, .split-grid > div { border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    dd { margin: 4px 0 0; font-weight: 700; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
+    table.cmp { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    table.cmp th, table.cmp td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; font-size: 0.9rem; vertical-align: top; }
+    table.cmp th { background: var(--soft); font-size: 0.74rem; text-transform: uppercase; color: var(--muted); }
+    @media (max-width: 640px) {
+      .spec-shell { width: min(100% - 20px, 1120px); padding: 24px 0; }
+      .spec-hero, .spec-card { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Vision Plan Spec</p>
+        <span class="status-pill status-completed">Completed</span>
+      </div>
+      <h1>Move Escalations Into Requests Tab</h1>
+      <dl class="meta-grid">
+        <div class="status-card"><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/06242026-move-escalations-into-requests-tab</dd></div>
+        <div><dt>Size</dt><dd>Small (3 files)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Branch</dt><dd>sebastian/12913-update-cards-and-tables</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>The Escalations tab in each service module holds a single table that is closely related to the work shown in the Requests tab. Splitting it into its own tab forces an extra click and fragments the request/escalation picture. Consolidating the escalations table at the bottom of the Requests view gives a single scrollable place to see open work, closed work, and escalations together.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>For each module that has an Escalations tab, move the existing Escalations table to the bottom of its main Requests-style tab — below the last existing table — and remove the standalone "Escalations" tab button. The table itself (columns, sorting, pagination, data source) does not change; only its location in the page does. The "Escalations" section title and its descriptive subtitle are kept so the table stays distinguishable from the request tables.</p>
+      <p><strong>Modules in scope:</strong> Managed HR, Managed Payroll, Talent Acquisition. <strong>EDC is explicitly out of scope</strong> — it keeps its Escalations tab (it has no Requests/Closed table to anchor the move).</p>
+      <p><strong>Done when:</strong> none of the three pages show an "Escalations" tab button; each shows its Escalations table appended below the last table of its main tab; sorting/pagination still work; <code>npx tsc --noEmit</code> is clean.</p>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <h3>Relevant Files</h3>
+      <ul>
+        <li><code>vision-frontend/src/app/components/pages/HRManagedPage.tsx</code> — tab list (~line 960), Requests tab content closes ~line 1187, Escalations block <code>{activeTab === "escalations" && (...)}</code> wraps <code>&lt;CollapsibleSection title="HR Escalations"&gt;</code> at lines 1190–1280.</li>
+        <li><code>vision-frontend/src/app/components/pages/PayrollPage.tsx</code> — tab list (~line 1040), Closed Requests table ends ~line 1264, Requests tab closes ~line 1268, Escalations block <code>&lt;CollapsibleSection title="Payroll Escalations"&gt;</code> begins at line 1443.</li>
+        <li><code>vision-frontend/src/app/components/pages/TalentAcquisitionPage.tsx</code> — tab list (~line 862), Pipeline tab (Open Positions table) closes ~line 1070, Escalations block <code>&lt;CollapsibleSection title="TA Escalations"&gt;</code> begins at line 1098.</li>
+      </ul>
+      <h3>Patterns To Follow</h3>
+      <ul>
+        <li>Each module already stacks tables inside one tab by wrapping each in a spacing <code>&lt;div className="mt-8"&gt;</code> (see Payroll Closed Requests at <code>PayrollPage.tsx:1244</code>). Reuse that exact spacing wrapper for the moved Escalations section.</li>
+        <li>The escalations data (<code>escalations</code>, <code>sortedEscalations</code>, <code>escLoading</code>, <code>escPage</code>, <code>escTotalPages</code>, <code>handleEscSort</code>) is loaded in a mount/<code>clientId</code>-scoped effect that is <strong>not</strong> gated on <code>activeTab</code> (confirmed at <code>HRManagedPage.tsx:630–644</code>). Moving the table does not require touching any fetch logic.</li>
+        <li>The Escalations block is fully self-contained inside a <code>&lt;CollapsibleSection&gt;</code> — it can be relocated verbatim.</li>
+      </ul>
+      <p><strong>Reference analog:</strong> <code>HRManagedPage.tsx</code> — its Requests tab already renders Client Requests + Closed Requests stacked; the move makes Escalations the third stacked section using the same pattern. HR is the cleanest case; Payroll mirrors it; TA differs only in that its main tab is "Recruitment Pipeline" (Open Positions).</p>
+    </section>
+
+    <section class="spec-card" id="placement">
+      <h2>Placement Decisions (from grill)</h2>
+      <table class="cmp">
+        <thead><tr><th>Module</th><th>Target tab</th><th>Escalations table goes</th><th>Tab removed</th></tr></thead>
+        <tbody>
+          <tr><td>Managed HR</td><td><code>requests</code> (Client Requests)</td><td>Below Closed Requests table</td><td>Yes</td></tr>
+          <tr><td>Managed Payroll</td><td><code>requests</code> (Payroll Requests)</td><td>Below Closed Requests table</td><td>Yes</td></tr>
+          <tr><td>Talent Acquisition</td><td><code>pipeline</code> (Recruitment Pipeline)</td><td>Below Open Positions table</td><td>Yes</td></tr>
+          <tr><td>EDC</td><td>— (out of scope)</td><td>Unchanged</td><td>No</td></tr>
+        </tbody>
+      </table>
+      <p>Section title + descriptive subtitle are kept for all three (e.g. "HR Escalations" / "Service escalations and internal accountability issues").</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Work only on branch <code>sebastian/12913-update-cards-and-tables</code>; do not create or switch branches.</li>
+            <li>Keep the moved Escalations table identical: same columns, sort handlers, pagination (<code>esc_page</code> param), empty-state, and <code>CollapsibleSection</code> wrapper.</li>
+            <li>Wrap the relocated section in <code>&lt;div className="mt-8"&gt;</code> for consistent spacing below the table above it.</li>
+            <li>Remove the <code>{ id: "escalations", label: "Escalations" }</code> entry from each module's tab array.</li>
+            <li>Remove the now-dead <code>{activeTab === "escalations" && (...)}</code> conditional wrapper after relocating its inner content.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>Do not change EDC.</li>
+            <li>Do not change the escalations API calls, data shape, or backend.</li>
+            <li>Do not merge escalation rows into the request tables (they are different data sources — separate table on the page only).</li>
+            <li>No new dependencies. No drive-by refactors of unrelated table code.</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>EDC Escalations tab.</li>
+        <li>Any change to escalation columns, or unifying escalation/request schemas.</li>
+        <li>Visual redesign of the tables beyond the spacing wrapper.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level:</strong> 2 (Concern — isolated UI relocation, no data-layer change)</p>
+      <h3>Risks Identified</h3>
+      <ul>
+        <li><strong>Stale <code>?subtab=escalations</code> deep links / bookmarks.</strong> After the tab is removed, a URL with <code>subtab=escalations</code> matches no tab-content conditional and would render an empty body. <strong>Mitigation:</strong> in each page, normalize an unknown/removed <code>subtab</code> value to the module's default tab (<code>requests</code> for HR/Payroll, <code>pipeline</code> for TA) when reading the param.</li>
+        <li><strong>JSX bracket mismatch when removing the <code>{activeTab === "escalations" && (...)}</code> wrapper.</strong> Hand-editing nested JSX can drop a closing tag. <strong>Mitigation:</strong> rely on the TypeScript build gate (<code>npx tsc --noEmit</code>) plus a visual check after each file; edit one file at a time.</li>
+        <li><strong>Spacing/empty-state placement.</strong> In HR/Payroll the Closed Requests table sits inside the "has data" branch of an empty-state ternary. <strong>Mitigation:</strong> place the moved Escalations section inside the same branch as the Closed Requests table so layout stays consistent, matching the existing <code>mt-8</code> pattern.</li>
+      </ul>
+      <p><strong>Blast radius:</strong> Three page components only. No shared component, API, or type is modified. Consumers of <code>getHREscalations</code>/<code>getPayrollEscalations</code>/<code>getTAEscalations</code> are unchanged. EDC untouched.</p>
+      <h3>Pushback</h3>
+      <ul>
+        <li>Stacking a third table in one tab makes the page longer and pushes escalations far below the fold. This is acceptable given the explicit request, and the kept section title keeps it findable. No better alternative within the stated goal.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card">
+        <h3>T1: Managed HR — relocate Escalations into Client Requests tab</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Remove the <code>{ id: "escalations", label: "Escalations" }</code> tab entry. Cut the <code>&lt;CollapsibleSection title="HR Escalations"&gt;...&lt;/CollapsibleSection&gt;</code> block out of the <code>{activeTab === "escalations" && (...)}</code> wrapper and append it (wrapped in <code>&lt;div className="mt-8"&gt;</code>) immediately after the Closed Requests table, inside the Requests tab's data branch. Delete the emptied <code>{activeTab === "escalations" && (...)}</code> conditional. Normalize a removed/unknown <code>subtab</code> to <code>"requests"</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>vision-frontend/src/app/components/pages/HRManagedPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>none</dd></div>
+          <div><dt>Verify</dt><dd>Manual: no Escalations tab; HR Escalations table renders below Closed Requests; sort + pagination work. <code>npx tsc --noEmit</code> clean.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T2: Managed Payroll — relocate Escalations into Payroll Requests tab</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Same operation as T1: remove the escalations tab entry, move the <code>&lt;CollapsibleSection title="Payroll Escalations"&gt;</code> block to just after the Closed Requests table (<code>mt-8</code> wrapper) inside the Requests tab, delete the dead conditional, normalize unknown <code>subtab</code> to <code>"requests"</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>vision-frontend/src/app/components/pages/PayrollPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>none</dd></div>
+          <div><dt>Verify</dt><dd>Manual: no Escalations tab; Payroll Escalations table below Closed Requests; sort + pagination work. <code>npx tsc --noEmit</code> clean.</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card">
+        <h3>T3: Talent Acquisition — relocate Escalations into Recruitment Pipeline tab</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Remove the escalations tab entry. Move the <code>&lt;CollapsibleSection title="TA Escalations"&gt;</code> block to the end of the <code>pipeline</code> tab, below the Open Positions table (<code>mt-8</code> wrapper). Delete the dead <code>{activeTab === "escalations" && (...)}</code> conditional. Normalize unknown <code>subtab</code> to <code>"pipeline"</code>. Note: "Closed Positions" stays its own tab — Escalations goes under the Pipeline table, per grill decision.</dd></div>
+          <div><dt>Files</dt><dd><code>vision-frontend/src/app/components/pages/TalentAcquisitionPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>none</dd></div>
+          <div><dt>Verify</dt><dd>Manual: no Escalations tab; TA Escalations table below Recruitment Pipeline; sort + pagination work. <code>npx tsc --noEmit</code> clean.</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled> <code>npx tsc --noEmit</code> — zero new errors</li>
+        <li><input type="checkbox" disabled> No "Escalations" tab button on Managed HR, Managed Payroll, or Talent Acquisition</li>
+        <li><input type="checkbox" disabled> Each Escalations table renders below the last table of its target tab, with its title + subtitle kept</li>
+        <li><input type="checkbox" disabled> Escalations sorting and pagination still work in their new location</li>
+        <li><input type="checkbox" disabled> EDC Escalations tab unchanged</li>
+        <li><input type="checkbox" disabled> Old <code>?subtab=escalations</code> links fall back to the default tab (no blank page)</li>
+        <li><input type="checkbox" disabled> All work committed on <code>sebastian/12913-update-cards-and-tables</code>; no new branch</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <article class="revision-entry">
+        <h3>Rev 1 - 2026-06-24</h3>
+        <p><strong>Change:</strong> Executed T1–T3. Managed HR was implemented exactly as specified — the Escalations <code>CollapsibleSection</code> was relocated <em>inside</em> the Requests tab's data branch, immediately after the Closed Requests table, wrapped in <code>&lt;div className="mt-8"&gt;</code>.</p>
+        <p><strong>Reason — Execution deviation:</strong> For Managed Payroll and Talent Acquisition the Escalations block was not physically adjacent to the target tab (the Reports tab sits between Requests and Escalations in Payroll; the Closed Positions tab sits between Pipeline and Escalations in TA). Rather than retype ~90 lines of table JSX (which carries exact-match risk, including an escaped <code>"—"</code> em-dash literal in Payroll), the existing Escalations block was re-gated from <code>activeTab === "escalations"</code> to the target tab (<code>"requests"</code> / <code>"pipeline"</code>) and wrapped in <code>&lt;div className="mt-8"&gt;</code>. Because the intervening tab block renders <code>null</code> when the target tab is active, the Escalations table appears at the bottom of the target tab exactly as intended.</p>
+        <p><strong>Impact:</strong> Behavior matches the spec (Escalations at the bottom of the main Requests-style tab, tab button removed, table unchanged). The only difference from HR is structural: in Payroll/TA the Escalations table is a sibling block gated on the target tab rather than nested inside the data-branch fragment. One consequence: in Payroll/TA the Escalations table also renders during the target tab's loading/empty state; in HR it sits inside the populated data branch. Considered acceptable.</p>
+        <p><strong>Stale-link guard:</strong> All three pages now normalize a removed/unknown <code>?subtab=escalations</code> value to the module default (<code>requests</code> for HR/Payroll, <code>pipeline</code> for TA).</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

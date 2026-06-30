@@ -7,7 +7,7 @@
  * business logic here (§14.1); errors surface via the hooks' toast (§16.3) and an
  * inline error state. Other pages are not imported (§12.4). Typed, no any (§17.2).
  */
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SessionList } from "../components/dashboard/SessionList";
 import { ThinkingLoader } from "../components/ui/ThinkingLoader";
@@ -33,6 +33,9 @@ interface DashboardProps {
 /** Page size for the dashboard list. Named, not magic (§4.2). */
 const PAGE_SIZE = 10;
 
+/** Debounce (ms) before a search keystroke triggers a fetch. Named, not magic (§4.2). */
+const SEARCH_DEBOUNCE_MS = 300;
+
 /** The status filter choices, including "all" (no filter). */
 const STATUS_FILTERS: ReadonlyArray<{ value: SessionStatus | "all"; label: string }> = [
   { value: "all", label: "All" },
@@ -50,14 +53,29 @@ function resumeStep(status: SessionStatus): WizardStep {
 export function Dashboard({ onOpenSession, onViewTicket, onOpenProjects }: DashboardProps) {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<SessionStatus | "all">("all");
+  // The raw search box value (controlled) and its debounced echo that actually
+  // drives the query — so we fetch once the PM pauses typing, not per keystroke.
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   // The session whose ticket the PM asked to view; drives the resume-state fetch
   // that resolves its ticket id (spec 4 T6).
   const [ticketSessionId, setTicketSessionId] = useState<number | null>(null);
+
+  // Debounce the search box into `search`, and reset to page 1 when the term
+  // changes so results aren't hidden on a stale page.
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(handle);
+  }, [searchInput]);
 
   const { data, isLoading, error } = useSessions({
     page,
     limit: PAGE_SIZE,
     status: statusFilter === "all" ? undefined : statusFilter,
+    search: search === "" ? undefined : search,
   });
   const clone = useCloneSession();
   const remove = useDeleteSession();
@@ -103,7 +121,14 @@ export function Dashboard({ onOpenSession, onViewTicket, onOpenProjects }: Dashb
       <header className="dashboard-header">
         <div className="wizard-brand">
           <img className="wizard-logo" src="/logo.webp" alt="" aria-hidden width={40} height={40} />
-          <h1 className="wizard-title">Your sessions</h1>
+          <div className="dashboard-masthead-text">
+            <h1 className="wizard-title">Your sessions</h1>
+            {data && data.total > 0 && (
+              <p className="dashboard-count">
+                {data.total} session{data.total === 1 ? "" : "s"}
+              </p>
+            )}
+          </div>
         </div>
         <div className="dashboard-header-actions">
           <button type="button" className="secondary-button" onClick={onOpenProjects}>
@@ -114,25 +139,38 @@ export function Dashboard({ onOpenSession, onViewTicket, onOpenProjects }: Dashb
             className="primary-button"
             onClick={() => onOpenSession(null, WIZARD_STEP.request)}
           >
-            <Plus size={17} strokeWidth={2.5} className="shrink-0" aria-hidden />
+            <Plus size={15} strokeWidth={2.5} className="shrink-0" aria-hidden />
             New session
           </button>
         </div>
       </header>
 
-      <div className="filter-bar">
-        {STATUS_FILTERS.map((filter) => (
-          <button
-            key={filter.value}
-            type="button"
-            className={
-              "filter-chip" + (statusFilter === filter.value ? " is-active" : "")
-            }
-            onClick={() => handleFilterChange(filter.value)}
-          >
-            {filter.label}
-          </button>
-        ))}
+      <div className="dashboard-controls">
+        <div className="filter-bar">
+          {STATUS_FILTERS.map((filter) => (
+            <button
+              key={filter.value}
+              type="button"
+              className={
+                "filter-chip" + (statusFilter === filter.value ? " is-active" : "")
+              }
+              onClick={() => handleFilterChange(filter.value)}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+        <div className="search-field">
+          <Search size={16} className="search-field-icon shrink-0" aria-hidden />
+          <input
+            type="search"
+            className="search-input"
+            placeholder="Search by title…"
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            aria-label="Search sessions by title"
+          />
+        </div>
       </div>
 
       {isLoading && <ThinkingLoader subtitle="Loading your sessions" />}
@@ -140,7 +178,15 @@ export function Dashboard({ onOpenSession, onViewTicket, onOpenProjects }: Dashb
         <p className="field-hint">Could not load your sessions. Try again.</p>
       )}
 
-      {data && (
+      {data && data.items.length === 0 && (
+        <p className="field-hint">
+          {search
+            ? `No sessions match “${search}”.`
+            : "No sessions yet. Start one with “New session”."}
+        </p>
+      )}
+
+      {data && data.items.length > 0 && (
         <>
           <SessionList
             sessions={data.items}

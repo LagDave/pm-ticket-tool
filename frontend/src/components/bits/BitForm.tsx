@@ -7,8 +7,15 @@
  * fact text.
  */
 import { useState } from "react";
+import { Select } from "../ui/Select";
 import { BIT_KINDS, BIT_KIND_LABEL } from "../../types/project";
 import type { BitKind, ProjectBit } from "../../types/project";
+
+/** Kind options for the dropdown, derived from the bit taxonomy (§4.2). */
+const KIND_OPTIONS = BIT_KINDS.map((kind) => ({
+  value: kind,
+  label: BIT_KIND_LABEL[kind],
+}));
 
 interface BitFormProps {
   /** When editing, the bit to seed the fields from; omitted when adding. */
@@ -41,18 +48,13 @@ export function BitForm({ bit, isSaving, onSubmit, onCancel }: BitFormProps) {
       <div className="bit-form-row">
         <label className="bit-field">
           <span className="bit-field-label">Kind</span>
-          <select
-            className="ticket-effort-select"
+          <Select
             value={kind}
-            onChange={(event) => setKind(event.target.value as BitKind)}
+            options={KIND_OPTIONS}
+            onChange={setKind}
             disabled={isSaving}
-          >
-            {BIT_KINDS.map((option) => (
-              <option key={option} value={option}>
-                {BIT_KIND_LABEL[option]}
-              </option>
-            ))}
-          </select>
+            ariaLabel="Bit kind"
+          />
         </label>
         <label className="bit-field bit-field-grow">
           <span className="bit-field-label">Key</span>

@@ -9,6 +9,8 @@
  * so it just toasts + closes. Typed, no any (§17.2).
  */
 import { useState } from "react";
+import { createPortal } from "react-dom";
+import { ThinkingLoader } from "../ui/ThinkingLoader";
 import { useImportBits } from "../../hooks/queries/useProjectQueries";
 import { toast } from "../../lib/toast";
 import { BIT_KINDS } from "../../types/project";
@@ -84,6 +86,11 @@ function parseImport(text: string): CandidateBit[] {
 export function ImportDialog({ projectId, onClose, onPlan }: ImportDialogProps) {
   const [text, setText] = useState("");
   const [force, setForce] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  // The native input lives inside the dropzone <label>, so a click anywhere on
+  // the box opens the picker without a programmatic .click() (which the browser
+  // can ignore).
   const importBits = useImportBits(projectId);
 
   const readFile = (file: File): void => {
@@ -100,9 +107,23 @@ export function ImportDialog({ projectId, onClose, onPlan }: ImportDialogProps) 
 
   const handleFile = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const file = event.target.files?.[0];
-    if (file) readFile(file);
+    if (file) {
+      setFileName(file.name);
+      readFile(file);
+    }
     // Reset so picking the same file again still fires onChange.
     event.target.value = "";
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLLabelElement>): void => {
+    event.preventDefault();
+    setIsDragging(false);
+    if (importBits.isPending) return;
+    const file = event.dataTransfer.files?.[0];
+    if (file) {
+      setFileName(file.name);
+      readFile(file);
+    }
   };
 
   const handleImport = (): void => {
@@ -129,79 +150,103 @@ export function ImportDialog({ projectId, onClose, onPlan }: ImportDialogProps) 
     );
   };
 
-  return (
+  return createPortal(
     <div className="bit-overlay" role="dialog" aria-modal="true" aria-label="Import bits">
-      <div className="bit-overlay-card">
+      <div className="bit-overlay-card is-modal">
         <header className="bit-overlay-head">
           <h2 className="step-heading">Import bits</h2>
           <button type="button" className="link-button" onClick={onClose} disabled={importBits.isPending}>
             Close
           </button>
         </header>
-        <p className="field-hint">
-          Paste the JSON a Claude Code session wrote for this repo, or choose the
-          file it saved.
-        </p>
-
-        <label className="bit-field">
-          <span className="bit-field-label">Bits JSON</span>
-          <textarea
-            className="request-input"
-            rows={9}
-            placeholder='{ "bits": [ { "kind": "feature", "bit_key": "auth", "summary": "…" } ] }'
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            disabled={importBits.isPending}
-          />
-        </label>
-
-        <div className="bit-import-controls">
-          <label className="bit-file-field">
-            <span className="bit-field-label">…or choose a file</span>
-            <input
-              type="file"
-              accept="application/json,.json"
-              onChange={handleFile}
-              disabled={importBits.isPending}
+        {importBits.isPending ? (
+          <div className="bit-import-progress">
+            <ThinkingLoader
+              subtitle={
+                force
+                  ? "Replacing your project's bits…"
+                  : "Reconciling against your existing bits — this runs the AI, so it can take up to a minute. Don't close this."
+              }
             />
-          </label>
+          </div>
+        ) : (
+          <>
+            <p className="field-hint">
+              Paste the JSON a Claude Code session wrote for this repo, or choose the
+              file it saved.
+            </p>
 
-          <label className="bit-force-toggle">
-            <input
-              type="checkbox"
-              checked={force}
-              onChange={(event) => setForce(event.target.checked)}
-              disabled={importBits.isPending}
-            />
-            <span>Replace existing bits (force)</span>
-          </label>
-        </div>
+            <label className="bit-field">
+              <span className="bit-field-label">Bits JSON</span>
+              <textarea
+                className="request-input"
+                rows={9}
+                placeholder='{ "bits": [ { "kind": "feature", "bit_key": "auth", "summary": "…" } ] }'
+                value={text}
+                onChange={(event) => setText(event.target.value)}
+              />
+            </label>
 
-        {force && (
-          <p className="field-hint bit-force-warning">
-            Force replaces every existing bit on this project — no reconciliation step.
-          </p>
+            <div className="bit-dropzone-field">
+              <span className="bit-field-label">…or upload a file</span>
+              {/* A <label> wrapping the input opens the picker natively (no JS
+                  click, which can be blocked); it is also a drag-and-drop target. */}
+              <label
+                className={"bit-dropzone" + (isDragging ? " is-dragging" : "")}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+              >
+                <input
+                  className="bit-dropzone-input"
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={handleFile}
+                />
+                <span className="bit-dropzone-title">
+                  {fileName ?? "Drag a .json file here, or click to browse"}
+                </span>
+                {fileName && (
+                  <span className="bit-dropzone-hint">Click to choose a different file</span>
+                )}
+              </label>
+            </div>
+
+            <label className="bit-force-toggle">
+              <input
+                type="checkbox"
+                checked={force}
+                onChange={(event) => setForce(event.target.checked)}
+              />
+              <span>Replace existing bits (force)</span>
+            </label>
+
+            {force && (
+              <p className="field-hint bit-force-warning">
+                Force replaces every existing bit on this project — no reconciliation step.
+              </p>
+            )}
+
+            <div className="step-actions">
+              <button
+                type="button"
+                className="primary-button"
+                onClick={handleImport}
+                disabled={text.trim().length === 0}
+              >
+                {force ? "Replace bits" : "Reconcile import"}
+              </button>
+              <button type="button" className="secondary-button" onClick={onClose}>
+                Cancel
+              </button>
+            </div>
+          </>
         )}
-
-        <div className="step-actions">
-          <button
-            type="button"
-            className="primary-button"
-            onClick={handleImport}
-            disabled={importBits.isPending || text.trim().length === 0}
-          >
-            {importBits.isPending ? "Importing…" : force ? "Replace bits" : "Reconcile import"}
-          </button>
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={onClose}
-            disabled={importBits.isPending}
-          >
-            Cancel
-          </button>
-        </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

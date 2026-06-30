@@ -14,6 +14,9 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
+/** Max length of the dashboard title search term. Named, not magic (§4.2). */
+const SEARCH_MAX_LENGTH = 200;
+
 /** The session statuses a PM may filter the dashboard list by (§11.6 filter). */
 const SESSION_STATUSES = [
   "draft",
@@ -45,12 +48,20 @@ export type SessionIdParam = z.infer<typeof sessionIdParamSchema>;
 /**
  * Query schema for GET /sessions (dashboard list, §11.6). `page`/`limit` coerce
  * from the query string and are bounded; `status` is an optional filter that
- * narrows the list to one status. Defaults keep the first page reasonable.
+ * narrows the list to one status. `search` is an optional case-insensitive
+ * title filter (trimmed; blank is treated as absent). Defaults keep the first
+ * page reasonable.
  */
 export const listSessionsQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(DEFAULT_PAGE),
   limit: z.coerce.number().int().positive().max(MAX_LIMIT).default(DEFAULT_LIMIT),
   status: z.enum(SESSION_STATUSES).optional(),
+  search: z
+    .string()
+    .trim()
+    .max(SEARCH_MAX_LENGTH)
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : undefined)),
 });
 
 export type ListSessionsQuery = z.infer<typeof listSessionsQuerySchema>;

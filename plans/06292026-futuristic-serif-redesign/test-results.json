@@ -1,0 +1,120 @@
+{
+  "plan": "plans/06292026-futuristic-serif-redesign",
+  "generatedAt": "2026-06-30",
+  "status": "In Progress",
+  "items": [
+    {
+      "id": "T0",
+      "title": "Dependencies + impeccable skills installed",
+      "surface": "cli",
+      "precondition": "repo checked out, npm available",
+      "steps": ["1. Check frontend deps", "2. Check .claude/skills/impeccable exists"],
+      "expected": "three + @types/three + gsap in frontend/package.json; impeccable skills present; PRODUCT.md + DESIGN.md at root",
+      "status": "pass",
+      "evidence": "three@^0.185, gsap@^3.15, @types/three@^0.185 installed; .claude/skills/impeccable written; PRODUCT.md + DESIGN.md created",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T1",
+      "title": "TypeScript + lint clean",
+      "surface": "cli",
+      "precondition": "deps installed",
+      "steps": ["1. npx tsc --noEmit (frontend)", "2. npm run lint"],
+      "expected": "tsc exits 0; lint exits with 0 errors",
+      "status": "pass",
+      "evidence": "tsc=0; lint 0 errors (4 advisory warnings: 2 react-refresh on theme.tsx, 1 function-length Dashboard, 1 ImportDialog)",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Three.js + GSAP code-split into async chunk",
+      "surface": "cli",
+      "precondition": "build runs",
+      "steps": ["1. npm run build", "2. inspect dist/assets chunks"],
+      "expected": "ThreeBackdrop chunk is separate from the main index bundle (first paint not blocked)",
+      "status": "pass",
+      "evidence": "dist/assets/ThreeBackdrop-*.js = 156 KB gzip, separate from index-*.js = 160 KB gzip",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "Original impeccable detect findings fixed",
+      "surface": "cli",
+      "precondition": "edits applied",
+      "steps": ["1. npx impeccable detect frontend/src"],
+      "expected": "side-stripe border (request-echo) and width-transition (batch-pip) findings are gone",
+      "status": "pass",
+      "evidence": "Both original findings resolved. New 'em-dash-overuse (522)' finding scans CSS code comments, not UI copy — waived.",
+      "notes": "",
+      "waiver": "em-dash-overuse counts em-dashes in index.css code comments (not rendered body copy); non-actionable false positive."
+    },
+    {
+      "id": "T4",
+      "title": "Light + dark render correctly on every screen",
+      "surface": "ui",
+      "precondition": "dev server running (localhost:4221), logged in",
+      "steps": [
+        "1. Open the dashboard",
+        "2. Toggle theme via the bottom-left control",
+        "3. Visit projects, project detail, the new-session wizard, a ticket, and open the import/add-bit modals",
+        "4. Repeat in the other theme"
+      ],
+      "expected": "Every screen and modal reads correctly in both light and dark; no unstyled/contrast-broken surfaces; accent stays the single warm highlight",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T5",
+      "title": "Theme toggle persists across reload",
+      "surface": "ui",
+      "precondition": "dev server running",
+      "steps": ["1. Set light theme via the toggle", "2. Hard-reload the page"],
+      "expected": "Light theme is still applied after reload (no flash of dark first)",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T6",
+      "title": "WCAG AA contrast holds in both themes",
+      "surface": "ui",
+      "precondition": "both themes available",
+      "steps": ["1. Spot-check body text, muted text, and placeholders on canvas + surface in each theme"],
+      "expected": "Body ≥ 4.5:1, large/bold ≥ 3:1, placeholders ≥ 4.5:1, in light and dark",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T7",
+      "title": "WebGL backdrop (removed)",
+      "surface": "none",
+      "precondition": "",
+      "steps": [],
+      "expected": "N/A — the animated backdrop was removed at user request (Rev 3). Depth is a static CSS vignette; Three.js/GSAP uninstalled.",
+      "status": "pass",
+      "evidence": "Feature removed; no motion behind content.",
+      "notes": "Marked N/A — no longer in scope.",
+      "waiver": ""
+    },
+    {
+      "id": "T8",
+      "title": "Acceptable FPS on a mid-tier device",
+      "surface": "ui",
+      "precondition": "dev server running",
+      "steps": ["1. Observe scrolling/interaction smoothness with the backdrop active"],
+      "expected": "No perceptible jank; interaction stays responsive",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

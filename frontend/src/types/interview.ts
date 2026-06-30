@@ -97,6 +97,8 @@ export interface ListSessionsParams {
   page?: number;
   limit?: number;
   status?: SessionStatus;
+  /** Case-insensitive title search (matches the displayed title; blank = no filter). */
+  search?: string;
 }
 
 /* ---------------------------------------------------------------------------

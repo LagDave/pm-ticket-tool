@@ -108,6 +108,13 @@ export class BitReconciliationService {
     const project = await ProjectModel.findByIdForOwner(projectId, owner);
     const existingBits = await ProjectBitModel.listActiveByProject(projectId);
 
+    // The reconciliation agent is a single bounded LLM call that can take many
+    // seconds for a large batch; log start + finish so a long import is visible
+    // in the logs rather than silent (§9.3).
+    logger.info(
+      { projectId, candidateCount: candidates.length, existingCount: existingBits.length },
+      "Reconciling candidate bits against project context",
+    );
     const plan = await this.callAgentWithFallback(
       {
         // requireProject already proved the project exists for this owner; the
@@ -117,6 +124,10 @@ export class BitReconciliationService {
         candidates,
       },
       projectId,
+    );
+    logger.info(
+      { projectId, actionCount: plan.actions.length },
+      "Reconciliation plan ready",
     );
     return plan;
   }

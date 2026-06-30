@@ -11,7 +11,7 @@ dotenv.config();
 
 /** Named constants — no magic values scattered through the code (§4.2). */
 export const APP_CONSTANTS = {
-  DEFAULT_PORT: 4000,
+  DEFAULT_PORT: 4222,
   /**
    * Knex pool bounds for a LONG-RUNNING process (local dev, a dedicated Node
    * host), managed centrally (§10.6). A persistent process can hold a warm pool.
@@ -52,7 +52,7 @@ export const APP_CONSTANTS = {
  */
 export const INTERVIEW_ENGINE = {
   /** Primary model; falls back to FALLBACK_MODEL if the key rejects it. */
-  MODEL: "claude-opus-4-8",
+  MODEL: "claude-sonnet-4-6",
   FALLBACK_MODEL: "claude-sonnet-4-6",
   /** Low reasoning effort on generation calls to control cost (spec Constraints). */
   EFFORT: "low",
@@ -73,7 +73,7 @@ export const INTERVIEW_ENGINE = {
  */
 export const TICKET_GENERATION = {
   /** Primary model; falls back to FALLBACK_MODEL if the key rejects it. */
-  MODEL: "claude-opus-4-8",
+  MODEL: "claude-sonnet-4-6",
   FALLBACK_MODEL: "claude-sonnet-4-6",
   /** Medium reasoning effort for the synthesis call (spec T1). */
   EFFORT: "medium",
@@ -103,7 +103,7 @@ export const TICKET_GENERATION = {
  */
 export const BIT_RECONCILIATION = {
   /** Primary model; falls back to FALLBACK_MODEL if the key rejects it. */
-  MODEL: "claude-opus-4-8",
+  MODEL: "claude-sonnet-4-6",
   FALLBACK_MODEL: "claude-sonnet-4-6",
   /** Medium reasoning effort for the dedup/merge synthesis call (spec T8). */
   EFFORT: "medium",
@@ -131,7 +131,7 @@ export const BIT_RECONCILIATION = {
  */
 export const BIT_PROPOSAL = {
   /** Primary model; falls back to FALLBACK_MODEL if the key rejects it. */
-  MODEL: "claude-opus-4-8",
+  MODEL: "claude-sonnet-4-6",
   FALLBACK_MODEL: "claude-sonnet-4-6",
   /** Medium reasoning effort for the ticket-to-bits synthesis call (spec T13). */
   EFFORT: "medium",
@@ -149,7 +149,7 @@ export const BIT_PROPOSAL = {
  */
 export const TRIAGE = {
   /** Primary model; falls back to FALLBACK_MODEL if the key rejects it. */
-  MODEL: "claude-opus-4-8",
+  MODEL: "claude-sonnet-4-6",
   FALLBACK_MODEL: "claude-sonnet-4-6",
   /** Lowest reasoning effort — triage is a cheap split, not synthesis (spec Constraints). */
   EFFORT: "low",
@@ -168,7 +168,7 @@ export const TRIAGE = {
  */
 export const TITLE_GENERATION = {
   /** Primary model; falls back to FALLBACK_MODEL if the key rejects it. */
-  MODEL: "claude-opus-4-8",
+  MODEL: "claude-sonnet-4-6",
   FALLBACK_MODEL: "claude-sonnet-4-6",
   /** Lowest reasoning effort — a title is a cheap label, not synthesis (spec: low effort). */
   EFFORT: "low",
@@ -228,7 +228,7 @@ const envSchema = z.object({
     .default("true")
     .transform((value) => value === "true"),
   /** Comma-separated allowed origins for CORS (§11.4). No wildcard in prod. */
-  CORS_ORIGINS: z.string().default("http://localhost:5173"),
+  CORS_ORIGINS: z.string().default("http://localhost:4221"),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),

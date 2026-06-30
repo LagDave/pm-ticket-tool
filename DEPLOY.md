@@ -135,8 +135,8 @@ migrations only; never run manual DDL (§10.3).
 ## 6. Local development is unchanged
 
 - `npm run dev` still boots the Express server (`tsx watch src/index.ts`) listening
-  on `:4000` against Docker Postgres (`:8765`), no SSL, `DATABASE_POOL_MODE`
+  on `:4222` against Docker Postgres (`:8765`), no SSL, `DATABASE_POOL_MODE`
   unset → `persistent` warm pool.
-- The Vite dev server proxies `/api` → `http://localhost:4000` and strips the
+- The Vite dev server proxies `/api` → `http://localhost:4222` and strips the
   `/api` prefix, so the SPA's relative `/api` base works the same in dev and prod.
 - `npm run scout:work` drains the scout queue locally (no cron needed).

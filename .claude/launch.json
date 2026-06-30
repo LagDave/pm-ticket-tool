@@ -5,13 +5,13 @@
       "name": "api",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["tsx", "src/index.ts"],
-      "port": 4000
+      "port": 4222
     },
     {
       "name": "web",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "frontend"],
-      "port": 5173,
+      "port": 4221,
       "autoPort": true
     },
     {

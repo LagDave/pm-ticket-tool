@@ -59,6 +59,7 @@
 
   --font-display: "Fraunces", ui-serif, Georgia, serif;
   --font-body: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, "Cascadia Mono", monospace;
 
   --radius-card: 18px;
 }
@@ -86,6 +87,8 @@
   --accent-tint: rgba(255, 117, 31, 0.12);
   --accent-tint-strong: rgba(255, 117, 31, 0.18);
 
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, "Cascadia Mono", monospace;
+
   --radius-card: 18px;
   --radius-md: 12px;
   --radius-sm: 9px;
@@ -94,6 +97,34 @@
 
   --shadow-card: 0 24px 60px -30px rgba(0, 0, 0, 0.9);
   --shadow-accent: 0 12px 30px -12px rgba(255, 117, 31, 0.55);
+}
+
+/* Light theme — a true editorial off-white (near-zero chroma), NOT cream/sand.
+ * Overrides only the neutrals, accent contrast, shadows, and backdrop ink; the
+ * structure and the single warm accent are shared. Applied via data-theme on
+ * <html>. Contrast checked to AA for body, muted, and placeholders on paper. */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --canvas: #f6f6f4;
+  --canvas-2: #fbfbfa;
+  --surface: #ffffff;
+  --surface-2: #f1f1ee;
+  --surface-3: #e9e9e5;
+  --line: #e4e4df;
+  --line-2: #cfcfc8;
+  --ink: #15161a;
+  --muted: #5b5d66;
+  --faint: #83858d;
+
+  --accent: #e05c12;
+  --accent-soft: #c64f0d;
+  --accent-deep: #a84309;
+  --accent-tint: rgba(224, 92, 18, 0.10);
+  --accent-tint-strong: rgba(224, 92, 18, 0.16);
+
+  --shadow-card: 0 22px 50px -30px rgba(20, 22, 30, 0.30);
+  --shadow-accent: 0 12px 28px -14px rgba(224, 92, 18, 0.45);
 }
 
 * {
@@ -117,9 +148,9 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Atmosphere: restrained radial tints (violet + cyan from the top corners,
- * a faint amber from the bottom) painted behind everything via a fixed ::before.
- * Subtle — sets mood without becoming a "purple gradient" cliche. */
+/* Atmosphere: a restrained, STATIC near-monochrome vignette painted behind
+ * everything. Editorial depth from the canvas's own tones plus one faint warm
+ * pool at the base — no motion, no neon. Theme-aware via the canvas + accent. */
 body::before {
   content: "";
   position: fixed;
@@ -127,9 +158,36 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(60rem 40rem at 12% -8%, rgba(120, 86, 255, 0.14), transparent 60%),
-    radial-gradient(54rem 38rem at 92% 2%, rgba(38, 198, 218, 0.1), transparent 58%),
-    radial-gradient(40rem 40rem at 50% 120%, rgba(255, 117, 31, 0.06), transparent 60%);
+    radial-gradient(70rem 48rem at 50% -12%, var(--surface-2), transparent 62%),
+    radial-gradient(44rem 40rem at 50% 118%, var(--accent-tint), transparent 60%);
+  opacity: 0.6;
+}
+
+/* Fixed theme toggle — unobtrusive, bottom-left, reachable on every screen and
+ * below modals on the z-index scale. */
+.theme-toggle {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 40;
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease,
+    transform 0.12s ease;
+}
+.theme-toggle:hover {
+  color: var(--ink);
+  border-color: var(--faint);
+  transform: translateY(-1px);
 }
 
 /* Custom scrollbar so the dark canvas stays cohesive in Chromium. */
@@ -147,7 +205,7 @@ body::before {
 }
 
 ::selection {
-  background: rgba(255, 117, 31, 0.28);
+  background: var(--accent-tint-strong);
   color: var(--ink);
 }
 
@@ -157,9 +215,17 @@ body::before {
   outline-offset: 2px;
 }
 
-/* Display headings use the serif; the rest stays on the body sans. */
+/* Display headings use the serif; the rest stays on the body sans. Editorial
+ * voice: tight (not touching) tracking + balanced wrap so headlines set evenly. */
 .font-display {
   font-family: var(--font-display);
+}
+.wizard-title,
+.step-heading,
+.bit-overlay-head .step-heading,
+h1.wizard-title {
+  letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 
 /* react-hot-toast styled for dark so error/success toasts match the canvas. */
@@ -348,8 +414,8 @@ body::before {
 .request-echo {
   margin: 0 0 18px;
   padding: 14px 18px;
-  border-left: 2px solid var(--accent-deep);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
   background: var(--canvas-2);
   color: var(--muted);
   font-size: 0.95rem;
@@ -554,17 +620,22 @@ textarea.request-input {
 }
 
 .batch-pip {
-  width: 26px;
+  width: 38px;
   height: 6px;
   border-radius: 999px;
   background: var(--line);
-  transition: background 0.3s ease, box-shadow 0.3s ease, width 0.3s ease;
+  /* Scale instead of animating width — width is a layout property and thrashes;
+   * transform is composited. Base scaleX(0.68) ≈ the old 26px resting width. */
+  transform: scaleX(0.68);
+  transform-origin: left center;
+  transition: background 0.3s ease, box-shadow 0.3s ease,
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .batch-pip.is-answered {
   background: color-mix(in srgb, var(--accent) 70%, var(--surface-2));
 }
 .batch-pip.is-current {
-  width: 38px;
+  transform: scaleX(1);
   background: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-tint);
 }
@@ -759,99 +830,209 @@ textarea.request-input {
  * Dashboard — filter bar, session list, pager
  * ======================================================================== */
 
+/* Masthead: a hairline rule under the page header sets the editorial baseline,
+ * and the title scales up to a real display moment on the landing screens. */
+.dashboard .dashboard-header {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 18px;
+}
+.dashboard .wizard-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 500;
+}
+/* Mono data caption under the masthead title — editorial instrument texture. */
+.dashboard-masthead-text {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.dashboard-count {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 24px;
   margin-bottom: 22px;
 }
 
+/* Filters as mono instrument tabs, not SaaS pills: underline-on-active, the
+ * accent spent only on the active rule. Editorial, not chrome. */
 .filter-chip {
   appearance: none;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.86rem;
-  font-weight: 500;
-  padding: 7px 15px;
-  border-radius: 999px;
+  border: 0;
+  border-bottom: 1.5px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 1px;
   cursor: pointer;
-  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  transition: color 0.18s ease, border-color 0.18s ease;
 }
 .filter-chip:hover {
   color: var(--ink);
-  border-color: var(--line-2);
 }
 .filter-chip.is-active {
-  color: var(--canvas);
-  background: var(--accent);
-  border-color: var(--accent);
-  font-weight: 600;
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+/* Dashboard controls: the status filter row and the title search, on one line
+ * (search drops below the chips on narrow screens). */
+.dashboard-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.dashboard-controls .filter-bar {
+  margin-bottom: 0;
+}
+/* Minimal underline search — a quiet baseline field, not a pill. */
+.search-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 200px;
+  flex: 0 1 260px;
+  padding: 6px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--line-2);
+  border-radius: 0;
+  background: transparent;
+  transition: border-color 0.18s ease;
+}
+.search-field:focus-within {
+  border-bottom-color: var(--accent);
+}
+.search-field-icon {
+  color: var(--faint);
+}
+.search-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  outline: none;
+}
+.search-input::placeholder {
+  color: var(--muted);
+}
+/* Hide the native clear "x" so the field keeps its rounded look. */
+.search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
 }
 
 .session-list {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+/* Editorial list, not a card grid: hairline-ruled rows, a real serif headline,
+ * one mono meta line, and actions that resolve on hover (always shown on touch).
+ * No per-row box — rhythm comes from the rules and the type. */
+.session-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 14px;
+  border-bottom: 1px solid var(--line);
+  transition: background 0.18s ease;
+}
+.session-row:first-child {
+  border-top: 1px solid var(--line);
+}
+.session-row:hover {
+  background: var(--surface);
+}
+
+.session-main {
+  min-width: 0;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.session-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  flex-wrap: wrap;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  padding: 13px 16px;
-  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
-}
-.session-row:hover {
-  border-color: var(--line-2);
-  background: var(--surface-2);
-  transform: translateY(-1px);
-}
-
-.session-main {
-  min-width: 0;
-  flex: 1 1 320px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-/* The primary row label: the generated title (or the request when none). */
+/* The primary row label: a real editorial serif headline. Single line —
+ * ellipsis-truncates rather than wrapping (the actions never push it to wrap). */
 .session-title {
   margin: 0;
   color: var(--ink);
   font-family: var(--font-display);
-  font-size: 0.98rem;
-  font-weight: 600;
-  line-height: 1.3;
+  font-size: clamp(1.1rem, 2vw, 1.34rem);
+  font-weight: 500;
+  line-height: 1.22;
+  letter-spacing: -0.015em;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* The muted subtitle beneath the title: the raw request text. */
+/* One meta line under the title: status · request snippet · timestamp. */
+.session-sub {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
 .session-snippet {
   margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
 .session-meta {
-  font-size: 0.78rem;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
   color: var(--faint);
 }
 
 .session-actions {
   display: flex;
-  gap: 7px;
+  gap: 5px;
   flex-shrink: 0;
+  align-self: center;
+}
+/* Resting-clean: reveal the row actions on hover/focus where hover exists; on
+ * touch devices (no hover) they stay visible. */
+@media (hover: hover) {
+  .session-actions {
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
+  .session-row:hover .session-actions,
+  .session-row:focus-within .session-actions {
+    opacity: 1;
+  }
 }
 
 /* Compact icon-only row actions (dashboard). Square, neutral; the lucide glyph is
@@ -860,13 +1041,13 @@ textarea.request-input {
   appearance: none;
   display: inline-grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
   border: 1px solid var(--line-2);
   background: var(--surface);
   color: var(--muted);
-  border-radius: 9px;
+  border-radius: 8px;
   cursor: pointer;
   transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease,
     transform 0.12s ease;
@@ -911,31 +1092,26 @@ textarea.request-input {
 }
 
 /* Status badge — quiet by default, the active/awaiting states tinted. */
+/* Status as a plain mono instrument label — no boxed pill. Color carries state;
+ * the default is quiet, complete reads positive, active reads full-ink. */
 .session-status {
-  align-self: flex-start;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid var(--line-2);
-  background: var(--surface-2);
-  color: var(--muted);
+  color: var(--faint);
 }
 /* In-progress / awaiting input: a quiet translucent-white treatment (NOT the
  * accent) so the dashboard reads mostly neutral. The orange is reserved for the
  * active filter pill and the in-app recommended/selected/primary states. */
 .session-status-in_progress,
 .session-status-awaiting_input {
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
   color: var(--ink);
 }
 .session-status-complete {
-  border-color: color-mix(in srgb, #3ddc97 40%, var(--line-2));
-  background: color-mix(in srgb, #3ddc97 12%, var(--surface-2));
-  color: #6ee7b0;
+  color: #2faf74;
 }
 
 .pager {
@@ -1136,9 +1312,27 @@ textarea.request-input {
  * and the project screens so the topline can hold more than one button. */
 .dashboard-header-actions {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
   gap: 8px;
+}
+
+/* Compact the dashboard header buttons into a single thin row — the page's top
+ * actions read smaller than the in-flow primary/secondary buttons elsewhere
+ * (pager, wizard). Scoped to the header so those other buttons keep their size. */
+.dashboard-header-actions .primary-button,
+.dashboard-header-actions .secondary-button {
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  gap: 6px;
+  border-radius: var(--radius-sm);
+}
+.dashboard-header-actions .link-button {
+  font-size: 0.82rem;
+  padding: 6px 4px;
 }
 
 .link-button.back-link {
@@ -1166,9 +1360,9 @@ textarea.request-input {
   font-weight: 600;
   color: var(--muted);
 }
-.project-picker .ticket-effort-select {
-  width: auto;
-  min-width: 220px;
+/* Keep the picker from stretching the full panel width on wide screens. */
+.project-picker .select {
+  max-width: 360px;
 }
 
 /* A kind group on the project detail — heading + its bit rows. */
@@ -1384,6 +1578,112 @@ textarea.request-input {
   gap: 16px;
 }
 
+/* Popup forms (project edit/create, add-a-bit) animate in over the blurred
+ * backdrop so they read as a deliberate overlay, not an inline panel. */
+.bit-overlay-card.is-modal {
+  animation: modal-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes modal-pop {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bit-overlay-card.is-modal { animation: none; }
+}
+
+/* ========================================================================
+ * Custom animated dropdown (Select) — replaces the native <select> so the
+ * open menu matches the dark theme. Trigger mirrors .request-input.
+ * ======================================================================== */
+.select {
+  position: relative;
+  width: 100%;
+}
+.select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--canvas-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.98rem;
+  padding: 13px 15px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.select-trigger:hover:not(:disabled) {
+  border-color: var(--line-2);
+}
+.select-trigger.is-open,
+.select-trigger:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+  box-shadow: 0 0 0 3px var(--accent-tint);
+  background: var(--surface);
+}
+.select-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.select-caret {
+  color: var(--muted);
+  transition: transform 0.18s ease;
+}
+.select-trigger.is-open .select-caret {
+  transform: rotate(180deg);
+}
+.select-menu {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-card);
+  transform-origin: top center;
+  animation: select-open 0.14s ease;
+}
+@keyframes select-open {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .select-menu { animation: none; }
+  .select-caret { transition: none; }
+}
+.select-option {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.94rem;
+  text-align: left;
+  padding: 9px 11px;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.select-option:hover {
+  background: var(--surface);
+}
+.select-option.is-selected {
+  background: color-mix(in srgb, var(--accent) 20%, var(--surface));
+  color: var(--ink);
+  font-weight: 600;
+}
+
 /* The read-only generate-bits prompt, monospace in a scrollable block. */
 .bit-prompt-block {
   margin: 0;
@@ -1409,31 +1709,68 @@ textarea.request-input {
   justify-content: space-between;
   gap: 16px;
 }
-.bit-file-field {
+/* While the AI reconciliation runs, the dialog body is replaced by the standard
+ * loader so the wait reads as deliberate work, not a frozen button. */
+.bit-import-progress {
+  display: flex;
+  justify-content: center;
+  padding: 28px 0 12px;
+}
+
+.bit-dropzone-field {
   display: flex;
   flex-direction: column;
   gap: 7px;
 }
-.bit-file-field input[type="file"] {
-  color: var(--muted);
-  font-size: 0.86rem;
-}
-.bit-file-field input[type="file"]::file-selector-button {
-  margin-right: 10px;
-  padding: 8px 14px;
-  border: 1px solid var(--line-2);
+/* Click-to-browse + drag-and-drop target. The native input is visually hidden
+ * but kept in flow inside the <label>, so a click anywhere on the box opens the
+ * picker via native label behavior (no JS .click(), which a browser can ignore).
+ * Drops are handled by the label's onDrop. */
+.bit-dropzone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 96px;
+  padding: 20px 18px;
+  border: 1.5px dashed var(--line-2);
   border-radius: var(--radius-md);
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-  font-size: 0.86rem;
-  font-weight: 600;
+  background: var(--canvas-2);
+  text-align: center;
   cursor: pointer;
   transition: border-color 0.18s ease, background 0.18s ease;
 }
-.bit-file-field input[type="file"]::file-selector-button:hover {
+.bit-dropzone:hover {
   border-color: var(--faint);
-  background: var(--surface-2);
+  background: var(--surface);
+}
+.bit-dropzone.is-dragging {
+  border-color: var(--accent);
+  border-style: solid;
+  background: color-mix(in srgb, var(--accent) 12%, var(--canvas-2));
+}
+.bit-dropzone-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  opacity: 0;
+}
+.bit-dropzone-title {
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 600;
+  word-break: break-word;
+}
+.bit-dropzone-hint {
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 .bit-force-toggle {
   display: flex;

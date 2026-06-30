@@ -91,16 +91,18 @@ export function SessionList({
       {sessions.map((session) => (
         <li key={session.id} className="session-row">
           <div className="session-main">
-            <span className={`session-status session-status-${session.status}`}>
-              {STATUS_LABEL[session.status]}
-            </span>
             <p className="session-title">{primaryLabel(session)}</p>
-            {subtitle(session) && (
-              <p className="session-snippet">{subtitle(session)}</p>
-            )}
-            <span className="session-meta">
-              Updated {new Date(session.updated_at).toLocaleString()}
-            </span>
+            <div className="session-sub">
+              <span className={`session-status session-status-${session.status}`}>
+                {STATUS_LABEL[session.status]}
+              </span>
+              {subtitle(session) && (
+                <span className="session-snippet">{subtitle(session)}</span>
+              )}
+              <span className="session-meta">
+                {new Date(session.updated_at).toLocaleDateString()}
+              </span>
+            </div>
           </div>
           <div className="session-actions">
             {isResumable(session.status) ? (

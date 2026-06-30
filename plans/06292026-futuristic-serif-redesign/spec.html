@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Futuristic Serif Redesign Spec</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #ffffff;
+      --ink: #080808;
+      --muted: #5f5f5f;
+      --line: #d8d8d8;
+      --soft: #f5f5f5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    .spec-shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0; }
+    .spec-hero, .spec-card, .task-card { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+    .spec-hero { border-color: var(--ink); padding: 32px; margin-bottom: 20px; }
+    .hero-topline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .spec-card { padding: 28px; margin-top: 16px; }
+    .task-card { padding: 20px; background: var(--soft); margin-top: 14px; }
+    .eyebrow, dt { color: var(--muted); font-size: 0.78rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
+    .eyebrow { margin: 0; }
+    .status-pill { display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 0.78rem; font-weight: 800; letter-spacing: 0; text-transform: uppercase; }
+    .status-card { border-color: var(--ink); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 840px; margin-bottom: 24px; font-size: clamp(2.25rem, 6vw, 5rem); line-height: 0.95; letter-spacing: 0; }
+    h2 { font-size: 1.35rem; letter-spacing: 0; }
+    h3 { font-size: 1rem; letter-spacing: 0; }
+    code { padding: 0.1rem 0.3rem; border: 1px solid var(--line); border-radius: 4px; background: var(--soft); font-size: 0.92em; }
+    .meta-grid, .split-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .meta-grid { margin: 0; }
+    .meta-grid div, .split-grid > div { border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    dd { margin: 4px 0 0; font-weight: 700; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
+    @media (max-width: 640px) {
+      .spec-shell { width: min(100% - 20px, 1120px); padding: 24px 0; }
+      .spec-hero, .spec-card { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">PM Tool Plan Spec</p>
+        <span class="status-pill status-pending">In Progress</span>
+      </div>
+      <h1>Futuristic Serif Redesign</h1>
+      <dl class="meta-grid">
+        <div class="status-card"><dt>Status</dt><dd>In Progress — built, pending visual acceptance</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/06292026-futuristic-serif-redesign</dd></div>
+        <div><dt>Size</dt><dd>Large</dd></div>
+        <div><dt>Risk</dt><dd>Level 3</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>The PM tool reads as a competent-but-generic dark SPA. The ask is a distinct identity: a refined serif + "futuristic" dark aesthetic with an animated WebGL backdrop, motion choreography, and a real light mode — so the product feels considered, not templated. <code>impeccable detect</code> also flagged two concrete tells to fix (see Context).</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>A full visual overhaul delivered behind the existing CSS-variable theming, with five additive layers and one cleanup:</p>
+      <ul>
+        <li><strong>Theme system</strong> — light + dark palettes as CSS variables, a persisted toggle (dark default), no hardcoded colors.</li>
+        <li><strong>Typography & tokens</strong> — a more deliberate serif display voice with a futuristic mono/sans accent; refreshed spacing, radii, elevation.</li>
+        <li><strong>WebGL backdrop</strong> — a single Three.js canvas mounted once at the app shell, behind every route, with hard perf/accessibility guards.</li>
+        <li><strong>Motion</strong> — GSAP drives the backdrop + scroll choreography; Framer Motion stays the layer for React component transitions (a documented boundary, not two libs doing the same job).</li>
+        <li><strong>Component restyle pass</strong> — dashboard, projects, project detail, wizard, modals, ticket views, in both themes.</li>
+        <li><strong>Cleanup</strong> — fix the two <code>impeccable detect</code> findings and re-run it clean.</li>
+      </ul>
+      <p><strong>Done when:</strong> both themes pass contrast, the backdrop runs app-wide but degrades gracefully (reduced-motion + low-end + hidden-tab), <code>tsc</code>/<code>lint</code> are clean, <code>impeccable detect</code> is clean, and the initial bundle isn't blocked by Three.js.</p>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <h3>Relevant Files</h3>
+      <ul>
+        <li><code>frontend/src/index.css</code> — the single stylesheet; all theming is via CSS custom properties in <code>:root</code>. The light/dark palettes and tokens live here.</li>
+        <li><code>frontend/src/App.tsx</code> / app shell — where the persistent backdrop canvas and the ThemeProvider mount once (not per-route).</li>
+        <li><code>frontend/src/main.tsx</code> — app entry; imports <code>index.css</code>.</li>
+        <li><code>frontend/src/components/ui/ThinkingLoader.tsx</code>, <code>Select.tsx</code> — existing Framer Motion usage; the reference for component-level motion that stays on Framer.</li>
+        <li>Pages: <code>Dashboard.tsx</code>, <code>ProjectsManager.tsx</code>, <code>ProjectDetail.tsx</code>, <code>InterviewWizard.tsx</code> + interview/ticket/bits components — the restyle surface.</li>
+      </ul>
+      <h3>impeccable detect findings (to fix)</h3>
+      <ul>
+        <li><code>index.css:351</code> <strong>[side-tab]</strong> <code>border-left: 2px solid var(--accent-deep)</code> — the "AI UI" tell; replace with a subtler treatment.</li>
+        <li><code>index.css:561</code> <strong>[layout-transition]</strong> <code>transition: width</code> — animate <code>transform</code> instead to avoid layout thrash.</li>
+      </ul>
+      <h3>Patterns To Follow</h3>
+      <ul>
+        <li>Theme exclusively through CSS variables (existing convention) — components never hardcode hex.</li>
+        <li>One loader, one motion vocabulary — extend the existing tokens; do not fork parallel systems.</li>
+        <li><code>prefers-reduced-motion</code> is already respected in <code>index.css</code>; every new animation must honor it.</li>
+      </ul>
+      <p><strong>Reference:</strong> the current <code>index.css</code> <code>:root</code> token block is the closest analog for how the new palettes/tokens should be structured.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Theme via CSS variables only; both light + dark defined for every token.</li>
+            <li>Lazy-load / code-split Three.js + GSAP so first paint is never blocked.</li>
+            <li>One shared backdrop canvas mounted at the shell — never remounted per route.</li>
+            <li>Backdrop guards: cap devicePixelRatio, cap FPS, pause on hidden tab, static fallback under <code>prefers-reduced-motion</code> and on low-end/no-WebGL.</li>
+            <li>Document the Framer (components) vs GSAP (backdrop/scroll) boundary in code comments.</li>
+            <li>Maintain WCAG AA contrast in both themes.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No hardcoded colors in components.</li>
+            <li>No migrating existing Framer usage to GSAP (no churn on working motion).</li>
+            <li>No backend changes — this is frontend-only.</li>
+            <li>No blocking the main thread with the WebGL loop on low-end devices.</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Backend, API, data model — untouched.</li>
+        <li>Resolving the dev-only npm-audit vulnerabilities introduced by <code>impeccable</code> (tracked separately).</li>
+        <li>Migrating the backdrop to <code>@react-three/fiber</code> — using raw <code>three</code> for the single canvas (revisit only if scene authoring gets complex).</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level:</strong> 3 (Structural — app-wide visual change, new heavy runtime deps, perf/accessibility surface).</p>
+      <h3>Risks Identified</h3>
+      <ul>
+        <li><strong>App-wide WebGL perf/battery/low-end.</strong> <em>Mitigation:</em> single shared canvas, DPR cap (≤1.5), FPS cap, pause via Page Visibility API, static fallback under reduced-motion / no-WebGL, lazy import so it never blocks paint.</li>
+        <li><strong>Two animation libraries (Framer + GSAP) drift into a parallel abstraction.</strong> <em>Mitigation:</em> a hard, documented boundary — Framer = React component transitions, GSAP = backdrop + scroll timelines only. Reviewed at execution.</li>
+        <li><strong>Light mode breaks contrast / reveals hardcoded colors.</strong> <em>Mitigation:</em> token audit; define every variable for both themes; contrast-check key surfaces.</li>
+        <li><strong>Bundle growth (Three.js + GSAP ≈ 200KB+ gzip).</strong> <em>Mitigation:</em> code-split the backdrop + GSAP into an async chunk; tree-shake Three imports.</li>
+        <li><strong>impeccable dev dependency carries 1 critical + 1 high + 3 moderate vulns.</strong> <em>Mitigation:</em> dev-only (never bundled); evaluate <code>npm audit</code> separately; consider running it via <code>npx</code> without keeping it as a dependency.</li>
+      </ul>
+      <p><strong>Blast radius:</strong> <code>index.css</code> (every screen), the app shell (<code>App.tsx</code>/entry), and every page + UI component. Frontend only — no backend consumers.</p>
+      <h3>Pushback</h3>
+      <ul>
+        <li><strong>GSAP alongside Framer is redundant by default.</strong> Recommended alternative was Framer + Three's own loop (no GSAP). Proceeding with GSAP per your call — scoped strictly to the backdrop/scroll so it doesn't overlap Framer.</li>
+        <li><strong>App-wide WebGL is the costliest option.</strong> Recommended landing/dashboard-only. Proceeding app-wide per your call — mitigated by the single-canvas + guards above; if mid-device FPS suffers, fall back to the CSS/Canvas backdrop without changing the rest of the design.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+      <article class="task-card">
+        <h3>T0: Setup — dependencies + impeccable skills (Rev 1)</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Install <code>three</code> + <code>@types/three</code> + <code>gsap</code> in the frontend (framer-motion already present). Run <code>impeccable skills install</code> at the repo root to write its design skills into the project. Confirm the skills land where expected and commit them.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/package.json</code>, lockfiles, whatever <code>impeccable skills install</code> writes (e.g. skill files)</dd></div>
+          <div><dt>Depends on</dt><dd>none</dd></div>
+          <div><dt>Verify</dt><dd><code>three</code>/<code>gsap</code> resolve in an import; <code>impeccable skills check</code> reports installed/up-to-date.</dd></div>
+        </dl>
+      </article>
+      <article class="task-card">
+        <h3>T1: Theme system (light + dark, toggle, persisted)</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Define light + dark palettes as CSS variables; add a ThemeProvider/context + persisted toggle (localStorage), dark default; set <code>data-theme</code> on the root.</dd></div>
+          <div><dt>Files</dt><dd><code>index.css</code>, new <code>components/ui/ThemeToggle.tsx</code>, theme context, app shell</dd></div>
+          <div><dt>Depends on</dt><dd>none</dd></div>
+          <div><dt>Verify</dt><dd>Toggle flips both themes; reload persists; no hardcoded colors remain.</dd></div>
+        </dl>
+      </article>
+      <article class="task-card">
+        <h3>T2: Typography & design tokens</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Refine the serif display voice + futuristic accent (mono/sans); refresh spacing, radii, elevation tokens for both themes.</dd></div>
+          <div><dt>Files</dt><dd><code>index.css</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Manual: type scale + tokens read consistently in both themes.</dd></div>
+        </dl>
+      </article>
+      <article class="task-card">
+        <h3>T3: WebGL backdrop (Three.js, shell-mounted, guarded)</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Single lazy-loaded canvas at the app shell behind all routes; DPR/FPS caps, visibility pause, reduced-motion + no-WebGL static fallback; theme-aware colors.</dd></div>
+          <div><dt>Files</dt><dd>new <code>components/backdrop/SceneBackdrop.tsx</code>, app shell</dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Runs app-wide; pauses on tab hide; static under reduced-motion; first paint not blocked (chunk is async).</dd></div>
+        </dl>
+      </article>
+      <article class="task-card">
+        <h3>T4: GSAP choreography layer</h3>
+        <dl>
+          <div><dt>Do</dt><dd>GSAP timelines/scroll for the backdrop + key route/section reveals; comment the Framer-vs-GSAP boundary at both seams.</dd></div>
+          <div><dt>Files</dt><dd><code>SceneBackdrop.tsx</code>, shell, select page sections</dd></div>
+          <div><dt>Depends on</dt><dd>T3</dd></div>
+          <div><dt>Verify</dt><dd>Choreography runs; disabled under reduced-motion; no overlap with Framer component transitions.</dd></div>
+        </dl>
+      </article>
+      <article class="task-card">
+        <h3>T5: Component restyle pass (both themes)</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Re-skin dashboard, projects, project detail, wizard, modals, ticket views to the new tokens; verify each in light + dark.</dd></div>
+          <div><dt>Files</dt><dd>pages/* + components/* (CSS-driven where possible)</dd></div>
+          <div><dt>Depends on</dt><dd>T1, T2</dd></div>
+          <div><dt>Verify</dt><dd>Every screen reads correctly in both themes; contrast holds.</dd></div>
+        </dl>
+      </article>
+      <article class="task-card">
+        <h3>T6: Cleanup + perf/audit gate</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Fix the two <code>impeccable detect</code> findings; re-run detect clean; check bundle split + mid-device FPS.</dd></div>
+          <div><dt>Files</dt><dd><code>index.css</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1–T5</dd></div>
+          <div><dt>Verify</dt><dd><code>impeccable detect frontend/src</code> reports 0; backdrop chunk is async; FPS acceptable.</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled> <code>three</code> + <code>@types/three</code> + <code>gsap</code> installed; <code>impeccable skills install</code> run and committed (Rev 1)</li>
+        <li><input type="checkbox" disabled> <code>npx tsc --noEmit</code> (frontend) — zero errors</li>
+        <li><input type="checkbox" disabled> <code>npm run lint</code> — zero errors</li>
+        <li><input type="checkbox" disabled> Light + dark both render correctly on every screen; toggle persists across reload</li>
+        <li><input type="checkbox" disabled> WCAG AA contrast holds in both themes on key surfaces</li>
+        <li><input type="checkbox" disabled> Backdrop: app-wide, single canvas, pauses on hidden tab, static under <code>prefers-reduced-motion</code> / no-WebGL</li>
+        <li><input type="checkbox" disabled> Three.js + GSAP load in an async chunk — first paint not blocked</li>
+        <li><input type="checkbox" disabled> <code>impeccable detect frontend/src</code> — 0 anti-patterns</li>
+        <li><input type="checkbox" disabled> Manual: acceptable FPS on a mid-tier device</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <article class="revision-entry">
+        <h3>Rev 1 - 2026-06-29</h3>
+        <p><strong>Change:</strong> Added T0 (Setup) to install <code>three</code> + <code>@types/three</code> + <code>gsap</code> and run <code>impeccable skills install</code> as part of execution. Moved <code>impeccable skills install</code> from Out Of Scope into scope; added a matching Done item.</p>
+        <p><strong>Reason:</strong> User confirmed they want the impeccable skills setup ("init" = <code>skills install</code>) plus the Three.js/GSAP/Framer dependency setup done within this execution, not deferred.</p>
+        <p><strong>Updated Done criteria:</strong> New checklist item — deps installed + skills installed/committed. (framer-motion was already present at <code>^12.41.0</code>; only <code>three</code>/<code>gsap</code> are new.)</p>
+      </article>
+      <article class="revision-entry">
+        <h3>Rev 2 - 2026-06-30</h3>
+        <p><strong>Change:</strong> Executed T0–T6. Added <code>PRODUCT.md</code> + <code>DESIGN.md</code> (impeccable init). Theme system (light/dark, persisted toggle, dark default). Mono technical accent + tightened serif display. Retired the violet/cyan neon vignette for a near-monochrome theme-aware one. Three.js drift-field backdrop (lazy, code-split, DPR/FPS-capped, hidden-tab pause, reduced-motion/no-WebGL gate) driven by GSAP intro+ticker. Fixed both original <code>detect</code> findings (side-stripe → full border; <code>width</code> → <code>transform</code> on <code>.batch-pip</code>).</p>
+        <p><strong>Reason:</strong> Execution deviation: T5 component restyle is delivered primarily through the token/theme system (every semantic class adapts to both themes automatically) plus targeted edits (status/meta → mono, request-echo full border), rather than a hand-edit of every screen.</p>
+        <p><strong>Waiver:</strong> The <code>detect</code> "em-dash-overuse (522)" finding scans <code>index.css</code> <em>code comments</em> as body copy — it is not rendered UI text. Accepted as a false positive; the two actionable UI findings are fixed.</p>
+      </article>
+      <article class="revision-entry">
+        <h3>Rev 3 - 2026-06-30</h3>
+        <p><strong>Change:</strong> Removed the WebGL backdrop entirely — deleted <code>SceneBackdrop</code>/<code>ThreeBackdrop</code>, the <code>.scene-backdrop*</code> CSS, and the <code>--backdrop-ink</code> tokens; uninstalled <code>three</code>, <code>@types/three</code>, and <code>gsap</code> (now unused). Depth is now a static CSS vignette only. Also began the real surface redesign: the dashboard moved from boxed cards to a hairline-ruled editorial list (serif headlines + one mono meta line + hover-reveal actions), mono underline filter tabs, a minimal underline search, and a mono session-count masthead caption — verified via headless screenshot.</p>
+        <p><strong>Reason:</strong> User feedback: the moving background was unwanted ("remove the mooing background, i hate it"); and the earlier passes hadn't actually recomposed the screens (atmosphere ≠ redesign).</p>
+        <p><strong>Updated Done criteria:</strong> Backdrop/GSAP/Three.js Done items + acceptance T7 no longer apply (feature removed). Motion is now Framer-only.</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

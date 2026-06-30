@@ -36,14 +36,10 @@ export function ProjectForm({ project, isSaving, onSubmit, onCancel }: ProjectFo
   };
 
   return (
-    <form className="step-panel" onSubmit={handleSubmit}>
-      <label className="field-label" htmlFor="project-name">
-        {project ? "Edit project" : "New project"}
+    <form className="bit-form" onSubmit={handleSubmit}>
+      <label className="bit-field-label" htmlFor="project-name">
+        Project name
       </label>
-      <p className="field-hint">
-        A project groups the bits that ground an interview - the real facts about
-        your app (its stack, screens, constraints, integrations).
-      </p>
       <input
         id="project-name"
         className="request-input"

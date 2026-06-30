@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { useCreateSession } from "../../hooks/queries/useInterviewSessionQueries";
 import { useProjects } from "../../hooks/queries/useProjectQueries";
+import { Select } from "../ui/Select";
 import type { InterviewSession } from "../../types/interview";
 
 interface RequestEntryProps {
@@ -54,22 +55,22 @@ export function RequestEntry({ onCreated }: RequestEntryProps) {
         disabled={createSession.isPending}
       />
       {projects && projects.length > 0 && (
-        <label className="project-picker">
+        <div className="project-picker">
           <span className="project-picker-label">Project (optional)</span>
-          <select
-            className="ticket-effort-select"
+          <Select
             value={projectChoice}
-            onChange={(event) => setProjectChoice(event.target.value)}
+            options={[
+              { value: NO_PROJECT, label: "No project" },
+              ...projects.map((project) => ({
+                value: String(project.id),
+                label: project.name,
+              })),
+            ]}
+            onChange={setProjectChoice}
             disabled={createSession.isPending}
-          >
-            <option value={NO_PROJECT}>No project</option>
-            {projects.map((project) => (
-              <option key={project.id} value={String(project.id)}>
-                {project.name}
-              </option>
-            ))}
-          </select>
-        </label>
+            ariaLabel="Project"
+          />
+        </div>
       )}
       <div className="step-actions">
         <button type="submit" className="primary-button" disabled={!canSubmit}>

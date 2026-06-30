@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { ProjectForm } from "../components/projects/ProjectForm";
 import { ProjectList } from "../components/projects/ProjectList";
+import { Modal } from "../components/ui/Modal";
 import { ThinkingLoader } from "../components/ui/ThinkingLoader";
 import {
   useCreateProject,
@@ -64,40 +65,26 @@ export function ProjectsManager({ onOpenProject, onExit }: ProjectsManagerProps)
           <button type="button" className="link-button back-link" onClick={onExit}>
             ← Dashboard
           </button>
-          {form.mode === "closed" && (
-            <button
-              type="button"
-              className="primary-button"
-              onClick={() => setForm({ mode: "create" })}
-            >
-              New project
-            </button>
-          )}
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => setForm({ mode: "create" })}
+          >
+            New project
+          </button>
         </div>
       </header>
-
-      {form.mode === "create" && (
-        <ProjectForm
-          isSaving={create.isPending}
-          onSubmit={handleCreate}
-          onCancel={() => setForm({ mode: "closed" })}
-        />
-      )}
-      {form.mode === "edit" && (
-        <ProjectForm
-          project={form.project}
-          isSaving={update.isPending}
-          onSubmit={handleUpdate}
-          onCancel={() => setForm({ mode: "closed" })}
-        />
-      )}
 
       {isLoading && <ThinkingLoader subtitle="Loading your projects" />}
       {error && (
         <p className="field-hint">Could not load your projects. Try again.</p>
       )}
 
-      {projects && (projects.length > 0 || form.mode === "closed") && (
+      {projects && projects.length === 0 && (
+        <p className="field-hint">No projects yet. Create one with “New project”.</p>
+      )}
+
+      {projects && projects.length > 0 && (
         <ProjectList
           projects={projects}
           isDeleting={remove.isPending}
@@ -105,6 +92,30 @@ export function ProjectsManager({ onOpenProject, onExit }: ProjectsManagerProps)
           onEdit={(project) => setForm({ mode: "edit", project })}
           onDelete={handleDelete}
         />
+      )}
+
+      {form.mode !== "closed" && (
+        <Modal
+          title={form.mode === "edit" ? "Edit project" : "New project"}
+          hint="A project groups the bits that ground an interview — the real facts about your app (its stack, screens, constraints, integrations)."
+          busy={create.isPending || update.isPending}
+          onClose={() => setForm({ mode: "closed" })}
+        >
+          {form.mode === "edit" ? (
+            <ProjectForm
+              project={form.project}
+              isSaving={update.isPending}
+              onSubmit={handleUpdate}
+              onCancel={() => setForm({ mode: "closed" })}
+            />
+          ) : (
+            <ProjectForm
+              isSaving={create.isPending}
+              onSubmit={handleCreate}
+              onCancel={() => setForm({ mode: "closed" })}
+            />
+          )}
+        </Modal>
       )}
     </main>
   );

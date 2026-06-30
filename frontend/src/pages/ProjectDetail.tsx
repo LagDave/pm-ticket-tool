@@ -15,6 +15,7 @@ import { BitsToolbar } from "../components/bits/BitsToolbar";
 import { GeneratePromptPopup } from "../components/bits/GeneratePromptPopup";
 import { ImportDialog } from "../components/bits/ImportDialog";
 import { ReconcileResolve } from "../components/bits/ReconcileResolve";
+import { Modal } from "../components/ui/Modal";
 import { ThinkingLoader } from "../components/ui/ThinkingLoader";
 import {
   useCreateBit,
@@ -114,21 +115,6 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
         />
       ) : (
         <>
-          {isAdding && (
-            <div className="step-panel">
-              <p className="field-label">Add a bit</p>
-              <p className="field-hint">
-                A typed fact about the app. Settled kinds (constraint, tech stack,
-                inventory) can later suppress a question the interview would otherwise ask.
-              </p>
-              <BitForm
-                isSaving={create.isPending}
-                onSubmit={handleAdd}
-                onCancel={() => setIsAdding(false)}
-              />
-            </div>
-          )}
-
           {isLoading && <ThinkingLoader subtitle="Loading project bits" />}
           {error && <p className="field-hint">Could not load this project. Try again.</p>}
 
@@ -155,6 +141,21 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
               </section>
             ))}
         </>
+      )}
+
+      {isAdding && (
+        <Modal
+          title="Add a bit"
+          hint="A typed fact about the app. Settled kinds (constraint, tech stack, inventory) can later suppress a question the interview would otherwise ask."
+          busy={create.isPending}
+          onClose={() => setIsAdding(false)}
+        >
+          <BitForm
+            isSaving={create.isPending}
+            onSubmit={handleAdd}
+            onCancel={() => setIsAdding(false)}
+          />
+        </Modal>
       )}
 
       {overlay === "prompt" && (

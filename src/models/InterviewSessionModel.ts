@@ -4,6 +4,7 @@
  * derived from server context, never an optional filter a caller may forget
  * (§11.7, §5.5). A query that could return another owner's row is a data leak.
  */
+import type { Knex } from "knex";
 import { BaseModel, QueryContext } from "./BaseModel";
 import type {
   IInterviewSession,
@@ -11,6 +12,25 @@ import type {
   SessionStatus,
   TriageResult,
 } from "../types/interview";
+
+/** Escape LIKE wildcards so a search term is matched literally (no %/_ injection). */
+function escapeLikeTerm(term: string): string {
+  return term.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+}
+
+/**
+ * Narrow a sessions query to rows whose DISPLAYED dashboard title matches
+ * `search` (case-insensitive substring). The dashboard label is the generated
+ * title with a fallback to the original request (SessionList), so we match
+ * COALESCE(title, original_request) — a search hits exactly what the PM sees.
+ * No-op when search is empty; wildcards are escaped so the term is literal.
+ */
+function applyTitleSearch(query: Knex.QueryBuilder, search?: string): void {
+  if (!search) return;
+  query.whereRaw("COALESCE(title, original_request) ILIKE ?", [
+    `%${escapeLikeTerm(search)}%`,
+  ]);
+}
 
 export interface CreateInterviewSessionInput {
   originalRequest: string;
@@ -103,11 +123,12 @@ export class InterviewSessionModel extends BaseModel {
    */
   static async listPageForOwner(
     owner: OwnerContext,
-    params: { limit: number; offset: number; status?: SessionStatus },
+    params: { limit: number; offset: number; status?: SessionStatus; search?: string },
     trx?: QueryContext,
   ): Promise<IInterviewSession[]> {
     const query = this.table(trx).where({ owner_user_id: owner.ownerUserId });
     if (params.status) query.where({ status: params.status });
+    applyTitleSearch(query, params.search);
     const rows = await query
       .orderBy("created_at", "desc")
       .limit(params.limit)
@@ -122,11 +143,12 @@ export class InterviewSessionModel extends BaseModel {
    */
   static async countForOwner(
     owner: OwnerContext,
-    params: { status?: SessionStatus } = {},
+    params: { status?: SessionStatus; search?: string } = {},
     trx?: QueryContext,
   ): Promise<number> {
     const query = this.table(trx).where({ owner_user_id: owner.ownerUserId });
     if (params.status) query.where({ status: params.status });
+    applyTitleSearch(query, params.search);
     const [row] = await query.count<{ count: string }[]>({ count: "*" });
     return Number(row?.count ?? 0);
   }

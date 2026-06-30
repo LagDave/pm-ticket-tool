@@ -27,7 +27,13 @@ export const QUERY_KEYS = {
    * invalidation after a create/clone.
    */
   sessions: (params: ListSessionsParams = {}) =>
-    ["sessions", params.page ?? null, params.limit ?? null, params.status ?? null] as const,
+    [
+      "sessions",
+      params.page ?? null,
+      params.limit ?? null,
+      params.status ?? null,
+      params.search ?? null,
+    ] as const,
   /** Resume state for a session (spec 4 T2): turns + decisions + status + ticketId. */
   sessionState: (id: number) => ["session-state", id] as const,
   /** The two-speed triage outcome for a session (spec 7): the persisted label + route. */
