@@ -1,6 +1,6 @@
 {
   "name": "pm-tool-backend",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "PM Ticket Tool — TypeScript + Express + Knex + PostgreSQL backend",
   "type": "commonjs",
@@ -8,7 +8,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "npm run build:frontend && npm run build:backend",
     "build:backend": "tsc -p tsconfig.json",
-    "build:frontend": "cd frontend && npm install && npm run build",
+    "build:frontend": "cd frontend && npm install --include=dev && npm run build",
     "start": "node dist/src/index.js",
     "migrate": "tsx ./node_modules/knex/bin/cli.js migrate:latest --knexfile knexfile.ts",
     "migrate:rollback": "tsx ./node_modules/knex/bin/cli.js migrate:rollback --knexfile knexfile.ts",
