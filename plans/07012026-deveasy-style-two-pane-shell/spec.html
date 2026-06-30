@@ -298,6 +298,12 @@
         <p><strong>Reason:</strong> User QA: the option grid wrapped too tightly at 760px.</p>
         <p><strong>Files:</strong> <code>frontend/src/pages/InterviewWizard.tsx</code> (step-conditional max-width on the pane wrapper).</p>
       </article>
+      <article class="revision-entry">
+        <h3>Rev 4 - 2026-07-01</h3>
+        <p><strong>Change:</strong> Made the wizard container a single constant width (1080px) across all steps, replacing the Rev 3 step-conditional width. The request and ticket-draft steps now share the interview width.</p>
+        <p><strong>Reason:</strong> User QA: the step-conditional width (1080 interview / 760 others) made the panel jump narrower when moving between steps; the sparser steps should hold the same width as the content-rich one to avoid a layout shift.</p>
+        <p><strong>Files:</strong> <code>frontend/src/pages/InterviewWizard.tsx</code> (constant pane max-width).</p>
+      </article>
     </section>
   </main>
 </body>

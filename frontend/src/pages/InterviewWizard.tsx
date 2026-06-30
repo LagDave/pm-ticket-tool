@@ -87,14 +87,10 @@ export function InterviewWizard({
   };
 
   return (
-    <main
-      className={
-        "mx-auto w-full px-6 pt-10 pb-16 " +
-        // The interview step renders a 2-column option deck; give it room so the
-        // cards aren't cramped. Request + ticket stay at a narrower reading width.
-        (stepIndex === WIZARD_STEP.interview ? "max-w-[1080px]" : "max-w-[760px]")
-      }
-    >
+    {/* One constant max-width across every step so the panel never changes width
+        as the PM moves between steps (the interview's 2-column deck needs the
+        room; request + ticket simply share it — no layout shift). */}
+    <main className="mx-auto w-full max-w-[1080px] px-6 pt-10 pb-16">
       <header className="mb-6">
         {/* Brand masthead removed — the app shell owns the header now. Only the
             step rail remains as the wizard's own progress chrome. */}
